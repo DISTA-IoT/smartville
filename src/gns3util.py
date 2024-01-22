@@ -157,7 +157,7 @@ def create_docker_template(server: Server, name: str, image: str, environment: s
                 'default_name_format': '{name}-{0}',
                 'extra_hosts': '',
                 'extra_volumes': [],
-                'start_command': '',
+                'start_command': 'sh',
                 'symbol': ':/symbols/docker_guest.svg',
                 'template_type': 'docker',
                 'usage': ''}
@@ -468,6 +468,11 @@ def delete_node(server: Server, project: Project, node_id: str) -> None:
     req = requests.delete(f"http://{server.addr}:{server.port}/v2/projects/{project.id}/nodes/{node_id}", auth=(server.user, server.password))
     req.raise_for_status()
 
+def delete_template(server: Server, project: Project, template_id: str) -> None:
+    """Delete selected template."""
+    # check if node is running?
+    req = requests.delete(f"http://{server.addr}:{server.port}/v2/templates/{template_id}", auth=(server.user, server.password))
+    req.raise_for_status()
 
 def start_node_by_name(server: Server, project: Project, node_name: str) -> None:
     """Start the selected node by name."""

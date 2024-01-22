@@ -26,6 +26,7 @@ For each switch:
 """
 
 import datetime
+import random
 from pox.core import core
 import pox
 from pox.lib.packet.ethernet import ethernet, ETHER_BROADCAST
@@ -42,6 +43,7 @@ import time
 import logging
 import os
 from scapy.all import wrpcap
+
 
 # Timeout for flows
 FLOW_IDLE_TIMEOUT = 10
@@ -99,7 +101,7 @@ class PacketLogger(object):
             os.makedirs(pcap_folder)
         self.pcap_folder = pcap_folder
         self.packet_lists = {}  # Initialize the packet_lists dictionary
-        self.max_packets_per_port = 100
+        self.max_packets_per_port = 10
 
     def _handle_PacketIn(self, event):
         if event.parsed.type == 38:
@@ -121,13 +123,14 @@ class PacketLogger(object):
         # Check if the list has reached 100 packets
         if len(self.packet_lists[port]) >= self.max_packets_per_port:
             # Write the list of packets to a pcap file
-           
             pcap_filename = f"{self.pcap_folder}/port_{port}_packets.pcap"
             wrpcap(pcap_filename, self.packet_lists[port])
             log.info("Packets written to pcap file: %s", pcap_filename)
-
+            #send list of packet to ai placeholder
+            ai_placeholder(self.packet_lists[port],port)
             # Clear the list for this port
             self.packet_lists[port] = []
+
 
 class Entry (object):
   """
@@ -422,8 +425,37 @@ class l3_switch (EventMixin):
           action = of.ofp_action_output(port = of.OFPP_FLOOD))
       event.connection.send(msg)
 
+def ai_placeholder(packetlist,port):
+  log.info(f"AI: RECEIVED {len(packetlist)} PACKETS FOR PORT: {port}")
+  choose = random.choice([True, False])
+  log.info(f"AI: I HAVE CHOSEN: {choose} FOR PORT: {port}")
+  if choose:
+    mitigate_attack(port)
+
+def mitigate_attack(port):
+  block_traffic(port)
+
+def block_traffic(port):
+  # Creating a flow rule to drop all packets coming in on the specified port
+  msg = of.ofp_flow_mod()
+  msg.match.in_port = port  # Replace with the desired input port
+  msg.idle_timeout = 0  # Set to 0 for no idle timeout
+  msg.hard_timeout = 0  # Set to 0 for no hard timeout
+  openflow_connection.send(msg)
+  log.info(f"SWITCH FLOW MOD SENT - BLOCKED PORT {port}")
+
+
+openflow_connection = None
+
+def _handle_ConnectionUp (event):
+  global openflow_connection
+  openflow_connection=event.connection
+  log.info("Connection is UP")
+
+
 
 def launch (fakeways="", arp_for_unknowns=None, wide=False):
+  core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
   fakeways = fakeways.replace(","," ").split()
   fakeways = [IPAddr(x) for x in fakeways]
   if arp_for_unknowns is None:
