@@ -1,0 +1,3 @@
+#launch pox controller
+./pox.py --verbose samples.pretty_log customScript.l3_learning_mod openflow.discovery:graph --export=foo.dot
+./pox.py --verbose samples.pretty_log customScript.l3_learning_mod 

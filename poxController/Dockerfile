@@ -7,7 +7,7 @@ RUN apt-get install -y libpcap0.8 libpcap0.8-dev
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install scapy
+RUN pip3 install scapy networkx pydot
 
 RUN git clone https://github.com/noxrepo/pox.git /pox
 

@@ -43,7 +43,7 @@ import time
 import logging
 import os
 from scapy.all import wrpcap
-
+from pox.openflow.discovery import graph
 
 # Timeout for flows
 FLOW_IDLE_TIMEOUT = 10
@@ -92,6 +92,26 @@ class Entry (object):
 def dpid_to_mac (dpid):
   return EthAddr("%012x" % (dpid & 0xffFFffFFffFF,))
 
+active_topology = {}  # Initialize active topology dictionary
+def refresh_topology(ip,port):
+
+    if port in active_topology:
+        if ip in active_topology[port]:
+            print(f"key: {ip} value: {active_topology[port]} is already present in the topology")
+        else:
+            active_topology[port].append(ip)
+            print(f"key: {ip} value: {active_topology[port]} added in the topology")
+    else:
+        active_topology[port] = [ip]
+        print(f"key: {ip} value: {active_topology[port]} added in the topology")
+
+
+def print_topology():
+  print("---Printing topology---")
+  for port, ip_list in active_topology.items():
+    print(f"PORT: {port}, IP: {str(ip_list)}")
+
+
 class PacketLogger(object):
     def __init__(self):
         core.openflow.addListeners(self)
@@ -101,19 +121,20 @@ class PacketLogger(object):
             os.makedirs(pcap_folder)
         self.pcap_folder = pcap_folder
         self.packet_lists = {}  # Initialize the packet_lists dictionary
-        self.max_packets_per_port = 10
+       
+        self.max_packets_per_port = 5
 
     def _handle_PacketIn(self, event):
         if event.parsed.type == 38:
-            # Ignore LLC packets
-            return
+          #Ignore LLC packets
+          return
 
         packet = event.data
         port = event.port
 
         log.info("Received packet on port %s:", port)
-        log.info(packet)
-
+        log.info(f"type: {event.parse}")
+        
         # Add the packet to the list for the corresponding port
         if port not in self.packet_lists:
             self.packet_lists[port] = []
@@ -122,6 +143,7 @@ class PacketLogger(object):
 
         # Check if the list has reached 100 packets
         if len(self.packet_lists[port]) >= self.max_packets_per_port:
+            """
             # Write the list of packets to a pcap file
             pcap_filename = f"{self.pcap_folder}/port_{port}_packets.pcap"
             wrpcap(pcap_filename, self.packet_lists[port])
@@ -129,7 +151,10 @@ class PacketLogger(object):
             #send list of packet to ai placeholder
             ai_placeholder(self.packet_lists[port],port)
             # Clear the list for this port
-            self.packet_lists[port] = []
+            
+            """
+            
+            print_topology()
 
 
 class Entry (object):
@@ -252,9 +277,9 @@ class l3_switch (EventMixin):
         self.arpTable[dpid][IPAddr(fake)] = Entry(of.OFPP_NONE,
          dpid_to_mac(dpid))
 
-    if packet.type == ethernet.LLDP_TYPE:
+    #if packet.type == ethernet.LLDP_TYPE:
       # Ignore LLDP packets
-      return
+    #  return
 
   
     
@@ -280,6 +305,8 @@ class l3_switch (EventMixin):
       else:
         log.debug(f"ADD TO ARP TABLE NEW ENTRY (SENDER) - PORT:{inport} IP:{packet.next.srcip}")
         self.arpTable[dpid][packet.next.srcip] = Entry(inport, packet.src)
+        #add sender to topology
+        refresh_topology(packet.next.srcip,inport)
 
       # Try to forward
       dstaddr = packet.next.dstip
@@ -292,7 +319,8 @@ class l3_switch (EventMixin):
           log.warning("not sending packet out of in port")
         else:
           log.debug(f"ADD NEW FLOW RULE TO:{dpid} - IN PORT:{inport} SENDER IP: {packet.next.srcip} TO RECEIVER IP:{dstaddr} OUT PORT: {prt}")
-
+          #add dest. to topology
+          refresh_topology(dstaddr,prt)
           #prepare the flow rule and send it to the switch
           actions = []
           actions.append(of.ofp_action_dl_addr.set_dst(mac))
@@ -464,4 +492,5 @@ def launch (fakeways="", arp_for_unknowns=None, wide=False):
     arp_for_unknowns = str_to_bool(arp_for_unknowns)
   core.registerNew(l3_switch, fakeways, arp_for_unknowns, wide)
   core.registerNew(PacketLogger)
+   
 
