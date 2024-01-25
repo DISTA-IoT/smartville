@@ -24,172 +24,29 @@ For each switch:
 4) When you see an IP packet, if you know the destination port (because it's
    in the table from step 1), install a flow for it.
 """
-
-import datetime
-import random
 from pox.core import core
-import pox
 from pox.lib.packet.ethernet import ethernet, ETHER_BROADCAST
 from pox.lib.packet.ipv4 import ipv4
 from pox.lib.packet.arp import arp
-from pox.lib.addresses import IPAddr, EthAddr
+from pox.lib.addresses import IPAddr
 from pox.lib.util import str_to_bool, dpid_to_str
 from pox.lib.recoco import Timer
 import pox.openflow.libopenflow_01 as of
-import pox.lib.packet as pkt
-import logging
 from pox.lib.revent import *
 import time
-import logging
-import os
-from scapy.all import wrpcap
-from pox.openflow.discovery import graph
 from pox.lib.recoco import Timer
 from pox.openflow.of_json import *
-from pox.lib.util import dpidToStr
+from pox.lib.addresses import EthAddr
+from pox.customScript.entry import *
+from pox.customScript.packetlogger import *
 
-# Timeout for flows
-FLOW_IDLE_TIMEOUT = 10
-
-# Timeout for ARP entries
-ARP_TIMEOUT = 60 * 2
-
-# Maximum number of packet to buffer on a switch for an unknown IP
-MAX_BUFFERED_PER_IP = 5
-
-# Maximum time to hang on to a buffer for an unknown IP in seconds
-MAX_BUFFER_TIME = 5
-
-
+openflow_connection = None #openflow connection to switch is stored here
 
 log = core.getLogger()
-log_file_path = os.path.join(os.getcwd(), 'packet_log.txt')
-logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s - %(message)s')
-print("path: ",log_file_path)
-class Entry (object):
-  """
-  Not strictly an ARP entry.
-  We use the port to determine which port to forward traffic out of.
-  We use the MAC to answer ARP replies.
-  We use the timeout so that if an entry is older than ARP_TIMEOUT, we
-   flood the ARP request rather than try to answer it ourselves.
-  """
-  def __init__ (self, port, mac):
-    self.timeout = time.time() + ARP_TIMEOUT
-    self.port = port
-    self.mac = mac
 
-  def __eq__ (self, other):
-    if type(other) == tuple:
-      return (self.port,self.mac)==other
-    else:
-      return (self.port,self.mac)==(other.port,other.mac)
-  def __ne__ (self, other):
-    return not self.__eq__(other)
+active_topology = {} #topology dictionary
 
-  def isExpired (self):
-    if self.port == of.OFPP_NONE: return False
-    return time.time() > self.timeout
-
-
-def dpid_to_mac (dpid):
-  return EthAddr("%012x" % (dpid & 0xffFFffFFffFF,))
-
-active_topology = {}  # Initialize active topology dictionary
-def refresh_topology(ip,port):
-
-    if port in active_topology:
-        if ip in active_topology[port]:
-            print(f"key: {ip} value: {active_topology[port]} is already present in the topology")
-        else:
-            active_topology[port].append(ip)
-            print(f"key: {ip} value: {active_topology[port]} added in the topology")
-    else:
-        active_topology[port] = [ip]
-        print(f"key: {ip} value: {active_topology[port]} added in the topology")
-
-def print_topology():
-  print("---Printing topology---")
-  for port, ip_list in active_topology.items():
-    print(f"PORT: {port}, IP: {str(ip_list)}")
-
-
-class PacketLogger(object):
-    def __init__(self):
-        core.openflow.addListeners(self)
-        pcap_folder = os.path.join(os.getcwd(), 'pcap_folder')
-        # Check if the pcap folder exists, create it if not
-        if not os.path.exists(pcap_folder):
-            os.makedirs(pcap_folder)
-        self.pcap_folder = pcap_folder
-        self.packet_lists = {}  # Initialize the packet_lists dictionary
-       
-        self.max_packets_per_port = 5
-
-    def _handle_PacketIn(self, event):
-        
-        if event.parsed.type == 38:
-          #Ignore LLC
-          return
-
-        packet = event.data
-        port = event.port
-
-        log.info("Received packet on port %s:", port)
-        log.info(f"type: {event.parsed}")
-        
-        # Add the packet to the list for the corresponding port
-        if port not in self.packet_lists:
-            self.packet_lists[port] = []
-
-        self.packet_lists[port].append(packet)
-   
-        # Check if the list has reached 100 packets
-        if len(self.packet_lists[port]) >= self.max_packets_per_port:
-            """
-            # Write the list of packets to a pcap file
-            pcap_filename = f"{self.pcap_folder}/port_{port}_packets.pcap"
-            wrpcap(pcap_filename, self.packet_lists[port])
-            log.info("Packets written to pcap file: %s", pcap_filename)
-            #send list of packet to ai placeholder
-            ai_placeholder(self.packet_lists[port],port)
-            # Clear the list for this port
-            
-            """
-            
-            print_topology()
-
-
-class Entry (object):
-  """
-  Not strictly an ARP entry.
-  We use the port to determine which port to forward traffic out of.
-  We use the MAC to answer ARP replies.
-  We use the timeout so that if an entry is older than ARP_TIMEOUT, we
-   flood the ARP request rather than try to answer it ourselves.
-  """
-  def __init__ (self, port, mac):
-    self.timeout = time.time() + ARP_TIMEOUT
-    self.port = port
-    self.mac = mac
-
-  def __eq__ (self, other):
-    if type(other) == tuple:
-      return (self.port,self.mac)==other
-    else:
-      return (self.port,self.mac)==(other.port,other.mac)
-  def __ne__ (self, other):
-    return not self.__eq__(other)
-
-  def isExpired (self):
-    if self.port == of.OFPP_NONE: return False
-    return time.time() > self.timeout
-
-
-def dpid_to_mac (dpid):
-  return EthAddr("%012x" % (dpid & 0xffFFffFFffFF,))
-
-
+#pox l3 learning switch class
 class l3_switch (EventMixin):
   def __init__ (self, fakeways = [], arp_for_unknowns = False, wide = False):
     # These are "fake gateways" -- we'll answer ARPs for them with MAC
@@ -220,11 +77,6 @@ class l3_switch (EventMixin):
     self._expire_timer = Timer(5, self._handle_expiration, recurring=True)
 
     core.listen_to_dependencies(self)
-
-  def _log_packet_info(self, event, packet_type):
-      packet_info = f"Timestamp: {time.time()}, Sender: {event.connection.dpid}, Receiver: {event.port}, Packet Type: {packet_type}"
-      log.info(packet_info)
-      logging.info(packet_info)
 
   def _handle_expiration (self):
     # Called by a timer so that we can remove old items.
@@ -305,7 +157,7 @@ class l3_switch (EventMixin):
         log.debug(f"ADD TO INTERNAL ARP TABLE NEW ENTRY - PORT:{inport} IP:{packet.next.srcip}")
         self.arpTable[dpid][packet.next.srcip] = Entry(inport, packet.src)
         #add sender to topology
-        #refresh_topology(packet.next.srcip,inport)
+        refresh_topology(packet.next.srcip,inport)
 
       # Try to forward
       dstaddr = packet.next.dstip
@@ -319,7 +171,7 @@ class l3_switch (EventMixin):
         else:
           log.debug(f"ADD NEW FLOW RULE TO:{dpid} - IN PORT:{inport} SENDER IP: {packet.next.srcip}  RECEIVER IP:{dstaddr} OUT PORT: {prt}")
           #add dest. to topology
-          #refresh_topology(dstaddr,prt)
+          refresh_topology(dstaddr,prt)
           #prepare the flow rule and send it to the switch
           actions = []
           actions.append(of.ofp_action_dl_addr.set_dst(mac))
@@ -452,36 +304,36 @@ class l3_switch (EventMixin):
           action = of.ofp_action_output(port = of.OFPP_FLOOD))
       event.connection.send(msg)
 
-def ai_placeholder(packetlist,port):
-  log.info(f"AI: RECEIVED {len(packetlist)} PACKETS FOR PORT: {port}")
-  choose = random.choice([True, False])
-  log.info(f"AI: I HAVE CHOSEN: {choose} FOR PORT: {port}")
-  if choose:
-    mitigate_attack(port)
+#global methods
+def dpid_to_mac (dpid):
+  return EthAddr("%012x" % (dpid & 0xffFFffFFffFF,))
+     
+#used to add each host to the topology dictionary when an ipv4 message is received
+def refresh_topology(ip,port):
+  if port in active_topology:
+      if ip in active_topology[port]:
+          print(f"key: {ip} value: {active_topology[port]} is already present in the topology")
+      else:
+          active_topology[port].append(ip)
+          print(f"key: {ip} value: {active_topology[port]} added in the topology")
+  else:
+      active_topology[port] = [ip]
+      print(f"key: {ip} value: {active_topology[port]} added in the topology")
 
-def mitigate_attack(port):
-  block_traffic(port)
+#prints topology dictionary
+def print_topology():
+  print("---Printing topology---")
+  for port, ip_list in active_topology.items():
+    print(f"PORT: {port}, IP: {str(ip_list)}")
 
-def block_traffic(port):
-  # Creating a flow rule to drop all packets coming in on the specified port
-  msg = of.ofp_flow_mod()
-  msg.match.in_port = port  # Replace with the desired input port
-  msg.idle_timeout = 0  # Set to 0 for no idle timeout
-  msg.hard_timeout = 0  # Set to 0 for no hard timeout
-  openflow_connection.send(msg)
-  log.info(f"SWITCH FLOW MOD SENT - BLOCKED PORT {port}")
-
-
-openflow_connection = None
-
+#handle switch section
+#connection enstablished 
 def _handle_ConnectionUp (event):
   global openflow_connection
   openflow_connection=event.connection
-  
   log.info("Connection is UP")
-   
-  
 
+#ask for flow and port stats 
 def _timer_func ():
   for connection in core.openflow._connections.values():
     connection.send(of.ofp_stats_request(body=of.ofp_flow_stats_request()))
@@ -492,29 +344,15 @@ def _timer_func ():
 # structure of event.stats is defined by ofp_flow_stats()
 def _handle_flowstats_received (event):
   stats = flow_stats_to_list(event.stats)
-  log.debug("FlowStatsReceived from %s: %s", dpidToStr(event.connection.dpid), stats)
+  #log.debug("FlowStatsReceived from %s: %s", dpidToStr(event.connection.dpid), stats)
 
-  # Get number of bytes/packets in flows for web traffic only
-  web_bytes = 0
-  web_flows = 0
-  web_packet = 0
-  for f in event.stats:
-    if f.match.tp_dst == 80 or f.match.tp_src == 80:
-      web_bytes += f.byte_count
-      web_packet += f.packet_count
-      web_flows += 1
-  log.info("Web traffic from %s: %s bytes (%s packets) over %s flows", 
-    dpidToStr(event.connection.dpid), web_bytes, web_packet, web_flows)
 
 # handler to display port statistics received in JSON format
 def _handle_portstats_received (event):
   stats = flow_stats_to_list(event.stats)
-  log.debug("PortStatsReceived from %s: %s", 
-    dpidToStr(event.connection.dpid), stats)
+  #log.debug("PortStatsReceived from %s: %s", dpidToStr(event.connection.dpid), stats)
   
 def launch (fakeways="", arp_for_unknowns=None, wide=False):
-  core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
-
   fakeways = fakeways.replace(","," ").split()
   fakeways = [IPAddr(x) for x in fakeways]
   if arp_for_unknowns is None:
@@ -523,8 +361,10 @@ def launch (fakeways="", arp_for_unknowns=None, wide=False):
     arp_for_unknowns = str_to_bool(arp_for_unknowns)
   core.registerNew(l3_switch, fakeways, arp_for_unknowns, wide)
   core.registerNew(PacketLogger)
-    
-  # attach handsers to listners
+  
+
+  # attach handlers to listners
+  core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
   core.openflow.addListenerByName("FlowStatsReceived", 
     _handle_flowstats_received) 
   core.openflow.addListenerByName("PortStatsReceived", 

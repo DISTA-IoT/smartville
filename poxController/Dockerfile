@@ -17,11 +17,7 @@ COPY entrypoint.sh /pox/entrypoint.sh
 
 RUN mkdir /pox/pox/customScript
 
-COPY gatherStats.py /pox/pox/customScript/gatherStats.py
-
-COPY l3_learning_mod.py /pox/pox/customScript/l3_learning_mod.py
-
-COPY dumper.py /pox/pox/customScript/dumper.py
+COPY  py/. /pox/pox/customScript/
 
 RUN chmod -R 777 /pox/
 
