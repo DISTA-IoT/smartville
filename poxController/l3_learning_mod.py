@@ -44,6 +44,9 @@ import logging
 import os
 from scapy.all import wrpcap
 from pox.openflow.discovery import graph
+from pox.lib.recoco import Timer
+from pox.openflow.of_json import *
+from pox.lib.util import dpidToStr
 
 # Timeout for flows
 FLOW_IDLE_TIMEOUT = 10
@@ -105,7 +108,6 @@ def refresh_topology(ip,port):
         active_topology[port] = [ip]
         print(f"key: {ip} value: {active_topology[port]} added in the topology")
 
-
 def print_topology():
   print("---Printing topology---")
   for port, ip_list in active_topology.items():
@@ -125,22 +127,23 @@ class PacketLogger(object):
         self.max_packets_per_port = 5
 
     def _handle_PacketIn(self, event):
+        
         if event.parsed.type == 38:
-          #Ignore LLC packets
+          #Ignore LLC
           return
 
         packet = event.data
         port = event.port
 
         log.info("Received packet on port %s:", port)
-        log.info(f"type: {event.parse}")
+        log.info(f"type: {event.parsed}")
         
         # Add the packet to the list for the corresponding port
         if port not in self.packet_lists:
             self.packet_lists[port] = []
 
         self.packet_lists[port].append(packet)
-
+   
         # Check if the list has reached 100 packets
         if len(self.packet_lists[port]) >= self.max_packets_per_port:
             """
@@ -277,13 +280,9 @@ class l3_switch (EventMixin):
         self.arpTable[dpid][IPAddr(fake)] = Entry(of.OFPP_NONE,
          dpid_to_mac(dpid))
 
-    #if packet.type == ethernet.LLDP_TYPE:
-      # Ignore LLDP packets
-    #  return
-
-  
-    
-    
+    if packet.type == ethernet.LLDP_TYPE:
+      #Ignore lldp packets
+      return
 
     if isinstance(packet.next, ipv4):
       log.debug("IPV4 DETECTED - SWITCH: %i ON PORT: %i IP SENDER: %s IP RECEIVER %s", dpid,inport,
@@ -303,10 +302,10 @@ class l3_switch (EventMixin):
             msg.match.dl_type = ethernet.IP_TYPE
             event.connection.send(msg)
       else:
-        log.debug(f"ADD TO ARP TABLE NEW ENTRY (SENDER) - PORT:{inport} IP:{packet.next.srcip}")
+        log.debug(f"ADD TO INTERNAL ARP TABLE NEW ENTRY - PORT:{inport} IP:{packet.next.srcip}")
         self.arpTable[dpid][packet.next.srcip] = Entry(inport, packet.src)
         #add sender to topology
-        refresh_topology(packet.next.srcip,inport)
+        #refresh_topology(packet.next.srcip,inport)
 
       # Try to forward
       dstaddr = packet.next.dstip
@@ -318,9 +317,9 @@ class l3_switch (EventMixin):
         if prt == inport:
           log.warning("not sending packet out of in port")
         else:
-          log.debug(f"ADD NEW FLOW RULE TO:{dpid} - IN PORT:{inport} SENDER IP: {packet.next.srcip} TO RECEIVER IP:{dstaddr} OUT PORT: {prt}")
+          log.debug(f"ADD NEW FLOW RULE TO:{dpid} - IN PORT:{inport} SENDER IP: {packet.next.srcip}  RECEIVER IP:{dstaddr} OUT PORT: {prt}")
           #add dest. to topology
-          refresh_topology(dstaddr,prt)
+          #refresh_topology(dstaddr,prt)
           #prepare the flow rule and send it to the switch
           actions = []
           actions.append(of.ofp_action_dl_addr.set_dst(mac))
@@ -478,12 +477,44 @@ openflow_connection = None
 def _handle_ConnectionUp (event):
   global openflow_connection
   openflow_connection=event.connection
+  
   log.info("Connection is UP")
+   
+  
 
+def _timer_func ():
+  for connection in core.openflow._connections.values():
+    connection.send(of.ofp_stats_request(body=of.ofp_flow_stats_request()))
+    connection.send(of.ofp_stats_request(body=of.ofp_port_stats_request()))
+  log.debug("Sent %i flow/port stats request(s)", len(core.openflow._connections))
 
+# handler to display flow statistics received in JSON format
+# structure of event.stats is defined by ofp_flow_stats()
+def _handle_flowstats_received (event):
+  stats = flow_stats_to_list(event.stats)
+  log.debug("FlowStatsReceived from %s: %s", dpidToStr(event.connection.dpid), stats)
 
+  # Get number of bytes/packets in flows for web traffic only
+  web_bytes = 0
+  web_flows = 0
+  web_packet = 0
+  for f in event.stats:
+    if f.match.tp_dst == 80 or f.match.tp_src == 80:
+      web_bytes += f.byte_count
+      web_packet += f.packet_count
+      web_flows += 1
+  log.info("Web traffic from %s: %s bytes (%s packets) over %s flows", 
+    dpidToStr(event.connection.dpid), web_bytes, web_packet, web_flows)
+
+# handler to display port statistics received in JSON format
+def _handle_portstats_received (event):
+  stats = flow_stats_to_list(event.stats)
+  log.debug("PortStatsReceived from %s: %s", 
+    dpidToStr(event.connection.dpid), stats)
+  
 def launch (fakeways="", arp_for_unknowns=None, wide=False):
   core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
+
   fakeways = fakeways.replace(","," ").split()
   fakeways = [IPAddr(x) for x in fakeways]
   if arp_for_unknowns is None:
@@ -492,5 +523,16 @@ def launch (fakeways="", arp_for_unknowns=None, wide=False):
     arp_for_unknowns = str_to_bool(arp_for_unknowns)
   core.registerNew(l3_switch, fakeways, arp_for_unknowns, wide)
   core.registerNew(PacketLogger)
+    
+  # attach handsers to listners
+  core.openflow.addListenerByName("FlowStatsReceived", 
+    _handle_flowstats_received) 
+  core.openflow.addListenerByName("PortStatsReceived", 
+    _handle_portstats_received) 
+
+  # timer set to execute every five seconds
+  Timer(5, _timer_func, recurring=True)
+
+
    
 
