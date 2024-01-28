@@ -167,10 +167,6 @@ def create_docker_template(server: Server, name: str, image: str, environment: s
     defaults["environment"] = environment
 
 
-
-
-
-
     req = requests.post(f"http://{server.addr}:{server.port}/v2/templates", data=json.dumps(defaults), auth=(server.user, server.password))
     req.raise_for_status()
     return req.json()
@@ -304,6 +300,58 @@ def create_project(server: Server, name: str, height: int, width: int, zoom: Opt
      print(f"Response: {req.text}")
     raise
 
+def delete_project(server: Server, project_name: str):
+    """Delete GNS3 project by name."""
+    
+    # Get the project ID based on the project name
+    project_id = get_project_id(server, project_name)
+
+    if project_id is not None:
+        # Make a DELETE request to delete the project
+        delete_url = f"http://{server.addr}:{server.port}/v2/projects/{project_id}"
+        req = requests.delete(delete_url, auth=(server.user, server.password))
+
+        try:
+            # Check if the request was successful
+            req.raise_for_status()
+            print(f"Project '{project_name}' deleted successfully.")
+        except requests.exceptions.HTTPError as err:
+            # Handle HTTP errors
+            print(f"HTTP Error: {err}")
+            print(f"Response: {req.text}")
+            raise
+
+    else:
+        print(f"Project '{project_name}' not found on the server.")
+
+def get_project_id(server: Server, project_name: str) -> Optional[str]:
+    """Get GNS3 project ID based on project name."""
+    
+    # Make a GET request to retrieve project information
+    projects_url = f"http://{server.addr}:{server.port}/v2/projects"
+    req = requests.get(projects_url, auth=(server.user, server.password))
+
+    try:
+        # Check if the request was successful
+        req.raise_for_status()
+
+        # Parse the JSON response
+        projects = req.json()
+
+        # Search for the project by name and return its ID if found
+        for project in projects:
+            if project["name"] == project_name:
+                return project["project_id"]
+
+    except requests.exceptions.HTTPError as err:
+        # Handle HTTP errors
+        print(f"HTTP Error: {err}")
+        print(f"Response: {req.text}")
+        raise
+
+    # Return None if the project is not found
+    return None
+
 
 def open_project_if_closed(server: Server, project: Project):
     """If the GNS3 project is closed, open it."""
@@ -431,10 +479,6 @@ def create_node(server: Server, project: Project, start_x: int, start_y: int, no
     req = requests.post(f"http://{server.addr}:{server.port}/v2/projects/{project.id}/templates/{node_template_id}", data=json.dumps(payload), auth=(server.user, server.password))
     req.raise_for_status()
     return req.json()
-
-
-
-
 
 
 def start_node(server: Server, project: Project, node_id: str) -> None:
