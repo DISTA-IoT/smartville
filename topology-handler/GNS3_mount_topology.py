@@ -16,7 +16,18 @@ def main():
     resetProject(PROJECT_NAME)
     starTopology()
 
-#mount host1
+#return each time the previous ip +1 
+
+def generateIPList(ip_nr,network,netmask):
+    ip_pool = []
+    for i in range(3,ip_nr+3):
+        net_ip = network[:-1]
+        ip = net_ip+str(i)+netmask
+        ip_pool.append(ip)
+        print("IP ADDED TO LIST: ",ip)
+    return ip_pool
+
+
 def starTopology():
 
     #mount switch
@@ -28,26 +39,28 @@ def starTopology():
 
     #mount 10 hosts and link each one to a port of the switch
     gateway = "192.168.1.1"
-    ip = "192.168.1.3/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",2,ip,gateway,-250,-200)
-    ip = "192.168.1.4/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",3,ip,gateway,-250,-100)
-    ip = "192.168.1.5/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",4,ip,gateway,-250,0)
-    ip = "192.168.1.6/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",5,ip,gateway,-250,100)
-    ip = "192.168.1.7/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",6,ip,gateway,-250,200)
-    ip = "192.168.1.8/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",7,ip,gateway,250,-200)
-    ip = "192.168.1.9/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",8,ip,gateway,250,-100)
-    ip = "192.168.1.10/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",9,ip,gateway,250,0)
-    ip = "192.168.1.11/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",10,ip,gateway,250,100)
-    ip = "192.168.1.12/24"
-    mountHost(PROJECT_NAME,HOST_NAME,"custom-host ("+ip+")","FixedOpenvSwitch-1",11,ip,gateway,250,200)
+    switch_port = 3
+    network = "192.168.1.0"
+    netmask = "/24"
+    #generate pool of ip addresses for specified network (es. 192.168.1.0)
+    ip_pool = generateIPList(10,network,netmask)
+    x = 300
+    y = -200
+    i = 1
+    half = False
+
+    for ip in ip_pool:
+        if (i > (len(ip_pool))/2) and not half:
+            half = True
+            x = -300
+            y = -200
+
+        HOST_LABEL = "custom-host ("+ip+")"
+        mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y)
+        i = i+1
+        y = y+100
+        switch_port = switch_port+1
+
 
 if __name__ == "__main__":
     main()
