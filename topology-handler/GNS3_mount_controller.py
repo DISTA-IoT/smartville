@@ -1,7 +1,7 @@
 import ipaddress
 from gns3util import *
 
-def mountController(PROJECT_NAME,CONTROLLER_NAME):
+def mountController(PROJECT_NAME,CONTROLLER_NAME,start_command):
     server = Server(*read_local_gns3_config())
     project = get_project_by_name(server, PROJECT_NAME)
 
@@ -12,7 +12,8 @@ def mountController(PROJECT_NAME,CONTROLLER_NAME):
         delete_template(server,project,controller_template_id)
         print("old controller template deleted")
 
-    create_docker_template(server, CONTROLLER_NAME, str(CONTROLLER_NAME+":latest"),)
+    
+    create_docker_template(server, CONTROLLER_NAME,start_command, str(CONTROLLER_NAME+":latest"),)
     templates = get_all_templates(server)
     controller_template_id = get_template_id_from_name(templates, CONTROLLER_NAME)
     print(f"new controller template id: {controller_template_id}")

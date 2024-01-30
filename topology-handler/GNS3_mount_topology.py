@@ -34,8 +34,9 @@ def starTopology():
     #args: sdn project name, template name, target switch label, ip/mask, gateway
     mountSwitch(PROJECT_NAME,SWITCH_NAME,"FixedOpenvSwitch-1","192.168.1.2/24","192.168.1.1")
 
+    controller_start_command="./pox.py --verbose samples.pretty_log customScript.l3_learning_mod"
     #mount controller
-    mountController(PROJECT_NAME,CONTROLLER_NAME)
+    mountController(PROJECT_NAME,CONTROLLER_NAME,controller_start_command)
 
     #mount 10 hosts and link each one to a port of the switch
     gateway = "192.168.1.1"
@@ -48,15 +49,21 @@ def starTopology():
     y = -200
     i = 1
     half = False
+    host_start_command = "sh"
 
     for ip in ip_pool:
         if (i > (len(ip_pool))/2) and not half:
             half = True
             x = -300
             y = -200
+        if half:
+            host_start_command = "python3 icmp_flood.py"
+        if not half:
+            host_start_command = "python3 msg_send_sim.py"
 
         HOST_LABEL = "custom-host ("+ip+")"
-        mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y)
+        
+        mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y,host_start_command)
         i = i+1
         y = y+100
         switch_port = switch_port+1
