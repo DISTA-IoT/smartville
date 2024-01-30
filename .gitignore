@@ -2,3 +2,4 @@
 /.others/*
 /.venv/*
 /buildstatus/*
+**/__pycache__/
