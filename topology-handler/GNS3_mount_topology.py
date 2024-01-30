@@ -9,7 +9,7 @@ PROJECT_NAME="sdn_project"
 CONTROLLER_NAME="pox-controller"
 SWITCH_NAME="Fixed Open vSwitch"
 HOST_NAME="custom-host"
-
+ATTACKER_IMG_NAME="attacker"
 
 def main():
     #create project
@@ -50,13 +50,19 @@ def starTopology():
     half = False
 
     for ip in ip_pool:
+        curr_img_name = HOST_NAME
+        HOST_LABEL = HOST_NAME+" ("+ip+")"
+
         if (i > (len(ip_pool))/2) and not half:
             half = True
             x = -300
             y = -200
-
-        HOST_LABEL = "custom-host ("+ip+")"
-        mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y)
+        
+        if half:
+            curr_img_name = ATTACKER_IMG_NAME
+            HOST_LABEL = ATTACKER_IMG_NAME+" ("+ip+")"
+        
+        mountHost(PROJECT_NAME,curr_img_name,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y)
         i = i+1
         y = y+100
         switch_port = switch_port+1
