@@ -1,6 +1,5 @@
 from pox.core import core
 import random
-import os
 import pox.openflow.libopenflow_01 as of
 from pox.customScript.l3_learning_mod import openflow_connection
 

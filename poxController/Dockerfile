@@ -7,18 +7,22 @@ RUN apt-get install -y libpcap0.8 libpcap0.8-dev
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install scapy networkx pydot
+RUN pip3 install scapy networkx pydot numpy scikit-learn
+
+RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 
 RUN git clone https://github.com/noxrepo/pox.git /pox
 
 WORKDIR /pox
 
+RUN git checkout gar-experimental 
+
+RUN rm -r .git
+
 COPY entrypoint.sh /pox/entrypoint.sh
 
-RUN mkdir /pox/pox/customScript
-
-COPY  py/. /pox/pox/customScript/
+COPY  smartController/. /pox/pox/smartController/
 
 RUN chmod -R 777 /pox/
 
-CMD ["/pox/entrypoint.sh"]
+ENTRYPOINT ["/pox/entrypoint.sh"]
