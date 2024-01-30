@@ -29,9 +29,9 @@ def modify_and_send(packet):
 
     ip_packet = packet[IP]
     # Modify source IP
-    ip_packet.src = SOURCE_IP + '/24'
+    ip_packet.src = SOURCE_IP
     # Modify destination IP
-    ip_packet.dst = TARGET_IP + '/24'
+    ip_packet.dst = TARGET_IP
     # Send the modified packet
 
     
