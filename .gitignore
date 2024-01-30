@@ -5,6 +5,6 @@
 /src/__pycache__/
 /bin/*
 gns3_thesis/*
-AttackerNode/bening_flows/*
+AttackerNode/attacker_bening_flows/*
 AttackerNode/horizontal_scan_flows/*
 **/__pycache__/
