@@ -7,3 +7,4 @@
 gns3_thesis/*
 AttackerNode/bening_flows/*
 AttackerNode/horizontal_scan_flows/*
+**/__pycache__/
