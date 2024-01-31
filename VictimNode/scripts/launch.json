@@ -8,9 +8,10 @@
             "name": "REPLAY H SCAN",
             "type": "python",
             "request": "launch",
-            "program": "replay_bening_traffic.py",
+            "program": "replay.py",
             "args": [
-                "PUT SOME NODE IP HERE",
+                "bening_traffic",
+                "192.168.1.3"
             ],
             "justMyCode": true
         }
