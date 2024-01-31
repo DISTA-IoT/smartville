@@ -48,7 +48,7 @@ REQUEST_STATS_PERIOD_SECONDS = 5
 ARP_REQUEST_EXPIRATION_SECONDS = 4
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-IPV4_BLACKLIST=["192.168.1.3", "192.168.1.11", "192.168.1.13", "192.168.1.14", "192.168.1.9", "192.168.1.12"]
+IPV4_BLACKLIST=["192.168.1.8", "192.168.1.9", "192.168.1.10", "192.168.1.11", "192.168.1.12"]
 
 print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
 
