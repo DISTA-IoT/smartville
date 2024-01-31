@@ -27,8 +27,12 @@ WORKDIR /app
 
 COPY scripts/. /app/
 
-COPY  bening_flows/. /app/bening_flows/
-COPY  horizontal_scan_flows/. /app/horizontal_scan_flows/
+COPY  bening_traffic/. /app/bening_traffic/
+COPY  cc_heartbeat/. /app/cc_heartbeat/
+COPY  generic_ddos/. /app/generic_ddos/
+COPY  h_scan/. /app/h_scan/
+COPY  muhstik/. /app/muhstik/
+COPY  okiru/. /app/okiru/
 
 RUN chmod +x /app/icmp_flood.py
 
