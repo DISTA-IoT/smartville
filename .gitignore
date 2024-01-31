@@ -2,13 +2,10 @@
 /.others/*
 /.venv/*
 /buildstatus/*
-/src/__pycache__/
 /bin/*
 gns3_thesis/*
 AttackerNode/attacker_bening_flows/*
 AttackerNode/horizontal_scan_flows/*
 AttackerNode/muhstik_botnet_flows/*
-
 VictimNode/bening_flows/*
-
 topology-handler/__pycache__/
