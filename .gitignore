@@ -10,5 +10,5 @@ AttackerNode/muhstik/*
 AttackerNode/cc_heartbeat/*
 AttackerNode/generic_ddos/*
 AttackerNode/okiru/*
-VictimNode/bening_flows/*
+VictimNode/bening_traffic/*
 topology-handler/__pycache__/
