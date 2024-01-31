@@ -10,5 +10,7 @@ AttackerNode/muhstik/*
 AttackerNode/cc_heartbeat/*
 AttackerNode/generic_ddos/*
 AttackerNode/okiru/*
-VictimNode/bening_traffic/*
+VictimNode/hue/*
+VictimNode/doorlock/*
+VictimNode/echo/*
 topology-handler/__pycache__/
