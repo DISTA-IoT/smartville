@@ -138,7 +138,7 @@ def get_project_by_name(server: Server, name: str) -> Optional[Project]:
     filtered_project = filtered_project[0]
     return Project(name=filtered_project["name"], id=filtered_project["project_id"],
                    grid_unit=int(filtered_project["grid_size"]))
-def create_docker_template(server: Server, name: str, image: str, environment: str = '') -> Optional[Dict[str, Any]]:
+def create_docker_template(server: Server, name: str,  start_command: str, image: str, environment: str = '') -> Optional[Dict[str, Any]]:
     """Create a new GNS3 docker template.
 
     'environment' should be the empty string '' or a string with newline separated key=value pairs,
@@ -148,7 +148,7 @@ def create_docker_template(server: Server, name: str, image: str, environment: s
                 'builtin': False,
                 'category': 'guest',
                 'compute_id': 'local',
-                'console_auto_start': False,
+                'console_auto_start': True,
                 'console_http_path': '/',
                 'console_http_port': 80,
                 'console_resolution': '1024x768',
@@ -157,7 +157,7 @@ def create_docker_template(server: Server, name: str, image: str, environment: s
                 'default_name_format': '{name}-{0}',
                 'extra_hosts': '',
                 'extra_volumes': [],
-                'start_command': 'sh',
+                #'start_command': 'sh',
                 'symbol': ':/symbols/docker_guest.svg',
                 'template_type': 'docker',
                 'usage': ''}
@@ -165,6 +165,7 @@ def create_docker_template(server: Server, name: str, image: str, environment: s
     defaults["name"] = name
     defaults["image"] = image
     defaults["environment"] = environment
+    defaults["start_command"] = start_command
 
 
     req = requests.post(f"http://{server.addr}:{server.port}/v2/templates", data=json.dumps(defaults), auth=(server.user, server.password))

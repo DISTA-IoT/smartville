@@ -34,8 +34,11 @@ def starTopology():
     #args: sdn project name, template name, target switch label, ip/mask, gateway
     mountSwitch(PROJECT_NAME,SWITCH_NAME,"FixedOpenvSwitch-1","192.168.1.2/24","192.168.1.1")
 
+    # controller_start_command="./pox.py samples.pretty_log smartController.switch"
+    controller_start_command="echo IT's me, Controller!"
+
     #mount controller
-    mountController(PROJECT_NAME,CONTROLLER_NAME)
+    mountController(PROJECT_NAME,CONTROLLER_NAME,controller_start_command)
 
     #mount 10 hosts and link each one to a port of the switch
     gateway = "192.168.1.1"
@@ -48,6 +51,7 @@ def starTopology():
     y = -200
     i = 1
     half = False
+    host_start_command = "sh"
 
     for ip in ip_pool:
         curr_img_name = HOST_NAME
@@ -62,7 +66,7 @@ def starTopology():
             curr_img_name = ATTACKER_IMG_NAME
             HOST_LABEL = ATTACKER_IMG_NAME+" ("+ip+")"
         
-        mountHost(PROJECT_NAME,curr_img_name,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y)
+        mountHost(PROJECT_NAME,curr_img_name,HOST_LABEL,"FixedOpenvSwitch-1",switch_port,ip,gateway,x,y, host_start_command)
         i = i+1
         y = y+100
         switch_port = switch_port+1

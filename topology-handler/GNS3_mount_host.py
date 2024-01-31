@@ -2,19 +2,22 @@ import ipaddress
 from gns3util import *
 
 #args: project name, host
-def mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,SWITCH_LABEL,switch_port,ip,gateway,x,y):
+def mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,SWITCH_LABEL,switch_port,ip,gateway,x,y,start_command):
     server = Server(*read_local_gns3_config())
     project = get_project_by_name(server, PROJECT_NAME)
 
     templates = get_all_templates(server)
     host_template_id = get_template_id_from_name(templates, HOST_NAME)
 
-    if(host_template_id is None):  
-        print((f"{HOST_LABEL}: template is not present in gns3 -> trying to create a new template using local image"))
-        create_docker_template(server, HOST_NAME, str(HOST_NAME+":latest"),)
-        templates = get_all_templates(server)
-        host_template_id = get_template_id_from_name(templates, HOST_NAME)
-        print(f"new host template id: {host_template_id}")
+    if(host_template_id is not None):  
+        delete_template(server,project,host_template_id)
+        print((f"{HOST_LABEL}: deleting old host template"))
+        
+    print((f"{HOST_LABEL}: creating a new template using local image"))
+    create_docker_template(server, HOST_NAME, start_command, str(HOST_NAME+":latest"),)
+    templates = get_all_templates(server)
+    host_template_id = get_template_id_from_name(templates, HOST_NAME)
+    print(f"new host template id: {host_template_id}")
 
     openvswitch_id = get_node_id_by_name(server,project,SWITCH_LABEL)
 
