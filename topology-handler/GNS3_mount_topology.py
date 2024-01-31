@@ -35,7 +35,7 @@ def starTopology():
     mountSwitch(PROJECT_NAME,SWITCH_NAME,"FixedOpenvSwitch-1","192.168.1.2/24","192.168.1.1")
 
     # controller_start_command="./pox.py samples.pretty_log smartController.switch"
-    controller_start_command="echo IT's me, Controller!"
+    controller_start_command="sh" # DEV debugging controller...
 
     #mount controller
     mountController(PROJECT_NAME,CONTROLLER_NAME,controller_start_command)
