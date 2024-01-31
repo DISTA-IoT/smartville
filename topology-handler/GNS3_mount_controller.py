@@ -1,5 +1,6 @@
 import ipaddress
 from gns3util import *
+import time
 
 def mountController(PROJECT_NAME,CONTROLLER_NAME,start_command):
     server = Server(*read_local_gns3_config())
@@ -30,6 +31,7 @@ def mountController(PROJECT_NAME,CONTROLLER_NAME,start_command):
     controller = create_node(server, project, 0, -100, controller_template_id)
     controller_id = get_node_id_by_name(server,project,controller_name)
     print("created new controller")
+    time.sleep(2)
     create_link(server, project, controller_id,0,openvswitch_id,0)
     set_node_network_interfaces(server, project, controller_id, "eth0", ipaddress.IPv4Interface("192.168.1.1/24"), "192.168.1.1")
     print("controller started")
