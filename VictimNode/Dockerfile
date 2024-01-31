@@ -27,8 +27,5 @@ WORKDIR /app
 
 COPY scripts/. /app/
 
-COPY  bening_flows/. /app/bening_flows/
-COPY  horizontal_scan_flows/. /app/horizontal_scan_flows/
-
-RUN chmod +x /app/icmp_flood.py
+COPY  bening_traffic/. /app/bening_traffic/
 

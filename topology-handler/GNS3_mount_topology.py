@@ -8,7 +8,7 @@ PROJECT_NAME="sdn_project"
 #these are the names of the docker templates inside gns3
 CONTROLLER_NAME="pox-controller"
 SWITCH_NAME="Fixed Open vSwitch"
-HOST_NAME="custom-host"
+HOST_NAME="victim"
 ATTACKER_IMG_NAME="attacker"
 
 def main():
