@@ -28,23 +28,18 @@ def get_source_mac(interface=IFACE_NAME):
 
 def modify_and_send(packet):
 
+    # focus on level 3
     ip_packet = packet[IP]
+
     # Modify source IP
     ip_packet.src = SOURCE_IP
+
     # Modify destination IP
     ip_packet.dst = TARGET_IP
+
     # Send the modified packet
-
-    
-
-    # Send the packet
-    # eth_frame = Ether(src=SOURCE_MAC, dst="ff:ff:ff:ff:ff:ff")
-    # Combine Ethernet frame and IP packet
-    # new_packet = eth_frame / ip_packet
-    # sendp(new_packet, iface=IFACE_NAME)  # Specify the interface to send the packet from (e.g., eth0)
-
     send(ip_packet, iface=IFACE_NAME)
-    print('hello')
+   
 
 
 def resend_pcap_with_modification():
