@@ -11,4 +11,4 @@ AttackerNode/muhstik_botnet_flows/*
 
 VictimNode/bening_flows/*
 
-**/__pycache__/
+topology-handler/__pycache__/
