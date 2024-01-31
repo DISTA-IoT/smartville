@@ -27,5 +27,7 @@ WORKDIR /app
 
 COPY scripts/. /app/
 
-COPY  bening_traffic/. /app/bening_traffic/
+COPY  doorlock/. /app/doorlock/
+COPY  echo/. /app/echo/
+COPY  hue/. /app/hue/
 
