@@ -6,6 +6,6 @@
 gns3_thesis/*
 AttackerNode/bening_traffic/*
 AttackerNode/h_scan/*
-AttackerNode/mushtik/*
+AttackerNode/muhstik/*
 VictimNode/bening_flows/*
 topology-handler/__pycache__/
