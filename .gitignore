@@ -4,8 +4,8 @@
 /buildstatus/*
 /bin/*
 gns3_thesis/*
-AttackerNode/attacker_bening_flows/*
-AttackerNode/horizontal_scan_flows/*
-AttackerNode/muhstik_botnet_flows/*
+AttackerNode/bening_traffic/*
+AttackerNode/h_scan/*
+AttackerNode/mushtik/*
 VictimNode/bening_flows/*
 topology-handler/__pycache__/
