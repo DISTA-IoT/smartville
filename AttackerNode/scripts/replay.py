@@ -44,6 +44,19 @@ def modify_and_send(packet):
     send(ip_packet, iface=IFACE_NAME)
    
 
+def modify_and_save_pcap(input_pcap_file, output_pcap_file):
+    # Read the PCAP file
+    packets = rdpcap(input_pcap_file)
+
+    # Modify source and destination IP addresses of each packet
+    for packet in packets:
+        if IP in packet:
+            packet[IP].src = SOURCE_IP
+            packet[IP].dst = TARGET_IP
+
+    # Save the modified packets to another PCAP file
+    wrpcap(output_pcap_file, packets)
+
 
 def resend_pcap_with_modification():
     # Iterate over files in the directory
@@ -62,10 +75,25 @@ def resend_pcap_with_modification():
                     modify_and_send(packet)
 
 
+def resend_pcap_with_modification_tcpreplay():
+
+    # Iterate over files in the directory
+    for filename in os.listdir(PATTERN_TO_REPLAY):
+        if filename.endswith(".pcap"):
+            # print("Processing file:", filename)
+            pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
+
+            # Modify and send packets using tcpreplay
+            modify_and_save_pcap(pcap_file, 'output_file.pcap')
+
+            # Use tcpreplay command to send the modified packets
+            cmd = f"tcpreplay -i {IFACE_NAME} output_file.pcap"
+            subprocess.run(cmd, shell=True)
+
 
 def repeat_function():
     
-    resend_pcap_with_modification()  # Execute the function immediately
+    resend_pcap_with_modification_tcpreplay()  # Execute the function immediately
     
     if REPEAT_PATTERN_SECS is not None:
         print(f'Will repeat pattern in {REPEAT_PATTERN_SECS} seconds')
