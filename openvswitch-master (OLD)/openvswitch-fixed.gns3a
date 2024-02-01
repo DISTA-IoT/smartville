@@ -14,6 +14,7 @@
     "usage": "By default all interfaces are connected to the br0",
     "docker": {
         "adapters": 16,
-        "image": "c4zhuexbbagomn4o9x79vpn6tfe3x7/openvswitch-fixed:latest"
+        "image": "c4zhuexbbagomn4o9x79vpn6tfe3x7/openvswitch-fixed:latest",
+        "start_command": "sleep 5 && ovs-vsctl set-controller br0 tcp:192.168.1.1:6633"
     }
 }

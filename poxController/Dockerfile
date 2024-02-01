@@ -3,7 +3,7 @@ FROM python:3.8
 
 RUN apt-get update && apt-get install -y git nano vim python3-pip
 
-RUN apt-get install -y libpcap0.8 libpcap0.8-dev
+RUN apt-get install -y libpcap0.8 libpcap0.8-dev telnet
 
 RUN pip3 install --upgrade pip
 

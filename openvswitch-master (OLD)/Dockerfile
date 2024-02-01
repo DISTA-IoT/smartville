@@ -1,0 +1,1 @@
+FROM gns3/openvswitch:latest AS base

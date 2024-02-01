@@ -178,11 +178,11 @@ def create_docker_template_switch(server: Server, name: str, image: str, environ
     'environment' should be the empty string '' or a string with newline separated key=value pairs,
     e.g. environment = 'VAR_ONE=value1\nVAR2=2\nBLABLABLA=something'
     """
-    defaults = {'adapters': 6,
+    defaults = {'adapters': 16,
                 'builtin': False,
                 'category': 'guest',
                 'compute_id': 'local',
-                'console_auto_start': False,
+                'console_auto_start': True,
                 'console_http_path': '/',
                 'console_http_port': 80,
                 'console_resolution': '1024x768',
