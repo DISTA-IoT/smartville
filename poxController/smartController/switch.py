@@ -140,18 +140,16 @@ class Smart_Switch(EventMixin):
     query_tuple = (switch_id, dest_ip_addr)
     if query_tuple in self.unprocessed_flows.keys():
       
-      bucket = self.unprocessed_flows[query_tuple]
+      bucket = self.unprocessed_flows[query_tuple]    
+      del self.unprocessed_flows[query_tuple]
 
-      if len(bucket) > FIRST_N_RETAINED_PACKETS_PER_FLOW:
-          del self.unprocessed_flows[query_tuple]
-
-          log.debug(f"Sending {len(bucket)} buffered packets to {dest_ip_addr}")
-          
-          for _, packet_id, in_port, _ in bucket:
-            po = of.ofp_packet_out(buffer_id=packet_id, in_port=in_port)
-            po.actions.append(of.ofp_action_dl_addr.set_dst(dest_mac_addr))
-            po.actions.append(of.ofp_action_output(port = port))
-            core.openflow.sendToDPID(switch_id, po)
+      log.debug(f"Sending {len(bucket)} buffered packets to {dest_ip_addr}")
+      
+      for _, packet_id, in_port, _ in bucket:
+        po = of.ofp_packet_out(buffer_id=packet_id, in_port=in_port)
+        po.actions.append(of.ofp_action_dl_addr.set_dst(dest_mac_addr))
+        po.actions.append(of.ofp_action_output(port = port))
+        core.openflow.sendToDPID(switch_id, po)
 
 
   def delete_ip_flow_matching_rules(self, dest_ip, connection):
