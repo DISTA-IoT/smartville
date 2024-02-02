@@ -139,13 +139,6 @@ class PacketLogger(object):
        del self.flows_dict[flow_id]
 
 
-def get_sender_flow_array(sender_flow_dict):
-    array_to_return = list(sender_flow_dict.items())
-    array_to_return = np.array(array_to_return)
-    array_to_return = array_to_return[:,1].astype(np.float32)
-    return array_to_return
-
-
 def flat_dict_to_tensor(flat_dict):
   array_to_return = list(flat_dict.items())
   array_to_return = np.array(array_to_return)
