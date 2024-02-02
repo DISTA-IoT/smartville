@@ -115,6 +115,7 @@ class ControllerBrain():
         self.batch_training_counts += 1
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
+            self.logger_instance.info(f'batch labels mean: {more_labels.mean().item()} batch prediction mean: {more_predictions.mean().item()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
 
@@ -122,6 +123,7 @@ class ControllerBrain():
         if (self.batch_training_counts > 0) and\
               (self.batch_training_counts % SAVING_MODULES_FREQ == 0) and\
                   (self.best_accuracy < curr_acc):
+            self.best_accuracy = curr_acc
             self.save_models()
 
     def save_models(self):
