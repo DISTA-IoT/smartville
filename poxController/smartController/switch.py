@@ -72,12 +72,11 @@ class Smart_Switch(EventMixin):
     self.recently_sent_ARPs = {}
 
 
-    # self.lost_buffers is a dict where:
+    # self.unprocessed_flows is a dict where:
     # keys 2-tuples: (switch_id, IP)
-    # values: list of 3-tuples: [(expire_time, buffer_id, in_port), ...]
-    # It containes buffers (packets) we've gotten at this switch_port for this IP which
-    # we can't deliver because we don't know where they go.
-    self.lost_buffers = {}
+    # values: list of 3-tuples: [(expire_time, packet_id, in_port), ...]
+    # It flow packets which we can't deliver because we don't know where they go.
+    self.unprocessed_flows = {}
 
     # For each switch, we map destination IP addresses to Entries
     # (Entries are pairs of switch output ports and MAC addresses)
@@ -111,44 +110,43 @@ class Smart_Switch(EventMixin):
     # Called by a timer so that we can remove old items.
     empty = []
 
-    for key_pair, buffer in self.lost_buffers.items():
+    for key_pair, flow in self.unprocessed_flows.items():
       switch_id, _ = key_pair
 
-      if len(buffer) == 0: empty.append(key_pair)
+      if len(flow) == 0: empty.append(key_pair)
       else: 
-        for three_tuple in list(buffer):
-          expires_at, buffer_id, in_port = three_tuple
+        for three_tuple in list(flow):
+          expires_at, packet_id, in_port = three_tuple
 
           if expires_at < time.time():
             # This packet is old. Remove it from the buffer.
-            buffer.remove(three_tuple)
+            flow.remove(three_tuple)
             # Tell this switch to drop such a packet:
             # To do that we simply sent an action-empty openflow message
             # containing the buffer id and the input switch port id.
-            po = of.ofp_packet_out(buffer_id = buffer_id, in_port = in_port)
+            po = of.ofp_packet_out(buffer_id=packet_id, in_port = in_port)
             core.openflow.sendToDPID(switch_id, po)
 
-    # Remove empty buffer bins
+    # Remove empty flow entries from the unprocessed_flows dictionary
     for key_pair in empty:
-      del self.lost_buffers[key_pair]
+      del self.unprocessed_flows[key_pair]
 
 
-  def _send_lost_buffers(self, switch_id, port, dest_mac_addr, dest_ip_addr):
+  def _send_unprocessed_flows(self, switch_id, port, dest_mac_addr, dest_ip_addr):
     """
-    We may have "lost" buffers -- packets we got but didn't know
-    where to send at the time.  We may know now.  Try and see.
+    Unprocessed flows are those we didn't know
+    where to send at the time of arrival.  We may know now.  Try and see.
     """
     
-    if (switch_id, dest_ip_addr) in self.lost_buffers:
+    if (switch_id, dest_ip_addr) in self.unprocessed_flows:
       
-      bucket = self.lost_buffers[(switch_id, dest_ip_addr)]
-      del self.lost_buffers[(switch_id, dest_ip_addr)]
+      bucket = self.unprocessed_flows[(switch_id, dest_ip_addr)]
+      del self.unprocessed_flows[(switch_id, dest_ip_addr)]
 
       log.debug("Sending %i buffered packets to %s" % (len(bucket), dest_ip_addr))
       
-      for _, buffer_id, in_port in bucket:
-
-        po = of.ofp_packet_out(buffer_id=buffer_id, in_port=in_port)
+      for _, packet_id, in_port in bucket:
+        po = of.ofp_packet_out(buffer_id=packet_id, in_port=in_port)
         po.actions.append(of.ofp_action_dl_addr.set_dst(dest_mac_addr))
         po.actions.append(of.ofp_action_output(port = port))
         core.openflow.sendToDPID(switch_id, po)
@@ -199,7 +197,7 @@ class Smart_Switch(EventMixin):
                                  dest_mac_addr, 
                                  outgoing_port,
                                  connection,
-                                 buffer_id,
+                                 packet_id,
                                  type):
 
       actions = []
@@ -214,7 +212,7 @@ class Smart_Switch(EventMixin):
       msg = of.ofp_flow_mod(command=of.OFPFC_ADD,
                             idle_timeout=FLOW_IDLE_TIMEOUT,
                             hard_timeout=of.OFP_FLOW_PERMANENT,
-                            buffer_id=buffer_id,
+                            buffer_id=packet_id,
                             actions=actions,
                             match=match)
       
@@ -268,10 +266,10 @@ class Smart_Switch(EventMixin):
     dest_ip_addr = packet.next.dstip
     
     # Add to tracked buffers
-    if (switch_id, dest_ip_addr) not in self.lost_buffers:
-        self.lost_buffers[(switch_id, dest_ip_addr)] = []
+    if (switch_id, dest_ip_addr) not in self.unprocessed_flows:
+        self.unprocessed_flows[(switch_id, dest_ip_addr)] = []
 
-    bucket = self.lost_buffers[(switch_id, dest_ip_addr)]
+    bucket = self.unprocessed_flows[(switch_id, dest_ip_addr)]
     three_tuple = (time.time() + MAX_BUFFER_TIME, packet_in_event.ofp.buffer_id, incomming_port)
     bucket.append(three_tuple)
 
@@ -317,7 +315,7 @@ class Smart_Switch(EventMixin):
                                 dest_mac_addr, 
                                 outgoing_port,
                                 connection=packet_in_event.connection,
-                                buffer_id=packet_in_event.ofp.buffer_id,
+                                packet_id=packet_in_event.ofp.buffer_id,
                                 type=packet.type)
 
       else:
@@ -335,7 +333,7 @@ class Smart_Switch(EventMixin):
                 packet.next.dstip)
       
       # Send any waiting packets for that ip
-      self._send_lost_buffers(
+      self._send_unprocessed_flows(
          switch_id, 
          incomming_port, 
          dest_mac_addr=packet.src,
@@ -408,7 +406,7 @@ class Smart_Switch(EventMixin):
                                      connection=packet_in_event.connection)
           
           # Send any waiting packets...
-          self._send_lost_buffers(
+          self._send_unprocessed_flows(
               switch_id, 
               incomming_port, 
               dest_mac_addr=packet.src,
