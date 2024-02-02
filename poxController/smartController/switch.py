@@ -72,8 +72,10 @@ class Smart_Switch(EventMixin):
     self.recently_sent_ARPs = {}
 
 
-    # (dpid,IP) -> [(expire_time,buffer_id,in_port), ...]
-    # These are buffers we've gotten at this switch_port for this IP which
+    # self.lost_buffers is a dict where:
+    # keys 2-tuples: (switch_id, IP)
+    # values: list of 3-tuples: [(expire_time, buffer_id, in_port), ...]
+    # It containes buffers (packets) we've gotten at this switch_port for this IP which
     # we can't deliver because we don't know where they go.
     self.lost_buffers = {}
 
@@ -108,21 +110,27 @@ class Smart_Switch(EventMixin):
   def _handle_expiration(self):
     # Called by a timer so that we can remove old items.
     empty = []
-    for k,v in self.lost_buffers.items():
-      dpid,ip = k
 
-      for item in list(v):
-        expires_at, buffer_id, in_port = item
-        if expires_at < time.time():
-          # This packet is old.  Tell this switch to drop it.
-          v.remove(item)
-          po = of.ofp_packet_out(buffer_id = buffer_id, in_port = in_port)
-          core.openflow.sendToDPID(dpid, po)
-      if len(v) == 0: empty.append(k)
+    for key_pair, buffer in self.lost_buffers.items():
+      switch_id, _ = key_pair
+
+      if len(buffer) == 0: empty.append(key_pair)
+      else: 
+        for three_tuple in list(buffer):
+          expires_at, buffer_id, in_port = three_tuple
+
+          if expires_at < time.time():
+            # This packet is old. Remove it from the buffer.
+            buffer.remove(three_tuple)
+            # Tell this switch to drop such a packet:
+            # To do that we simply sent an action-empty openflow message
+            # containing the buffer id and the input switch port id.
+            po = of.ofp_packet_out(buffer_id = buffer_id, in_port = in_port)
+            core.openflow.sendToDPID(switch_id, po)
 
     # Remove empty buffer bins
-    for k in empty:
-      del self.lost_buffers[k]
+    for key_pair in empty:
+      del self.lost_buffers[key_pair]
 
 
   def _send_lost_buffers(self, switch_id, port, dest_mac_addr, dest_ip_addr):
@@ -264,11 +272,10 @@ class Smart_Switch(EventMixin):
         self.lost_buffers[(switch_id, dest_ip_addr)] = []
 
     bucket = self.lost_buffers[(switch_id, dest_ip_addr)]
-    entry = (time.time() + MAX_BUFFER_TIME, packet_in_event.ofp.buffer_id, incomming_port)
-    bucket.append(entry)
+    three_tuple = (time.time() + MAX_BUFFER_TIME, packet_in_event.ofp.buffer_id, incomming_port)
+    bucket.append(three_tuple)
 
     while len(bucket) > MAX_BUFFERED_PER_IP: del bucket[0]
-
 
     # Expire things from our recently_sent_ARP list...
     self.recently_sent_ARPs = {k:v for k, v in self.recently_sent_ARPs.items() if v > time.time()}
@@ -290,8 +297,7 @@ class Smart_Switch(EventMixin):
         connection=packet_in_event.connection)
     
   
-  def try_forwarding_packet(self, switch_id,incomming_port, packet_in_event):
-      
+  def try_creating_flow_rule(self, switch_id,incomming_port, packet_in_event):
       packet = packet_in_event.parsed
       source_ip_addr = packet.next.srcip
       dest_ip_addr = packet.next.dstip
@@ -300,10 +306,10 @@ class Smart_Switch(EventMixin):
           # destination address is present in the arp table
           # get mac and out port
           outgoing_port = self.arpTables[switch_id][dest_ip_addr].port
-          dest_mac_addr = self.arpTables[switch_id][dest_ip_addr].mac
 
           if outgoing_port != incomming_port:
-
+              
+              dest_mac_addr = self.arpTables[switch_id][dest_ip_addr].mac
               self.add_ip_to_ip_flow_matching_rule(
                                 switch_id,
                                 source_ip_addr, 
@@ -315,7 +321,6 @@ class Smart_Switch(EventMixin):
                                 type=packet.type)
 
       else:
-
           self.handle_unknown_ip_packet(switch_id, incomming_port, packet_in_event)
 
 
@@ -329,7 +334,6 @@ class Smart_Switch(EventMixin):
                 packet.next.srcip,
                 packet.next.dstip)
       
-      
       # Send any waiting packets for that ip
       self._send_lost_buffers(
          switch_id, 
@@ -337,13 +341,12 @@ class Smart_Switch(EventMixin):
          dest_mac_addr=packet.src,
          dest_ip_addr=packet.next.srcip)
 
-
       self.learn_or_update_arp_table(ip_addr=packet.next.srcip,
                                      mac_addr=packet.src,
                                      port=incomming_port, 
                                      connection=packet_in_event.connection)
 
-      self.try_forwarding_packet(switch_id, 
+      self.try_creating_flow_rule(switch_id, 
                                   incomming_port, 
                                   packet_in_event)
 
