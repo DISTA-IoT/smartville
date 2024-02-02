@@ -22,7 +22,7 @@ from pox.lib.recoco import Timer
 from pox.openflow.of_json import *
 from pox.lib.addresses import EthAddr
 from smartController.entry import Entry
-from smartController.packetlogger import PacketLogger
+from smartController.flowlogger import FlowLogger
 from smartController.controller_brain import ControllerBrain
 
 openflow_connection = None #openflow connection to switch is stored here
@@ -65,7 +65,7 @@ class Smart_Switch(EventMixin):
   4) When you see an IP packet, if you know the destination port (because it's
     in the table from step 1), install a flow for it.
    """
-  def __init__ (self, packetlogger):
+  def __init__ (self, flow_logger):
 
     # We use this to prevent ARP flooding
     # Key: (switch_id, ARPed_IP) Values: ARP request expire time
@@ -92,14 +92,14 @@ class Smart_Switch(EventMixin):
     self.smart_check_timer = Timer(5, self.smart_check, recurring=True)
 
     # Our packetlogger instance:
-    self.packetlogger = packetlogger
+    self.flow_logger = flow_logger
 
     core.listen_to_dependencies(self)
 
 
   def smart_check(self):
       self.brain.classify_duet(
-        flows=list(self.packetlogger.flows_dict.values()))
+        flows=list(self.flow_logger.flows_dict.values()))
     # self.packetlogger.reset_packet_lists()
     # self.packetlogger.reset_all_portstats_lists()
     # self.packetlogger.reset_all_flows_metadata()
@@ -498,14 +498,11 @@ def requests_stats():
 def launch():
   
   # Registering PacketLogger component:
-  packetLogger = PacketLogger(
+  flow_logger = FlowLogger(
     ipv4_blacklist_for_training=IPV4_BLACKLIST)
 
-  core.openflow.addListeners(packetLogger)
-  core.register("PacketLogger", packetLogger)
-
   # Registering Switch component:
-  smart_switch = Smart_Switch(packetLogger)
+  smart_switch = Smart_Switch(flow_logger)
   core.register("smart_switch", smart_switch)  
   
   # attach handlers to listeners
@@ -515,9 +512,10 @@ def launch():
 
   core.openflow.addListenerByName(
     "FlowStatsReceived", 
-    packetLogger._handle_flowstats_received) 
+    flow_logger._handle_flowstats_received) 
   
+  """
   core.openflow.addListenerByName(
     "PortStatsReceived", 
-    packetLogger._handle_portstats_received) 
-  
+    flow_logger._handle_portstats_received) 
+  """
