@@ -14,7 +14,7 @@ class FlowLogger(object):
       switch_logger per switch.
       """
       self.flows_dict = {}
-      self.unprocessed_flows_packet_cache = {}
+      self.packet_cache = {}
       self.logger_instance = core.getLogger()
       self.ipv4_blacklist_for_training = ipv4_blacklist_for_training
 
@@ -37,15 +37,15 @@ class FlowLogger(object):
         partial_flow_id = str(src_ip) + "_" + str(dst_ip)
         packet_tensor = IPPacket2Tensor(packet.next).feature_tensor
 
-        if partial_flow_id in self.unprocessed_flows_packet_cache.keys():
+        if partial_flow_id in self.packet_cache.keys():
             # A tensor already exists:
-            curr_packets_circular_buffer = self.unprocessed_flows_packet_cache[partial_flow_id]
+            curr_packets_circular_buffer = self.packet_cache[partial_flow_id]
         else:
            # Create new circular buffer:
            curr_packets_circular_buffer = CircularBuffer(buffer_size=5, feature_size=100)
 
         curr_packets_circular_buffer.add(packet_tensor)
-        self.unprocessed_flows_packet_cache[partial_flow_id] = curr_packets_circular_buffer
+        self.packet_cache[partial_flow_id] = curr_packets_circular_buffer
 
 
     def process_received_flow(self, flow):
@@ -67,6 +67,26 @@ class FlowLogger(object):
           new_flow.enrich_features(flow_features)
           self.flows_dict[new_flow.flow_id] = new_flow
 
+        self.update_packet_buffer(new_flow)
+
+
+    def update_packet_buffer(self, flow_object):
+       """
+       Attack the cached packets tensor to the flow entry in flows_dict
+       """
+
+       partial_flow_id = "_".join(flow_object.flow_id.split("_")[:-1])
+
+       if partial_flow_id in self.packet_cache.keys():
+          
+          packets_buffer = self.packet_cache[partial_flow_id]
+          del self.packet_cache[partial_flow_id]
+
+          if self.flows_dict[flow_object.flow_id].packets_tensor == None:
+             self.flows_dict[flow_object.flow_id].packets_tensor = packets_buffer
+          else: 
+             for single_packet_tensor in packets_buffer.buffer:
+                self.flows_dict[flow_object.flow_id].packets_tensor.add(single_packet_tensor)
 
     
     def _handle_flowstats_received (self, event):
