@@ -50,9 +50,6 @@ ARP_REQUEST_EXPIRATION_SECONDS = 4
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
 IPV4_BLACKLIST=["192.168.1.8", "192.168.1.9", "192.168.1.10", "192.168.1.11", "192.168.1.12"]
 
-# We need to save the first packet of a flow for inference purposes.
-FIRST_N_RETAINED_PACKETS_PER_FLOW = 0
-
 print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
 
 AI_DEBUG = True
@@ -344,7 +341,7 @@ class Smart_Switch(EventMixin):
                 packet.next.dstip)
       
       # Save the first packets of each flow for inference purposes...
-      self.flow_logger.cache_unprocessed_flow_packet(
+      create_flow_rule = self.flow_logger.cache_unprocessed_packets(
          src_ip=packet.next.srcip,
          dst_ip=packet.next.dstip,
          packet=packet)
@@ -361,9 +358,10 @@ class Smart_Switch(EventMixin):
                                      port=incomming_port, 
                                      connection=packet_in_event.connection)
 
-      self.try_creating_flow_rule(switch_id, 
-                                  incomming_port, 
-                                  packet_in_event)
+      if create_flow_rule:
+          self.try_creating_flow_rule(switch_id, 
+                                      incomming_port, 
+                                      packet_in_event)
 
 
   def send_arp_response(

@@ -27,25 +27,29 @@ class FlowLogger(object):
             flow['packet_count']]).to(torch.float32)
 
 
-    def cache_unprocessed_flow_packet(self, src_ip, dst_ip, packet):
+    def cache_unprocessed_packets(self, src_ip, dst_ip, packet):
         """
         We need to add some packets among the features of flows to augment the perceptive field of our AI. 
         The packets that arrive at the controller, however, are by definition orphans of flow rules. 
         We cache them until the flow rules are available. Whenever flowstats arrive, we will
         query this cache memory to populate flow features with packet data.
+
+        returns a flag indicating if the buffer is full of data.
         """
         partial_flow_id = str(src_ip) + "_" + str(dst_ip)
         packet_tensor = IPPacket2Tensor(packet.next).feature_tensor
 
         if partial_flow_id in self.packet_cache.keys():
             # A tensor already exists:
-            curr_packets_circular_buffer = self.packet_cache[partial_flow_id]
+            curr_packets_circ_buff = self.packet_cache[partial_flow_id]
         else:
            # Create new circular buffer:
-           curr_packets_circular_buffer = CircularBuffer(buffer_size=5, feature_size=100)
+           curr_packets_circ_buff = CircularBuffer(buffer_size=5, feature_size=100)
 
-        curr_packets_circular_buffer.add(packet_tensor)
-        self.packet_cache[partial_flow_id] = curr_packets_circular_buffer
+        curr_packets_circ_buff.add(packet_tensor)
+        self.packet_cache[partial_flow_id] = curr_packets_circ_buff
+
+        return curr_packets_circ_buff.is_full
 
 
     def process_received_flow(self, flow):
@@ -102,7 +106,3 @@ class FlowLogger(object):
 
     def reset_single_flow_metadata(self, flow_id):
        del self.flows_dict[flow_id]
-
-
-
-

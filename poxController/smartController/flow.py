@@ -6,12 +6,18 @@ class CircularBuffer:
         self.buffer_size = buffer_size
         self.feature_size = feature_size
         self.buffer = torch.zeros(buffer_size, feature_size)
+        self.is_full = False
+        self.calls_to_add = 0
+
 
     def add(self, new_tensor):
         # Roll the buffer up by 1 along the first dimension
         self.buffer = torch.roll(self.buffer, shifts=-1, dims=0)
         # Add new tensor to the last row
         self.buffer[-1] = new_tensor
+        self.calls_to_add += 1
+        if self.calls_to_add >= self.buffer_size:
+            self.is_full = True
 
     def get_buffer(self):
         return self.buffer
@@ -34,7 +40,7 @@ class Flow():
         self.__feat_tensor = CircularBuffer(
                             buffer_size=MAX_FLOW_TIMESTEPS, 
                             feature_size=FLOW_FEAT_DIM)
-        
+        self.packets_tensor = None
         self.infected = False
 
     def get_feat_tensor(self):
