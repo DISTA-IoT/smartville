@@ -4,6 +4,7 @@ import os
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from wandb_tracker import WandBTracker
 
 """
 ######## PORT STATS: ###################
@@ -37,32 +38,58 @@ FLOW_FEATURES_DIM = 4
 
 PRETRAINED_MODEL_PATH = 'models/BinaryFlowClassifier.pt'
 
+MAX_FLOW_TIMESTEPS=10
+
+REPLAY_BUFFER_MAX_CAPACITY=1000
+
+REPLAY_BUFFER_BATCH_SIZE=50
+
+lr=1e-3
+
+device='cpu'
+
+
 class ControllerBrain():
 
-    def __init__(self, 
-                 logger_instance, 
-                 AI_DEBUG=False,
-                 MAX_FLOW_TIMESTEPS=10,
-                 REPLAY_BUFFER_MAX_CAPACITY=1000,
-                 REPLAY_BUFFER_BATCH_SIZE=50,
-                 lr=1e-3,
-                 device='cpu'):
-        
+    def __init__(self,
+                 logger_instance,
+                 seed=777,
+                 debug=False,
+                 wb_track=False,
+                 wb_project_name='',
+                 wb_run_name='',
+                 **wb_config_dict):
+                
         self.logger_instance = logger_instance
-        self.AI_DEBUG = AI_DEBUG
+
+        self.AI_DEBUG = debug
         self.MAX_FLOW_TIMESTEPS=MAX_FLOW_TIMESTEPS
 
         self.replay_buffer = ReplayBuffer(
             capacity=REPLAY_BUFFER_MAX_CAPACITY,
-            batch_size=REPLAY_BUFFER_BATCH_SIZE)
+            batch_size=REPLAY_BUFFER_BATCH_SIZE,
+            seed=seed)
         
         self.batch_training_counts = 0
         self.best_accuracy = 0
 
-        self.initialize_binary_classifier(device, lr)
+        self.wbt = wb_track
+
+        if self.wbt:
+
+            wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
+            
+            self.wbl = WandBTracker(
+                wanb_project_name=wb_project_name,
+                run_name=wb_run_name,
+                config_dict=wb_config_dict).wb_logger
+
+        self.initialize_binary_classifier(device, lr, seed)
 
 
-    def initialize_binary_classifier(self, device, lr):
+    def initialize_binary_classifier(self, device, lr, seed):
+        
+        torch.manual_seed(seed)
         self.flow_classifier = BinaryFlowClassifier(
             input_size=FLOW_FEATURES_DIM, 
             hidden_size=40,

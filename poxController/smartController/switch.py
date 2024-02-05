@@ -54,6 +54,25 @@ print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
 
 AI_DEBUG = True
 
+SEED = 777  # For reproducibility purposes
+
+WB_TRACKING = False
+
+WANDB_PROJECT_NAME = "StarWars"
+
+WAND_RUN_NAME="no_packet_feats"
+
+WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
+                     "ARP_TIMEOUT": ARP_TIMEOUT,
+                     "MAX_BUFFERED_PER_IP": MAX_BUFFERED_PER_IP,
+                     "MAX_BUFFER_TIME": MAX_BUFFER_TIME,
+                     "REQUEST_STATS_PERIOD_SECONDS": REQUEST_STATS_PERIOD_SECONDS,
+                     "ARP_REQUEST_EXPIRATION_SECONDS": ARP_REQUEST_EXPIRATION_SECONDS,
+                     "IPV4_BLACKLIST": IPV4_BLACKLIST,
+                     "AI_DEBUG": AI_DEBUG,
+                     "SEED": SEED}
+
+
 class Smart_Switch(EventMixin):
   """
   For each switch:
@@ -66,11 +85,9 @@ class Smart_Switch(EventMixin):
     in the table from step 1), install a flow for it.
    """
   def __init__ (self, flow_logger):
-
     # We use this to prevent ARP flooding
     # Key: (switch_id, ARPed_IP) Values: ARP request expire time
     self.recently_sent_ARPs = {}
-
 
     # self.unprocessed_flows is a dict where:
     # keys 2-tuples: (switch_id, dst_ip)
@@ -82,7 +99,14 @@ class Smart_Switch(EventMixin):
     # (Entries are pairs of switch output ports and MAC addresses)
     self.arpTables = {}
 
-    self.brain = ControllerBrain(log, AI_DEBUG)
+    self.brain = ControllerBrain(
+      logger_instance=log, 
+      seed=SEED,
+      debug=AI_DEBUG,
+      wb_track=WB_TRACKING,
+      wb_project_name=WANDB_PROJECT_NAME,
+      wb_run_name=WAND_RUN_NAME,
+      wb_config_dict=WANDB_CONFIG_DICT)
 
     # This timer handles expiring stuff 
     # Doesnt seems having to do with time to live stuff
@@ -517,7 +541,9 @@ def launch():
     ipv4_blacklist_for_training=IPV4_BLACKLIST)
 
   # Registering Switch component:
-  smart_switch = Smart_Switch(flow_logger)
+  smart_switch = Smart_Switch(
+     flow_logger=flow_logger
+     )
   core.register("smart_switch", smart_switch)  
   
   # attach handlers to listeners
@@ -534,3 +560,4 @@ def launch():
     "PortStatsReceived", 
     flow_logger._handle_portstats_received) 
   """
+

@@ -3,9 +3,10 @@ import random
 from collections import deque
 
 class ReplayBuffer():
-    def __init__(self, capacity, batch_size):
+    def __init__(self, capacity, batch_size, seed):
         self.batch_size = batch_size
         self.buffer = deque(maxlen=capacity)
+        random.seed(seed)
 
     def push(self, state, label):
         self.buffer.append((state, label))
