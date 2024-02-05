@@ -4,7 +4,7 @@ import os
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from wandb_tracker import WandBTracker
+from smartController.wandb_tracker import WandBTracker
 
 """
 ######## PORT STATS: ###################

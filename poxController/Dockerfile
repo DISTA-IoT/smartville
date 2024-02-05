@@ -5,6 +5,10 @@ RUN apt-get update && apt-get install -y git nano vim python3-pip
 
 RUN apt-get install -y libpcap0.8 libpcap0.8-dev
 
+RUN apt-get install -y wget\
+    net-tools iputils-ping  tcpdump && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN pip3 install --upgrade pip
 
 RUN pip3 install scapy networkx pydot numpy scikit-learn wandb
