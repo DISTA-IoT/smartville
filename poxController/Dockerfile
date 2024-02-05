@@ -7,7 +7,7 @@ RUN apt-get install -y libpcap0.8 libpcap0.8-dev
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install scapy networkx pydot numpy scikit-learn
+RUN pip3 install scapy networkx pydot numpy scikit-learn wandb
 
 RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 
