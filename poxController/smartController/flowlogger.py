@@ -18,7 +18,6 @@ class FlowLogger(object):
       self.logger_instance = core.getLogger()
       self.ipv4_blacklist_for_training = ipv4_blacklist_for_training
 
-
     def extract_flow_feature_tensor(self, flow):
        return torch.Tensor(
           [flow['byte_count'], 
