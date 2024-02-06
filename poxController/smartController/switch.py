@@ -79,7 +79,8 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "AI_DEBUG": AI_DEBUG,
                      "SEED": SEED,
                      "PACKET_FEAT_DIM": PACKET_FEAT_DIM,
-                     "FLOW_FEAT_DIM": FLOW_FEAT_DIM
+                     "FLOW_FEAT_DIM": FLOW_FEAT_DIM,
+                     "PACKET_FEATURES": PACKET_FEATURES
                      }
 
 
