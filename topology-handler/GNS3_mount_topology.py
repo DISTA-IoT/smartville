@@ -38,7 +38,7 @@ def starTopology():
     controller_start_command="sh" # DEV debugging controller...
 
     #mount controller
-    mountController(PROJECT_NAME,CONTROLLER_NAME,"openvswitch-1",controller_start_command,"192.168.1.1/24","192.168.1.1")
+    mountController(PROJECT_NAME,CONTROLLER_NAME,"openvswitch-1(192.168.1.2/24)",controller_start_command,"192.168.1.1/24","192.168.1.1")
 
     #mount 10 hosts and link each one to a port of the switch
     gateway = "192.168.1.1"
@@ -53,9 +53,10 @@ def starTopology():
     half = False
     host_start_command = "sh"
 
-    for ip in ip_pool:
+    for idx, ip in enumerate(ip_pool):
         curr_img_name = HOST_NAME
-        HOST_LABEL = HOST_NAME+" ("+ip+")"
+        host_id = int(idx % (len(ip_pool)/2))
+        HOST_LABEL = HOST_NAME+"-"+str(host_id)+"("+ip+")"
 
         if (i > (len(ip_pool))/2) and not half:
             half = True
@@ -64,9 +65,9 @@ def starTopology():
         
         if half:
             curr_img_name = ATTACKER_IMG_NAME
-            HOST_LABEL = ATTACKER_IMG_NAME+" ("+ip+")"
+            HOST_LABEL = ATTACKER_IMG_NAME+"-"+str(host_id)+"("+ip+")"
         
-        mountHost(PROJECT_NAME,curr_img_name,HOST_LABEL,"openvswitch-1",switch_port,ip,gateway,x,y, host_start_command)
+        mountHost(PROJECT_NAME,curr_img_name,HOST_LABEL,"openvswitch-1(192.168.1.2/24)",switch_port,ip,gateway,x,y, host_start_command)
         i = i+1
         y = y+100
         switch_port = switch_port+1

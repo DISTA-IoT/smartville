@@ -18,11 +18,14 @@ def mountSwitch(PROJECT_NAME,SWITCH_NAME,SWITCH_LABEL,ip,gateway):
     switch_template_id = get_template_id_from_name(templates, SWITCH_NAME)
     print(f"new switch template id: {switch_template_id}")
 
-    openvswitch=create_node(server, project, 0, 0, switch_template_id)
+    switch_node_name = SWITCH_LABEL + "("+ ip +")"
+
+    openvswitch=create_node(server, project, 0, 0, switch_template_id, switch_node_name)
+
     print(f"{SWITCH_LABEL}: created")
     openvswitch_id = openvswitch['node_id']
 
     set_node_network_interfaces(server, project, openvswitch_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
     print(f"{SWITCH_LABEL}: assigned ip: {ip}, gateway: {gateway} on eth0")
-    start_node_by_name(server,project,SWITCH_LABEL)
+    start_node_by_name(server,project,switch_node_name)
     print(f"{SWITCH_LABEL}: started")
