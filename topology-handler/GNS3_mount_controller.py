@@ -19,7 +19,7 @@ def mountController(PROJECT_NAME,CONTROLLER_NAME,switch_name,start_command,ip):
     controller_template_id = get_template_id_from_name(templates, CONTROLLER_NAME)
     print(f"new controller template id: {controller_template_id}")
 
-    controller_name = "pox-controller-1 "+"("+ip+")"
+    controller_name = "pox-controller-1"+"("+ip+")"
     openvswitch_id = get_node_id_by_name(server,project,switch_name)
     controller_id = get_node_id_by_name(server,project,controller_name)
     print(f"controller id {controller_id}, switch id {openvswitch_id}")
