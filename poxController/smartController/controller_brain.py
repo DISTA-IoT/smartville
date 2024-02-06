@@ -48,6 +48,13 @@ lr=1e-3
 
 device='cpu'
 
+INFERENCE = 'Inference'
+TRAINING = 'Training'
+ACC = 'Acc'
+LOSS = 'Loss'
+
+STEP_LABEL = 'step'
+
 
 class ControllerBrain():
 
@@ -72,7 +79,7 @@ class ControllerBrain():
         
         self.batch_training_counts = 0
         self.best_accuracy = 0
-
+        self.inference_counter = 0
         self.wbt = wb_track
 
         if self.wbt:
@@ -120,31 +127,29 @@ class ControllerBrain():
         if len(flows) == 0:
             return None
         else:
+            self.inference_counter += 1
             input_batch = self.assembly_input_tensor(flows)
             labels = self.get_labels(flows)
             
             self.replay_buffer.push(input_batch, labels)
 
             predictions = self.flow_classifier(input_batch)
-            accuracy = self.learn_binary_classification(labels, predictions)
-
+            accuracy = self.learn_binary_classification(labels, predictions, INFERENCE)            
             if self.AI_DEBUG: 
                 self.logger_instance.info(f'inference accuracy: {accuracy}')
 
             accuracy = self.experience_learning()
-            
             return accuracy
     
     def experience_learning(self):
         more_batches, more_labels = self.replay_buffer.sample()
         more_predictions = self.flow_classifier(more_batches)
-        accuracy = self.learn_binary_classification(more_labels, more_predictions)
+        accuracy = self.learn_binary_classification(more_labels, more_predictions, TRAINING)
         self.batch_training_counts += 1
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
             self.logger_instance.info(f'batch labels mean: {more_labels.mean().item()} batch prediction mean: {more_predictions.mean().item()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
-
 
     def check_progress(self, curr_acc):
         if (self.batch_training_counts > 0) and\
@@ -160,7 +165,7 @@ class ControllerBrain():
         if self.AI_DEBUG: 
             self.logger_instance.info(f'New model version saved')
 
-    def learn_binary_classification(self, labels, predictions):
+    def learn_binary_classification(self, labels, predictions, mode):
         loss = self.binary_criterion(input=predictions,
                                       target=labels)
         # backward pass
@@ -170,6 +175,10 @@ class ControllerBrain():
         self.fc_optimizer.step()
         # print progress
         acc = (predictions.round() == labels).float().mean()
+        if self.wbt:
+            self.wbl.log({mode+'_'+ACC: acc.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({mode+'_'+LOSS: loss.item(), STEP_LABEL:self.inference_counter})
+
         return acc
     
 
