@@ -44,15 +44,15 @@ REPLAY_BUFFER_MAX_CAPACITY=1000
 
 REPLAY_BUFFER_BATCH_SIZE=50
 
-lr=1e-3
+LEARNING_RATE=1e-3
 
-device='cpu'
+DEVICE='cpu'
 
+# Constants for wandb monitoring:
 INFERENCE = 'Inference'
 TRAINING = 'Training'
 ACC = 'Acc'
 LOSS = 'Loss'
-
 STEP_LABEL = 'step'
 
 
@@ -85,13 +85,20 @@ class ControllerBrain():
         if self.wbt:
 
             wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
+            wb_config_dict['FLOW_FEATURES_DIM'] = FLOW_FEATURES_DIM
+            wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODEL_PATH
+            wb_config_dict['MAX_FLOW_TIMESTEPS'] = MAX_FLOW_TIMESTEPS
+            wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
+            wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
+            wb_config_dict['DEVICE'] = DEVICE
+
             
             self.wbl = WandBTracker(
                 wanb_project_name=wb_project_name,
                 run_name=wb_run_name,
                 config_dict=wb_config_dict).wb_logger
 
-        self.initialize_binary_classifier(device, lr, seed)
+        self.initialize_binary_classifier(DEVICE, LEARNING_RATE, seed)
 
 
     def initialize_binary_classifier(self, device, lr, seed):
