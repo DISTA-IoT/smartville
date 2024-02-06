@@ -2,7 +2,7 @@ import ipaddress
 from gns3util import *
 import time
 
-def mountController(PROJECT_NAME,CONTROLLER_NAME,switch_name,start_command,ip,gateway):
+def mountController(PROJECT_NAME,CONTROLLER_NAME,switch_name,start_command,ip):
     server = Server(*read_local_gns3_config())
     project = get_project_by_name(server, PROJECT_NAME)
 
@@ -33,10 +33,12 @@ def mountController(PROJECT_NAME,CONTROLLER_NAME,switch_name,start_command,ip,ga
     time.sleep(2)
     create_link(server, project, controller_id,0,openvswitch_id,0)
     print(f"Created a link from {CONTROLLER_NAME} to {switch_name} on port eth0")
-    set_node_network_interfaces(server, project, controller_id, "eth0", ipaddress.IPv4Interface("192.168.1.1/24"), "192.168.1.1")
-    print(f"{CONTROLLER_NAME}: assigned ip: {ip}, gateway: {gateway} on eth0")
+    set_node_network_interfaces(server, project, controller_id, "eth0", ipaddress.IPv4Interface("192.168.1.1/24"), None)
+    print(f"{CONTROLLER_NAME}: assigned ip: {ip} on eth0")
+    set_dhcp_node_network_interfaces(server,project,controller_id,"eth1")
     start_node(server,project,controller_id)
     print(f"{CONTROLLER_NAME}: started")
+    return controller_name
 
 
 

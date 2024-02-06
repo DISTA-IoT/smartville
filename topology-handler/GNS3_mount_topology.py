@@ -3,6 +3,8 @@ from GNS3_mount_controller import *
 from GNS3_mount_switch import *
 from GNS3_mount_host import *
 from GNS3_project_handler import *
+from GNS3_mount_nat import *
+
 
 PROJECT_NAME="sdn_project"
 # These are the names of the docker images
@@ -38,7 +40,8 @@ def starTopology():
     controller_start_command="sh" # DEV debugging controller...
 
     #mount controller
-    mountController(PROJECT_NAME,CONTROLLER_NAME,"openvswitch-1(192.168.1.2/24)",controller_start_command,"192.168.1.1/24","192.168.1.1")
+    controller_node_name = mountController(PROJECT_NAME,CONTROLLER_NAME,"openvswitch-1(192.168.1.2/24)",controller_start_command,"192.168.1.1/24")
+    mountNAT(PROJECT_NAME,controller_node_name)
 
     #mount 10 hosts and link each one to a port of the switch
     gateway = "192.168.1.1"
