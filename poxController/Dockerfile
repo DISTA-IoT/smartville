@@ -1,13 +1,14 @@
 FROM python:3.8
 
+RUN apt-get update && \
+    apt-get install -y git nano vim \
+    python3-pip wget tcpdump \
+    telnet libpcap0.8 iputils-ping
 
-RUN apt-get update && apt-get install -y git nano vim python3-pip
-
-RUN apt-get install -y libpcap0.8 libpcap0.8-dev telnet
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install scapy networkx pydot
+RUN pip3 install scapy networkx pydot net-tools
 
 RUN git clone https://github.com/noxrepo/pox.git /pox
 
