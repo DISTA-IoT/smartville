@@ -67,13 +67,13 @@ def resend_pcap_with_modification():
 
             # Read the PCAP file
             packets = rdpcap(pcap_file)
+            timestamps = [packet.time for packet in packets]
+            time_diffs = [timestamps[i + 1] - timestamps[i] for i in range(len(timestamps) - 1)]
 
-            # Iterate through each packet in the PCAP file
-            for packet in packets:
-                # Check if the packet contains IP layer
+            for packet, time_diff in zip(packets, time_diffs):
                 if IP in packet:
                     modify_and_send(packet)
-
+                time.sleep(time_diff)
 
 def resend_pcap_with_modification_tcpreplay():
 
@@ -82,10 +82,9 @@ def resend_pcap_with_modification_tcpreplay():
         if filename.endswith(".pcap"):
             # print("Processing file:", filename)
             pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
-
             # Modify and send packets using tcpreplay
             modify_and_save_pcap(pcap_file, 'output_file.pcap')
-
+            print('sending...')
             # Use tcpreplay command to send the modified packets
             cmd = f"tcpreplay -i {IFACE_NAME} output_file.pcap"
             subprocess.run(cmd, shell=True)
