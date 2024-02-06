@@ -1,4 +1,4 @@
-from smartController.neural_modules import BinaryFlowClassifier
+from smartController.neural_modules import BinaryFlowClassifier, TwoStreamBinaryFlowClassifier
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
@@ -34,7 +34,6 @@ from smartController.wandb_tracker import WandBTracker
 
 SAVING_MODULES_FREQ = 50
 
-FLOW_FEATURES_DIM = 4
 
 PRETRAINED_MODEL_PATH = 'models/BinaryFlowClassifier.pt'
 
@@ -59,6 +58,9 @@ STEP_LABEL = 'step'
 class ControllerBrain():
 
     def __init__(self,
+                 use_packet_feats,
+                 flow_feat_dim,
+                 packet_feat_dim,
                  logger_instance,
                  seed=777,
                  debug=False,
@@ -67,8 +69,10 @@ class ControllerBrain():
                  wb_run_name='',
                  **wb_config_dict):
                 
+        self.use_packet_feats = use_packet_feats
+        self.flow_feat_dim = flow_feat_dim
+        self.packet_feat_dim = packet_feat_dim
         self.logger_instance = logger_instance
-
         self.AI_DEBUG = debug
         self.MAX_FLOW_TIMESTEPS=MAX_FLOW_TIMESTEPS
 
@@ -85,10 +89,10 @@ class ControllerBrain():
         if self.wbt:
 
             wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
-            wb_config_dict['FLOW_FEATURES_DIM'] = FLOW_FEATURES_DIM
             wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODEL_PATH
             wb_config_dict['MAX_FLOW_TIMESTEPS'] = MAX_FLOW_TIMESTEPS
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
+            wb_config_dict['REPLAY_BUFFER_BATCH_SIZE'] = REPLAY_BUFFER_BATCH_SIZE
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
             wb_config_dict['DEVICE'] = DEVICE
 
@@ -104,10 +108,17 @@ class ControllerBrain():
     def initialize_binary_classifier(self, device, lr, seed):
         
         torch.manual_seed(seed)
-        self.flow_classifier = BinaryFlowClassifier(
-            input_size=FLOW_FEATURES_DIM, 
-            hidden_size=40,
-            dropout_prob=0.1)
+        if self.use_packet_feats:
+            self.flow_classifier = TwoStreamBinaryFlowClassifier(
+                flow_input_size=self.flow_feat_dim, 
+                packet_input_size=self.packet_feat_dim,
+                hidden_size=40,
+                dropout_prob=0.1)
+        else:
+            self.flow_classifier = BinaryFlowClassifier(
+                input_size=self.flow_feat_dim, 
+                hidden_size=40,
+                dropout_prob=0.1)
         self.check_pretrained()
         self.flow_classifier.to(device)
         self.fc_optimizer = optim.Adam(
@@ -135,12 +146,15 @@ class ControllerBrain():
             return None
         else:
             self.inference_counter += 1
-            input_batch = self.assembly_input_tensor(flows)
+            flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
             labels = self.get_labels(flows)
-            
-            self.replay_buffer.push(input_batch, labels)
+            self.replay_buffer.push(flow_input_batch, packet_input_batch, labels)
 
-            predictions = self.flow_classifier(input_batch)
+            if self.use_packet_feats:
+                predictions = self.flow_classifier(flow_input_batch, packet_input_batch)
+            else:
+                predictions = self.flow_classifier(flow_input_batch)
+
             accuracy = self.learn_binary_classification(labels, predictions, INFERENCE)            
             if self.AI_DEBUG: 
                 self.logger_instance.info(f'inference accuracy: {accuracy}')
@@ -149,13 +163,17 @@ class ControllerBrain():
             return accuracy
     
     def experience_learning(self):
-        more_batches, more_labels = self.replay_buffer.sample()
-        more_predictions = self.flow_classifier(more_batches)
-        accuracy = self.learn_binary_classification(more_labels, more_predictions, TRAINING)
+        flow_batch, packet_batch, batch_labels = self.replay_buffer.sample()
+        if self.use_packet_feats:
+            more_predictions = self.flow_classifier(flow_batch, packet_batch)
+        else:
+            more_predictions = self.flow_classifier(flow_batch)
+
+        accuracy = self.learn_binary_classification(batch_labels, more_predictions, TRAINING)
         self.batch_training_counts += 1
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'batch labels mean: {more_labels.mean().item()} batch prediction mean: {more_predictions.mean().item()}')
+            self.logger_instance.info(f'batch labels mean: {batch_labels.mean().item()} batch prediction mean: {more_predictions.mean().item()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
     def check_progress(self, curr_acc):
@@ -207,10 +225,21 @@ class ControllerBrain():
         Each Flow has a bidimensional feature tensor. 
         (self.MAX_FLOW_TIMESTEPS x 4 features)
         """
-        input_batch = flows[0].get_feat_tensor().unsqueeze(0)
+        flow_input_batch = flows[0].get_feat_tensor().unsqueeze(0)
+        packet_input_batch = None
+
+        if self.use_packet_feats:
+            packet_input_batch = flows[0].packets_tensor.buffer.unsqueeze(0)
+
         for flow in flows[1:]:
-            input_batch = torch.cat( 
-                [input_batch,
+            flow_input_batch = torch.cat( 
+                [flow_input_batch,
                  flow.get_feat_tensor().unsqueeze(0)],
                  dim=0)
-        return input_batch
+            if self.use_packet_feats:
+                packet_input_batch = torch.cat( 
+                    [packet_input_batch,
+                    flow.packets_tensor.buffer.unsqueeze(0)],
+                    dim=0)
+                
+        return flow_input_batch, packet_input_batch

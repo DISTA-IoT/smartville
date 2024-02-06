@@ -59,3 +59,25 @@ class BinaryFlowClassifier(nn.Module):
         x = self.rnn(x)
         x = self.classifier(x)
         return x
+    
+
+class TwoStreamBinaryFlowClassifier(nn.Module):
+    def __init__(self, flow_input_size, packet_input_size, hidden_size, dropout_prob=0.2):
+        super(TwoStreamBinaryFlowClassifier, self).__init__()
+        self.flow_normalizer = nn.BatchNorm1d(flow_input_size)
+        self.flow_rnn = RecurrentModel(flow_input_size, hidden_size)
+        self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
+        self.packet_rnn = RecurrentModel(packet_input_size, hidden_size)
+        self.classifier = BinaryClassifier(hidden_size*2, hidden_size, dropout_prob)
+
+    def forward(self, flows, packets):
+        
+        flows = self.flow_normalizer(flows.permute((0,2,1))).permute((0,2,1))
+        packets = self.packet_normalizer(packets.permute((0,2,1))).permute((0,2,1))
+
+        flows = self.flow_rnn(flows)
+        packets = self.packet_rnn(packets)
+
+        inferences = self.classifier(torch.cat([flows, packets], dim=1))
+
+        return inferences

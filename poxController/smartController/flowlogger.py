@@ -1,13 +1,17 @@
 from pox.core import core
 from pox.openflow.of_json import flow_stats_to_list
-from smartController.flow import Flow, IPPacket2Tensor, CircularBuffer
+from smartController.flow import Flow, CircularBuffer
 import torch
+import torch.nn.functional as F
+
 
 class FlowLogger(object):
     
     def __init__(
       self,
-      ipv4_blacklist_for_training):
+      ipv4_blacklist_for_training,
+      packet_buffer_len,
+      packet_feat_dim):
 
       """
       TODO: flows_dict should be one for each switch... or, equivalently, we should use one 
@@ -17,6 +21,8 @@ class FlowLogger(object):
       self.packet_cache = {}
       self.logger_instance = core.getLogger()
       self.ipv4_blacklist_for_training = ipv4_blacklist_for_training
+      self.packet_buffer_len = packet_buffer_len
+      self.packet_feat_dim = packet_feat_dim
 
     def extract_flow_feature_tensor(self, flow):
        return torch.Tensor(
@@ -24,6 +30,22 @@ class FlowLogger(object):
             flow['duration_nsec'] / 10e9,
             flow['duration_sec'],
             flow['packet_count']]).to(torch.float32)
+
+
+    def build_packet_tensor(self, packet):
+        # Extract the first self.packet_feat_dim bytes of the packet
+        packet_data = packet.raw[:self.packet_feat_dim]
+        # Anonimization
+        packet_data = packet_data[:12] + b'\x00\x00\x00\x00'  + b'\x00\x00\x00\x00' + packet_data[20:]
+        # Convert packet data to a tensor
+        payload_data_tensor = torch.tensor([int(x) for x in packet_data], dtype=torch.float32)
+        # Pad the array if it's less than self.packet_feat_dim bytes
+        if payload_data_tensor.shape[0] < self.packet_feat_dim:
+            payload_data_tensor = F.pad(payload_data_tensor, 
+                                  (0, self.packet_feat_dim - payload_data_tensor.shape[0]), 
+                                  mode='constant', value=0)
+
+        return payload_data_tensor
 
 
     def cache_unprocessed_packets(self, src_ip, dst_ip, packet):
@@ -36,14 +58,16 @@ class FlowLogger(object):
         returns a flag indicating if the buffer is full of data.
         """
         partial_flow_id = str(src_ip) + "_" + str(dst_ip)
-        packet_tensor = IPPacket2Tensor(packet.next).feature_tensor
+        packet_tensor = self.build_packet_tensor(packet=packet.next)
 
         if partial_flow_id in self.packet_cache.keys():
             # A tensor already exists:
             curr_packets_circ_buff = self.packet_cache[partial_flow_id]
         else:
            # Create new circular buffer:
-           curr_packets_circ_buff = CircularBuffer(buffer_size=5, feature_size=100)
+           curr_packets_circ_buff = CircularBuffer(
+              buffer_size=self.packet_buffer_len, 
+              feature_size=self.packet_feat_dim)
 
         curr_packets_circ_buff.add(packet_tensor)
         self.packet_cache[partial_flow_id] = curr_packets_circ_buff
@@ -65,9 +89,9 @@ class FlowLogger(object):
         flow_features = self.extract_flow_feature_tensor(flow=flow)
 
         if new_flow.flow_id in self.flows_dict.keys():
-          self.flows_dict[new_flow.flow_id].enrich_features(flow_features)
+          self.flows_dict[new_flow.flow_id].enrich_flow_features(flow_features)
         else:
-          new_flow.enrich_features(flow_features)
+          new_flow.enrich_flow_features(flow_features)
           self.flows_dict[new_flow.flow_id] = new_flow
 
         self.update_packet_buffer(new_flow)

@@ -36,7 +36,12 @@ FLOW_IDLE_TIMEOUT = 10
 ARP_TIMEOUT = 60 * 2
 
 # Maximum number of packet to buffer on a switch for an unknown IP
+# This is also the number of packets in the packets feature vector for each flow.
 MAX_BUFFERED_PER_IP = 5
+
+# Dimention of the feature tensors
+PACKET_FEAT_DIM = 64
+FLOW_FEAT_DIM = 4
 
 # Maximum time to hang on to a buffer for an unknown IP in seconds
 MAX_BUFFER_TIME = 5
@@ -58,6 +63,8 @@ SEED = 777  # For reproducibility purposes
 
 WB_TRACKING = False
 
+PACKET_FEATURES = True
+
 WANDB_PROJECT_NAME = "StarWars"
 
 WAND_RUN_NAME="no_packet_feats"
@@ -70,7 +77,10 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_REQUEST_EXPIRATION_SECONDS": ARP_REQUEST_EXPIRATION_SECONDS,
                      "IPV4_BLACKLIST": IPV4_BLACKLIST,
                      "AI_DEBUG": AI_DEBUG,
-                     "SEED": SEED}
+                     "SEED": SEED,
+                     "PACKET_FEAT_DIM": PACKET_FEAT_DIM,
+                     "FLOW_FEAT_DIM": FLOW_FEAT_DIM
+                     }
 
 
 class Smart_Switch(EventMixin):
@@ -100,6 +110,9 @@ class Smart_Switch(EventMixin):
     self.arpTables = {}
 
     self.brain = ControllerBrain(
+      use_packet_feats=PACKET_FEATURES,
+      flow_feat_dim=FLOW_FEAT_DIM,
+      packet_feat_dim=PACKET_FEAT_DIM,
       logger_instance=log, 
       seed=SEED,
       debug=AI_DEBUG,
@@ -538,7 +551,9 @@ def launch():
   
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
-    ipv4_blacklist_for_training=IPV4_BLACKLIST)
+    ipv4_blacklist_for_training=IPV4_BLACKLIST,
+    packet_buffer_len=MAX_BUFFERED_PER_IP,
+    packet_feat_dim=PACKET_FEAT_DIM)
 
   # Registering Switch component:
   smart_switch = Smart_Switch(
