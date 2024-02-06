@@ -8,7 +8,7 @@
             "name": "REWRITE",
             "type": "python",
             "request": "launch",
-            "program": "AttackerNode/scripts/rewriter.py",
+            "program": "AttackerNode/scripts/rewrite.py",
             "args": [
                 "h_scan",
                 "192.168.1.10",
