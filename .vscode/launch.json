@@ -5,6 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "REWRITE",
+            "type": "python",
+            "request": "launch",
+            "program": "AttackerNode/scripts/rewriter.py",
+            "args": [
+                "h_scan",
+                "192.168.1.10",
+                "192.168.1.5",
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "REPLAY",
+            "type": "python",
+            "request": "launch",
+            "program": "AttackerNode/scripts/replay.py",
+            "args": [
+                "AttackerNode/h_scan",
+                "192.168.1.3",
+                "--repeat",
+                "5"
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Mount Topology",
             "type": "python",
             "request": "launch",
