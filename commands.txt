@@ -11,7 +11,6 @@ kafka-server-start.sh kafka_server.properties
 rm -rf /opt/kafka/logs
 
 ################## LAUNCH switch: #####################
-
 # switch is 192.168.1.2
 ovs-vsctl set-controller br0 tcp:192.168.1.1:6633
 
