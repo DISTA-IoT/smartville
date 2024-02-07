@@ -1,6 +1,14 @@
 ################## launch pox controller ##############
-
 ./pox.py --verbose samples.pretty_log smartController.switch
+
+################## launch zookeeper (controller) ##############
+zookeeper-server-start.sh zookeeper.properties
+
+################## launch kafka (controller) ##############
+kafka-server-start.sh kafka_server.properties
+
+################## launch kafka logs(controller) ##############
+rm -rf /opt/kafka/logs
 
 ################## LAUNCH switch: #####################
 
