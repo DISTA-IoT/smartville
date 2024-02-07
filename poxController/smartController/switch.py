@@ -24,6 +24,7 @@ from pox.lib.addresses import EthAddr
 from smartController.entry import Entry
 from smartController.flowlogger import FlowLogger
 from smartController.controller_brain import ControllerBrain
+from smartController.metricslogger import MetricsLogger
 
 openflow_connection = None #openflow connection to switch is stored here
 
@@ -61,13 +62,13 @@ AI_DEBUG = True
 
 SEED = 777  # For reproducibility purposes
 
-WB_TRACKING = False
+WB_TRACKING = True
 
 PACKET_FEATURES = True
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME="no_packet_feats"
+WAND_RUN_NAME="optim"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
@@ -95,7 +96,8 @@ class Smart_Switch(EventMixin):
   4) When you see an IP packet, if you know the destination port (because it's
     in the table from step 1), install a flow for it.
    """
-  def __init__ (self, flow_logger):
+  def __init__ (self, flow_logger, metrics_logger):
+    
     # We use this to prevent ARP flooding
     # Key: (switch_id, ARPed_IP) Values: ARP request expire time
     self.recently_sent_ARPs = {}
@@ -129,8 +131,10 @@ class Smart_Switch(EventMixin):
     # Call the smart check function repeatedly:
     self.smart_check_timer = Timer(5, self.smart_check, recurring=True)
 
-    # Our packetlogger instance:
+    # Our flow logger instance:
     self.flow_logger = flow_logger
+
+    self.metrics_logger = metrics_logger
 
     core.listen_to_dependencies(self)
 
@@ -556,10 +560,18 @@ def launch():
     packet_buffer_len=MAX_BUFFERED_PER_IP,
     packet_feat_dim=PACKET_FEAT_DIM)
 
+  metrics_logger = MetricsLogger(
+    server_addr = "192.168.1.1:9092",
+    max_conn_retries = 5,
+    metric_buffer_len = 40)
+  
+
   # Registering Switch component:
   smart_switch = Smart_Switch(
-     flow_logger=flow_logger
+     flow_logger=flow_logger,
+     metrics_logger=metrics_logger
      )
+  
   core.register("smart_switch", smart_switch)  
   
   # attach handlers to listeners
