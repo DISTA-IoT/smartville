@@ -8,11 +8,11 @@
             "name": "REWRITE",
             "type": "python",
             "request": "launch",
-            "program": "VictimNode/scripts/rewrite.py",
+            "program": "AttackerNode/scripts/rewrite.py",
             "args": [
-                "echo",
-                "192.168.1.7",
-                "192.168.1.8",
+                "hajime",
+                "192.168.1.9",
+                "192.168.1.4",
             ],
             "justMyCode": true
         },

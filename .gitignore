@@ -5,8 +5,14 @@
 /bin/*
 gns3_thesis/*
 AttackerNode/bening_traffic/*
+AttackerNode/hakai/*
+AttackerNode/hajime/*
 AttackerNode/h_scan/*
+AttackerNode/torii/*
+AttackerNode/mirai/*
+AttackerNode/gafgyt/*
 AttackerNode/muhstik/*
+AttackerNode/muhstik_old/*
 AttackerNode/cc_heartbeat/*
 AttackerNode/generic_ddos/*
 AttackerNode/okiru/*
