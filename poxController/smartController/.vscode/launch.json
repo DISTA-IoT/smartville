@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "StarWars Controller",
-            "type": "debugpy",
+            "type": "python",
             "request": "launch",
             "program": "/pox/pox.py",
             "args": [
@@ -18,7 +18,7 @@
         },
         {
             "name": "Consumer",
-            "type": "debugpy",
+            "type": "python",
             "request": "launch",
             "program": "metricslogger/consumerall.py",
             "args": [],
