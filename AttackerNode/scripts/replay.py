@@ -12,6 +12,7 @@ TARGET_IP = None
 IFACE_NAME = 'eth0'
 PATTERN_TO_REPLAY = None
 REPEAT_PATTERN_SECS = None
+PREPROCESSED = None
 
 def get_source_ip_address(interface=IFACE_NAME):
     try:
@@ -75,6 +76,7 @@ def resend_pcap_with_modification():
                     modify_and_send(packet)
                 time.sleep(time_diff)
 
+
 def resend_pcap_with_modification_tcpreplay():
 
     # Iterate over files in the directory
@@ -82,11 +84,17 @@ def resend_pcap_with_modification_tcpreplay():
         if filename.endswith(".pcap"):
             # print("Processing file:", filename)
             pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
-            # Modify and send packets using tcpreplay
-            modify_and_save_pcap(pcap_file, 'output_file.pcap')
-            print('sending...')
-            # Use tcpreplay command to send the modified packets
-            cmd = f"tcpreplay -i {IFACE_NAME} output_file.pcap"
+            if not PREPROCESSED:
+                print('processing...')
+                # Modify and send packets using tcpreplay
+                modify_and_save_pcap(pcap_file, 'output_file.pcap')
+                print('sending...')
+                # Use tcpreplay command to send the modified packets
+                cmd = f"tcpreplay -i {IFACE_NAME} output_file.pcap"
+            else:
+                print('sending...')
+                # Use tcpreplay command to send the modified packets
+                cmd = f"tcpreplay -i {IFACE_NAME} {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
             subprocess.run(cmd, shell=True)
 
 
@@ -112,6 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("PATTERN_TO_REPLAY", help="Pattern to replay directory")
     parser.add_argument("TARGET_IP", help="Target IP address")
     parser.add_argument("--repeat", type=int, default=None, help="Number of seconds before repeating the pattern (default: Don't repeat)")
+    parser.add_argument("--preprocessed", type=int, default=True, help="Search for preprocessed pcap file instead of processing it. (Default: true)")
 
     args = parser.parse_args()
 
@@ -123,6 +132,7 @@ if __name__ == "__main__":
     PATTERN_TO_REPLAY = args.PATTERN_TO_REPLAY
     TARGET_IP = args.TARGET_IP
     REPEAT_PATTERN_SECS = args.repeat
+    PREPROCESSED = args.preprocessed
 
 
     print(f'Source IP {SOURCE_IP}')
@@ -130,6 +140,7 @@ if __name__ == "__main__":
     print(f'Target IP {TARGET_IP}')
     print(f'Pattern to replay: {PATTERN_TO_REPLAY}')
     print(f'Interval between replays: {REPEAT_PATTERN_SECS}')
+    print(f'Preprocessed Pcap Replay: {PREPROCESSED}')
 
 
     # Resend packets with modified IPs
