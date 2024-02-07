@@ -18,10 +18,7 @@ RUN     apt-get clean && \
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install scapy
-
-RUN pip3 install netifaces
-
+RUN pip3 install scapy confluent_Kafka netifaces psutil
 
 WORKDIR /app
 

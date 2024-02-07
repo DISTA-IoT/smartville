@@ -9,7 +9,7 @@ RUN apt-get update && \
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install scapy networkx pydot numpy scikit-learn wandb
+RUN pip3 install scapy networkx pydot numpy scikit-learn wandb confluent_Kafka
 
 RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 
@@ -17,6 +17,27 @@ RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 COPY jesus_wandb_api_key.txt /root/.netrc
 
 RUN git clone https://github.com/noxrepo/pox.git /pox
+
+# Install Kafka
+RUN apt-get update && \
+    apt-get install -y default-jre default-jdk && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download Kafka binaries
+RUN wget https://dlcdn.apache.org/kafka/3.6.1/kafka_2.13-3.6.1.tgz && \
+    tar -xzf kafka_2.13-3.6.1.tgz && \
+    rm kafka_2.13-3.6.1.tgz && \
+    mv kafka_2.13-3.6.1 /opt/kafka
+
+COPY kafka_server.properties /pox/kafka_server.properties
+COPY zookeeper.properties /pox/zookeeper.properties
+
+# Expose Kafka port
+EXPOSE 9092
+
+# Set environment variables
+ENV PATH="/opt/kafka/bin:${PATH}"
+
 
 WORKDIR /pox
 
