@@ -1,15 +1,19 @@
 from confluent_kafka import Consumer, KafkaException
-from confluent_kafka.admin import AdminClient, NewTopic
-from prometheus_client import start_http_server, Gauge
+from confluent_kafka.admin import AdminClient
+# from prometheus_client import start_http_server, Gauge
 import threading
-import signal
 import math
 
 class consumer_thread(threading.Thread):
 
-    # Dichiarazione metodo costruttore python: questo passa le variabili contenenti le metriche ad 
-    # un'istanza della classe tramite la parola chiave "self"
+    def __init__(self, bootstrap_servers, topic):
+        threading.Thread.__init__(self)
+        self.bootstrap_servers = bootstrap_servers
+        self.topic = topic
+        self.exit_signal = threading.Event()
 
+    
+    """
     def __init__(self, bootstrap_servers, topic, cpu_metric, ram_metric, ping_metric, incoming_traffic_metric, outcoming_traffic_metric):
         threading.Thread.__init__(self)
         self.bootstrap_servers = bootstrap_servers
@@ -21,8 +25,8 @@ class consumer_thread(threading.Thread):
         self.outcoming_traffic_metric = outcoming_traffic_metric
         self.exit_signal = threading.Event()
 
+    
     # Definizione metodi di aggiornamento delle metriche nelle rispettive variabili
-
     def update_cpu_metric(self, value, label_value):
         self.cpu_metric.labels(label_name=label_value).set(value)
 
@@ -37,9 +41,9 @@ class consumer_thread(threading.Thread):
 
     def update_outcoming_traffic_metric(self, value, label_value):
         self.outcoming_traffic_metric.labels(label_name=label_value).set(value)
+    """
 
     # Definizione metodo di arresto di un thread
-
     def stop_threads(self):
         print("Stopping threads...")
         self.exit_signal.set()
@@ -48,7 +52,6 @@ class consumer_thread(threading.Thread):
     def run(self):
 
         # Definizione metodi di connessione al server Kafka
-
         consumer_conf = {'bootstrap.servers': self.bootstrap_servers, 'group.id': 'my-group'}
         conf = {'bootstrap.servers': self.bootstrap_servers}
 
@@ -60,20 +63,16 @@ class consumer_thread(threading.Thread):
         end_message = str(math.nan).encode('utf-8')
         stopper = 0
         lastmetric = ""
-        num_partitions = 0
+        
 
         topics = admin_client.list_topics()
 
         # Estrazione numero delle partizioni dal topic
-
         extract_partitions = topics.topics[self.topic].partitions
-
-        for partition in extract_partitions:
-            num_partitions += 1
+        num_partitions = len(extract_partitions)
 
         # Controllo se il topic a cui ci si deve iscrivere sia corretto: viene considerata una condizione
         # sufficiente se il numero di partizioni all'interno del topic sono esattamente 5
-
         if (num_partitions==5):
 
             consumer.subscribe([self.topic])
@@ -83,7 +82,6 @@ class consumer_thread(threading.Thread):
                 while not self.exit_signal.is_set():
 
                     # Il messaggio viene atteso per massimo 3 secondi
-
                     msg = consumer.poll(timeout=3)
 
                     #print(f'Got message: {msg.value().decode("utf-8")} from partition {msg.partition()}')
@@ -102,7 +100,6 @@ class consumer_thread(threading.Thread):
 
                         # Nel caso non si ricevesse alcun messaggio per 40*3 = 120 secondi, viene interrotto
                         # il ciclo
-
                         if (stopper <40):
                             continue
                         else:
@@ -120,37 +117,35 @@ class consumer_thread(threading.Thread):
                     # Lettura metriche dal server: ciascuna metrica ha la propria partizione dedicata
                     # Ciascuna metrica verrà monitorata tramite Prometheus e inserita nel suo sistema di
                     # archiviazione
-
                     if (msg.partition()==0):
                         #print(f'Valore CPU letto da {self.topic}: {msg.value().decode("utf-8")}')
                         self.update_cpu_metric(float(msg.value()), self.topic)
                         stopper = 0
 
                     elif (msg.partition()==1):
-                        #print(f'Valore RAM letto da {self.topic}: {msg.value().decode("utf-8")}')
-                        self.update_ram_metric(float(msg.value()), self.topic)
+                        print(f'Valore RAM letto da {self.topic}: {msg.value().decode("utf-8")}')
+                        # self.update_ram_metric(float(msg.value()), self.topic)
                         stopper = 0
 
                     elif (msg.partition()==2):
-                        #print(f'Valore latenza letto da {self.topic}: {msg.value().decode("utf-8")}')
-                        self.update_ping_metric(float(msg.value()), self.topic)
+                        print(f'Valore latenza letto da {self.topic}: {msg.value().decode("utf-8")}')
+                        # self.update_ping_metric(float(msg.value()), self.topic)
                         stopper = 0
 
                     elif (msg.partition()==3):
-                        #print(f'Valore traffico rete in entrata letto da {self.topic}: {msg.value().decode("utf-8")}')
-                        self.update_incoming_traffic_metric(float(msg.value()), self.topic)
+                        print(f'Valore traffico rete in entrata letto da {self.topic}: {msg.value().decode("utf-8")}')
+                        # self.update_incoming_traffic_metric(float(msg.value()), self.topic)
                         stopper = 0
 
                     elif (msg.partition()==4):
-                        #print(f'Valore traffico rete in uscita letto da {self.topic}: {msg.value().decode("utf-8")}')
-                        self.update_outcoming_traffic_metric(float(msg.value()), self.topic)
+                        print(f'Valore traffico rete in uscita letto da {self.topic}: {msg.value().decode("utf-8")}')
+                        # self.update_outcoming_traffic_metric(float(msg.value()), self.topic)
                         stopper = 0
 
             # Quando viene interrotto il ciclo, se ciò è dovuto alla mancanza di ricezione dei messaggi
             # per un periodo troppo lungo stabilito dalla variabile booleana "delete_ok", il thread viene 
             # arrestato e il topic dedicatogli viene eliminato in maniera tale da fare pulizia all'interno
             # del server kafka         
-                
             finally:
 
                 if delete_ok:
