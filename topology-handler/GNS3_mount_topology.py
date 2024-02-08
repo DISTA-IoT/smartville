@@ -67,11 +67,9 @@ def mount_edge_switch():
     print(f"{curr_switch_label}: created")
     edge_openvswitch_id = edge_openvswitch['node_id']
 
-    nodes = 10 + 1 + 1  # nodes + controller + nat
-    for idx in range(1, nodes+2):
-        interface = 'eth'+str(idx)
-        set_dhcp_node_network_interfaces(server, project, edge_openvswitch_id, interface)
-        print(f"{curr_switch_label}: DHCP on ",interface)
+    interface = 'eth1'
+    set_dhcp_node_network_interfaces(server, project, edge_openvswitch_id, interface)
+    print(f"{curr_switch_label}: DHCP on ",interface)
 
     start_node(server,project,edge_openvswitch_id)
     print(f"{curr_switch_label}: started")
@@ -129,6 +127,8 @@ def mount_single_Host(curr_img_name, curr_node_name,switch1_node_name,switch_por
     host_id=host['node_id']
     print(f"{curr_node_name}: created")
     set_node_network_interfaces(server, project, host_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
+    set_dhcp_node_network_interfaces(server,project,host_id,"eth1")
+
     print(f"{curr_node_name}: assigned ip: {ip}, gateway: {gateway} on eth0")
     create_link(server, project,host_id,0,openvswitch_id,switch_port)
     print(f"{curr_node_name}: link to {switch1_node_name} on port {switch_port} created")
@@ -139,7 +139,7 @@ def mount_single_Host(curr_img_name, curr_node_name,switch1_node_name,switch_por
 def mount_all_hosts(switch_node_name):
     node_names = []
     # mounts 10 hosts and links each one to a port of the switch
-    gateway = "192.168.1.1"
+    gateway = None  
     switch_port = 3
     network = "192.168.1.0"
     netmask = "/24"
