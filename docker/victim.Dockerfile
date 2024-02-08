@@ -23,7 +23,6 @@ RUN pip3 install scapy confluent_Kafka netifaces psutil
 WORKDIR /app
 
 COPY scripts/. /app/
-
 COPY  doorlock/. /app/doorlock/
 COPY  echo/. /app/echo/
 COPY  hue/. /app/hue/
