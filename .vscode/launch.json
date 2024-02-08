@@ -34,7 +34,7 @@
             "type": "python",
             "request": "launch",
             "program": "topology-handler/GNS3_mount_topology.py",
-            "justMyCode": false
+            "justMyCode": true
         }
     ]
 }

@@ -421,6 +421,8 @@ def get_template_id_from_name(templates: List[Dict[str, Any]], name: str) -> Opt
         if template["name"] == name:
             return template["template_id"]
     return None
+
+
 def get_template_id_from_name2(template_name: str, templates: List[Dict[str, Any]]) -> Optional[str]:
     """Get GNS3 template ID from the template name."""
     for template in templates:
