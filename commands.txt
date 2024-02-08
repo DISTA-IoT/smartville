@@ -1,16 +1,16 @@
 ################## CONTROLLER #################################
 
 # 1. launch promtheus server:
-prometheus --config.file=prometheus.yml --storage.tsdb.path=PrometheusLogs/
+prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/
 
 # 2. launch grafana server:
 grafana-server -homepath /usr/share/grafana
 
 # 3. launch zookeeper server:
-zookeeper-server-start.sh zookeeper.properties
+zookeeper-server-start.sh pox/smartController/zookeeper.properties
 
 # 4. launch kafka server:
-kafka-server-start.sh kafka_server.properties
+kafka-server-start.sh pox/smartController/kafka_server.properties
 
 # 5. lanch pox controller:
 ./pox.py --verbose samples.pretty_log smartController.switch

@@ -35,6 +35,13 @@
             "request": "launch",
             "program": "topology-handler/GNS3_mount_topology.py",
             "justMyCode": true
+        },
+        {
+            "name": "Container Manager",
+            "type": "python",
+            "request": "launch",
+            "program": "docker/container_manager.py",
+            "justMyCode": true
         }
     ]
 }

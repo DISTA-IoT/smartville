@@ -1,10 +1,62 @@
 import docker
+import time
 
 CONTROLLER_IMG_NAME = 'pox-controller:latest'
 ATTACKER_IMG_NAME = 'attacker:latest'
 VICTIM_IMG_NAME = 'victim:latest'
 
 process_ids = {}
+containers_dict = {}
+
+
+def launch_prometheus(controller_container):
+    return run_command_in_container(
+        controller_container, 
+        "prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/")
+
+
+def launch_grafana(controller_container):
+    return run_command_in_container(
+        controller_container, 
+        "grafana-server -homepath /usr/share/grafana")
+
+
+def launch_zookeeper(controller_container):
+    return run_command_in_container(
+        controller_container, 
+        "zookeeper-server-start.sh pox/smartController/zookeeper.properties")
+
+
+def launch_kafka(controller_container):
+    return run_command_in_container(
+        controller_container, 
+        "kafka-server-start.sh pox/smartController/kafka_server.properties")
+
+def delete_kafka_logs(controller_container):
+    return run_command_in_container(
+        controller_container, 
+        "rm -rf /opt/kafka/logs")
+
+def launch_controller_processes(controller_container):
+    if launch_prometheus(controller_container):
+        print('Prometheus launched on controller!')
+        time.sleep(1)
+        if launch_grafana(controller_container):
+            print('Grafana launched on controller!')
+            time.sleep(1)
+            if launch_zookeeper(controller_container):
+                print('Zookeeper launched on controller!')
+                time.sleep(1)
+                if launch_kafka(controller_container):
+                    print('Kafka launched on controller!')
+
+
+def launch_producers():
+    for i in range(0,5):
+        curr_container = containers_dict['victim-'+str(i)]
+        run_command_in_container(curr_container, "python3 producer.py")
+        curr_container = containers_dict['attacker-'+str(i)]
+        run_command_in_container(curr_container, "python3 producer.py")
 
 
 def run_command_in_container(container, command):
@@ -66,13 +118,40 @@ if __name__ == "__main__":
     # List containers
     containers = client.containers.list()
 
+    for container in client.containers.list():
+
+        container_info = client.api.inspect_container(container.id)
+        # Extract the IP address of the container from its network settings
+        container_info_str = container_info['Config']['Hostname']
+        container_img_name = container_info_str.split('(')[0]
+
+        containers_dict[container_img_name] = container
+
     while True:
-        user_input = input("Press '1' to launch attacks, '2' to stop attacks, or 'q' to quit: ")
+        user_input = input("Press '1' to launch attacks, " +\
+                            "'2' to stop attacks, " +\
+                            "'3' to launch controller services, "+\
+                            "'4' to launch producers, "+\
+                            "or 'q' to quit: ")
         
         if user_input == '1':
             launch_attacks()
         elif user_input == '2':
             kill_attacks()
+        elif user_input == '3':
+            launch_controller_processes(containers_dict['pox-controller-1'])
+        elif user_input == '4':
+            launch_producers()
+        elif user_input == 'pro':
+            print(launch_prometheus(containers_dict['pox-controller-1']))
+        elif user_input == 'gra':
+            print(launch_grafana(containers_dict['pox-controller-1']))
+        elif user_input == 'zoo':
+            print(launch_zookeeper(containers_dict['pox-controller-1']))
+        elif user_input == 'kaf':
+            print(launch_kafka(containers_dict['pox-controller-1']))
+        elif user_input == 'dkl':
+            print(delete_kafka_logs(containers_dict['pox-controller-1']))
         elif user_input.lower() == 'q':
             print("Quitting...")
             break
