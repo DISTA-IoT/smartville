@@ -1,4 +1,5 @@
 import docker
+import threading
 import time
 
 CONTROLLER_IMG_NAME = 'pox-controller:latest'
@@ -9,28 +10,46 @@ process_ids = {}
 containers_dict = {}
 
 
+start_zookeeper_command = "zookeeper-server-start.sh pox/smartController/zookeeper.properties"
+start_kafka_command = "kafka-server-start.sh pox/smartController/kafka_server.properties"
+start_prometheus_command = "prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/"
+start_grafana_command = "grafana-server -homepath /usr/share/grafana"
+
+
+# Function to continuously print output of a command
+def print_output(container, command, thread_name):
+    # Execute the command in the container and stream the output
+    return_tuple = container.exec_run(command, stream=True)
+    for line in return_tuple[1]:
+        print(thread_name+": "+line.decode().strip())  # Print the output line by line
+
+
 def launch_prometheus(controller_container):
-    return run_command_in_container(
-        controller_container, 
-        "prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/")
+    output_thread = threading.Thread(
+        target=print_output, 
+        args=(controller_container, start_prometheus_command, 'PROMETHEUS'))
+    output_thread.start()
 
 
 def launch_grafana(controller_container):
-    return run_command_in_container(
-        controller_container, 
-        "grafana-server -homepath /usr/share/grafana")
+    output_thread = threading.Thread(
+        target=print_output, 
+        args=(controller_container, start_grafana_command, 'GRAFANA'))
+    output_thread.start()
 
 
 def launch_zookeeper(controller_container):
-    return run_command_in_container(
-        controller_container, 
-        "zookeeper-server-start.sh pox/smartController/zookeeper.properties")
+    output_thread = threading.Thread(
+        target=print_output, 
+        args=(controller_container, start_zookeeper_command, 'ZOOKEEPER'))
+    output_thread.start()
 
 
 def launch_kafka(controller_container):
-    return run_command_in_container(
-        controller_container, 
-        "kafka-server-start.sh pox/smartController/kafka_server.properties")
+    output_thread = threading.Thread(
+        target=print_output, 
+        args=(controller_container, start_kafka_command, 'KAFKA'))
+    output_thread.start()
 
 
 def print_grafana_url(controller_container):
@@ -39,7 +58,7 @@ def print_grafana_url(controller_container):
         "ifconfig")
     accessible_ip = ifconfig_output.split('eth1')[1].split('inet')[1][1:16]
     url = "http://"+accessible_ip+":3000"
-    click.echo(f"Grafana Dashboard available at: {url}")
+    print(f"Grafana Dashboard available at: {url}")
 
 
 def delete_kafka_logs(controller_container):
@@ -47,26 +66,28 @@ def delete_kafka_logs(controller_container):
         controller_container, 
         "rm -rf /opt/kafka/logs")
 
+
 def launch_controller_processes(controller_container):
-    if launch_prometheus(controller_container):
-        print('Prometheus launched on controller! please wait...')
-        time.sleep(2)
-        if launch_grafana(controller_container):
-            print('Grafana launched on controller! please wait...')
-            time.sleep(2)
-            if launch_zookeeper(controller_container):
-                print('Zookeeper launched on controller! please wait...')
-                time.sleep(2)
-                if launch_kafka(controller_container):
-                    print('Kafka launched on controller! please wait...')
+    launch_prometheus(controller_container)
+    print('Prometheus launched on controller! please wait...')
+    time.sleep(2)
+    launch_grafana(controller_container)
+    print('Grafana launched on controller! please wait...')
+    time.sleep(2)
+    launch_zookeeper(controller_container)
+    print('Zookeeper launched on controller! please wait...')
+    time.sleep(2)
+    launch_kafka(controller_container)
+    print('Kafka launched on controller! please wait...')
 
 
 def launch_producers():
     for i in range(0,5):
         curr_container = containers_dict['victim-'+str(i)]
-        run_command_in_container(curr_container, "python3 producer.py")
-        curr_container = containers_dict['attacker-'+str(i)]
-        run_command_in_container(curr_container, "python3 producer.py")
+        output_thread = threading.Thread(
+            target=print_output, 
+            args=(curr_container,  "python3 producer.py", 'victim-'+str(i)))
+        output_thread.start()
 
 
 def run_command_in_container(container, command):
