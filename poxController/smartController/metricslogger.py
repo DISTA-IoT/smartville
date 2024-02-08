@@ -1,3 +1,4 @@
+from prometheus_client import start_http_server, Gauge
 from smartController.simple_consumer_thread import SimpleConsumerThread
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
@@ -55,9 +56,11 @@ class MetricsLogger:
         self.max_conn_retries = max_conn_retries #max Kafkfa connection retries.
         self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
+        
 
         if self.init_connection(): 
             try:
+                self.init_prometheus_server()
                 self.start_consuming()
             except KeyboardInterrupt:
                 for thread in self.threads:
@@ -89,6 +92,18 @@ class MetricsLogger:
                 retries += 1
         return False
     
+
+    def init_prometheus_server(self):
+        start_http_server(8000)
+        # Definizione metriche inserite su Prometheus
+        self.cpu_metric = Gauge('CPU_percentage', 'Metrica CPU percentuale', ['label_name'])
+        self.ram_metric = Gauge('RAM_GB', 'Metrica RAM', ['label_name'])
+        self.ping_metric = Gauge('Latenza_ms', 'Metrica latenza del segnale', ['label_name'])
+        self.incoming_traffic_metric = Gauge('Incoming_network_KB', 'Metrica traffico in entrata', ['label_name'])
+        self.outcoming_traffic_metric = Gauge('Outcoming_network_KB', 'Metrica traffico in uscita', ['label_name'])
+        
+
+
 
     def start_consuming(self):
 

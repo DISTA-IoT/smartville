@@ -1,20 +1,33 @@
 from grafana_api.grafana_face import GrafanaFace
 
-# Questa classe è dedicata all'inserimento delle varie dashboard su Grafana per la visualizzazione 
-# interattiva. Ciò viene svolto tramite la libreria che permette la connessione all'host grafana mediante
-# la sua chiave api messa a disposizione
+
+def get_source_ip_address(interface=IFACE_NAME):
+    try:
+        ip = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
+        return ip
+    except ValueError:
+        return "Interface not found"
 
 class dash_generator:
+    """
+    Classe dedicata all'inserimento delle varie dashboard su Grafana per la visualizzazione 
+    interattiva. Ciò viene svolto tramite la libreria che permette la connessione all'host grafana mediante
+    la sua chiave api messa a disposizione
+    """
+
+    def __init__(self, grafana_user="admin", grafana_pass="admin"):
+        self.grafana_user = grafana_user
+        self.grafana_pass = grafana_pass
+        self.dash_gen()
+
 
     def dash_gen(self):
-
-        grafana_check = False
-        
+        grafana_check = False       
         while not grafana_check:
             
-            self.grafana_user = input("Inserisci il tuo username Grafana: ")
-            self.grafana_pass = input("Inserisci la tua password Grafana: ")
-            grafana = GrafanaFace(auth=(self.grafana_user, self.grafana_pass), host='localhost:3000')
+            grafana = GrafanaFace(
+                auth=(self.grafana_user, self.grafana_pass), 
+                host='localhost:3000')
 
             new_dash = self.dash_check('CPU_data')
 
