@@ -185,8 +185,3 @@ if __name__ == "__main__":
         print(launch_kafka(containers_dict['pox-controller-1']))
     elif user_input == 'dkl':
         print(delete_kafka_logs(containers_dict['pox-controller-1']))
-    elif user_input.lower() == 'q':
-        print("Quitting...")
-        break
-    else:
-        print("Invalid input. Please try again.")
