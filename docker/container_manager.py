@@ -158,35 +158,35 @@ if __name__ == "__main__":
 
         containers_dict[container_img_name] = container
 
-    while True:
-        user_input = input("Press '1' to launch attacks, " +\
-                            "'2' to stop attacks, " +\
-                            "'3' to launch controller services, "+\
-                            "'4' to launch producers, "+\
-                            "or 'q' to quit: ")
-        
-        if user_input == '1':
-            launch_attacks()
-        elif user_input == '2':
-            kill_attacks()
-        elif user_input == '3':
-            launch_controller_processes(containers_dict['pox-controller-1'])
-        elif user_input == '4':
-            launch_producers()
-        elif user_input == 'pro':
-            print(launch_prometheus(containers_dict['pox-controller-1']))
-        elif user_input == 'gra':
-            print(launch_grafana(containers_dict['pox-controller-1']))
-        elif user_input == 'url':
-            print(print_grafana_url(containers_dict['pox-controller-1']))
-        elif user_input == 'zoo':
-            print(launch_zookeeper(containers_dict['pox-controller-1']))
-        elif user_input == 'kaf':
-            print(launch_kafka(containers_dict['pox-controller-1']))
-        elif user_input == 'dkl':
-            print(delete_kafka_logs(containers_dict['pox-controller-1']))
-        elif user_input.lower() == 'q':
-            print("Quitting...")
-            break
-        else:
-            print("Invalid input. Please try again.")
+    
+    user_input = input("Press '1' to launch attacks, " +\
+                        "'2' to stop attacks, " +\
+                        "'3' to launch controller services, "+\
+                        "'4' to launch producers, "+\
+                        "or 'q' to quit: ")
+    
+    if user_input == '1':
+        launch_attacks()
+    elif user_input == '2':
+        kill_attacks()
+    elif user_input == '3':
+        launch_controller_processes(containers_dict['pox-controller-1'])
+    elif user_input == '4':
+        launch_producers()
+    elif user_input == 'pro':
+        print(launch_prometheus(containers_dict['pox-controller-1']))
+    elif user_input == 'gra':
+        print(launch_grafana(containers_dict['pox-controller-1']))
+    elif user_input == 'url':
+        print(print_grafana_url(containers_dict['pox-controller-1']))
+    elif user_input == 'zoo':
+        print(launch_zookeeper(containers_dict['pox-controller-1']))
+    elif user_input == 'kaf':
+        print(launch_kafka(containers_dict['pox-controller-1']))
+    elif user_input == 'dkl':
+        print(delete_kafka_logs(containers_dict['pox-controller-1']))
+    elif user_input.lower() == 'q':
+        print("Quitting...")
+        break
+    else:
+        print("Invalid input. Please try again.")
