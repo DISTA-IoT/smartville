@@ -76,5 +76,8 @@ COPY  smartController/. /pox/pox/smartController/
 
 RUN chmod -R 777 /pox/
 
+RUN pip3 install netifaces
+
+
 ENTRYPOINT ["/pox/entrypoint.sh"]
 

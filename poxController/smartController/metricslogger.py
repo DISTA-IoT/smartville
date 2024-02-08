@@ -1,5 +1,6 @@
 from prometheus_client import start_http_server, Gauge
 from smartController.simple_consumer_thread import SimpleConsumerThread
+from smartController.dashgenerator import DashGenerator
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
 import time
@@ -11,6 +12,9 @@ CPU = 'CPU'
 IN_TRAFFIC = 'IN_TRAFFIC'
 OUT_TRAFFIC = 'OUT_TRAFFIC'
 DELAY = 'DELAY'
+
+GRAFANA_USER='admin'
+GRAFANA_PASSWORD='admin'
 
 
 def server_exist(bootstrap_servers):
@@ -61,6 +65,10 @@ class MetricsLogger:
         if self.init_connection(): 
             try:
                 self.init_prometheus_server()
+                self.dash_generator = DashGenerator(
+                    grafana_user=GRAFANA_USER, 
+                    grafana_pass=GRAFANA_PASSWORD
+                    )
                 self.start_consuming()
             except KeyboardInterrupt:
                 for thread in self.threads:
