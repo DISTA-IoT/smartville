@@ -68,7 +68,7 @@ def mount_edge_switch():
     edge_openvswitch_id = edge_openvswitch['node_id']
 
     interface = 'eth1'
-    set_dhcp_node_network_interfaces(server, project, edge_openvswitch_id, interface)
+    set_dhcp_node_network_interfaces(server, project, edge_openvswitch_id, interface, None)
     print(f"{curr_switch_label}: DHCP on ",interface)
 
     start_node(server,project,edge_openvswitch_id)
@@ -94,7 +94,7 @@ def mountController(switch_name, ip):
     print(f"Created a link from {CONTROLLER_IMG_NAME} to {switch_name} on port eth0")
     set_node_network_interfaces(server, project, controller_id, "eth0", ipaddress.IPv4Interface("192.168.1.1/24"), None)
     print(f"{CONTROLLER_IMG_NAME}: assigned ip: {ip} on eth0")
-    set_dhcp_node_network_interfaces(server,project,controller_id,"eth1")
+    set_dhcp_node_network_interfaces(server,project,controller_id,"eth1", "smartcontroller")
     start_node(server,project,controller_id)
     print(f"{CONTROLLER_IMG_NAME}: started")
     return controller_name
@@ -127,7 +127,7 @@ def mount_single_Host(curr_img_name, curr_node_name,switch1_node_name,switch_por
     host_id=host['node_id']
     print(f"{curr_node_name}: created")
     set_node_network_interfaces(server, project, host_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
-    set_dhcp_node_network_interfaces(server,project,host_id,"eth1")
+    set_dhcp_node_network_interfaces(server,project,host_id,"eth1", None)
 
     print(f"{curr_node_name}: assigned ip: {ip}, gateway: {gateway} on eth0")
     create_link(server, project,host_id,0,openvswitch_id,switch_port)
