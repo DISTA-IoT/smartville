@@ -62,7 +62,7 @@ AI_DEBUG = True
 
 SEED = 777  # For reproducibility purposes
 
-WB_TRACKING = True
+WB_TRACKING = False
 
 PACKET_FEATURES = True
 

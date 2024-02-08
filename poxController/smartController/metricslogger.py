@@ -6,6 +6,7 @@ from confluent_kafka.admin import AdminClient
 import time
 import socket
 from collections import deque
+import threading
 
 RAM = 'RAM'
 CPU = 'CPU'
@@ -61,15 +62,17 @@ class MetricsLogger:
         self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
         
-
         if self.init_connection(): 
+            self.init_prometheus_server()
+            self.dash_generator = DashGenerator(
+                grafana_user=GRAFANA_USER, 
+                grafana_pass=GRAFANA_PASSWORD
+                )
+            self.consumer_thread_manager = threading.Thread(
+                target=self.start_consuming, 
+                args=())
             try:
-                self.init_prometheus_server()
-                self.dash_generator = DashGenerator(
-                    grafana_user=GRAFANA_USER, 
-                    grafana_pass=GRAFANA_PASSWORD
-                    )
-                self.start_consuming()
+                self.consumer_thread_manager.start()
             except KeyboardInterrupt:
                 for thread in self.threads:
                     if (thread.is_alive()):
@@ -110,8 +113,6 @@ class MetricsLogger:
         self.incoming_traffic_metric = Gauge('Incoming_network_KB', 'Metrica traffico in entrata', ['label_name'])
         self.outcoming_traffic_metric = Gauge('Outcoming_network_KB', 'Metrica traffico in uscita', ['label_name'])
         
-
-
 
     def start_consuming(self):
 

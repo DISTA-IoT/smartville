@@ -23,6 +23,14 @@
             "program": "metricslogger/consumerall.py",
             "args": [],
             "justMyCode": true
+        },
+        {
+            "name": "grafana test",
+            "type": "python",
+            "request": "launch",
+            "program": "admin_dashboard/grafana_test.py",
+            "args": [],
+            "justMyCode": true
         }
     ]
 }
