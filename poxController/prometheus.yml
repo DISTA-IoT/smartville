@@ -21,7 +21,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: “system_metrics”
+  - job_name: 'system_metrics'
 
     static_configs:
-      - targets: [“localhost:8000”]
+      - targets: ['localhost:8000']

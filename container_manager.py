@@ -25,6 +25,7 @@ def print_output(container, command, thread_name):
 
 
 def launch_prometheus(controller_container):
+    print(run_command_in_container(controller_container, "python3 pox/smartController/set_prometheus.py"))
     output_thread = threading.Thread(
         target=print_output, 
         args=(controller_container, start_prometheus_command, 'PROMETHEUS'))
