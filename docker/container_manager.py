@@ -32,6 +32,16 @@ def launch_kafka(controller_container):
         controller_container, 
         "kafka-server-start.sh pox/smartController/kafka_server.properties")
 
+
+def print_grafana_url(controller_container):
+    ifconfig_output = run_command_in_container(
+        controller_container, 
+        "ifconfig")
+    accessible_ip = ifconfig_output.split('eth1')[1].split('inet')[1][1:16]
+    url = "http://"+accessible_ip+":3000"
+    click.echo(f"Grafana Dashboard available at: {url}")
+
+
 def delete_kafka_logs(controller_container):
     return run_command_in_container(
         controller_container, 
@@ -39,16 +49,16 @@ def delete_kafka_logs(controller_container):
 
 def launch_controller_processes(controller_container):
     if launch_prometheus(controller_container):
-        print('Prometheus launched on controller!')
-        time.sleep(1)
+        print('Prometheus launched on controller! please wait...')
+        time.sleep(2)
         if launch_grafana(controller_container):
-            print('Grafana launched on controller!')
-            time.sleep(1)
+            print('Grafana launched on controller! please wait...')
+            time.sleep(2)
             if launch_zookeeper(controller_container):
-                print('Zookeeper launched on controller!')
-                time.sleep(1)
+                print('Zookeeper launched on controller! please wait...')
+                time.sleep(2)
                 if launch_kafka(controller_container):
-                    print('Kafka launched on controller!')
+                    print('Kafka launched on controller! please wait...')
 
 
 def launch_producers():
@@ -146,6 +156,8 @@ if __name__ == "__main__":
             print(launch_prometheus(containers_dict['pox-controller-1']))
         elif user_input == 'gra':
             print(launch_grafana(containers_dict['pox-controller-1']))
+        elif user_input == 'url':
+            print(print_grafana_url(containers_dict['pox-controller-1']))
         elif user_input == 'zoo':
             print(launch_zookeeper(containers_dict['pox-controller-1']))
         elif user_input == 'kaf':
