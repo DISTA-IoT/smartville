@@ -84,6 +84,10 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "PACKET_FEATURES": PACKET_FEATURES
                      }
 
+GRAFANA_USER='admin'
+GRAFANA_PASSWORD='admin'
+
+
 
 class Smart_Switch(EventMixin):
   """
@@ -563,8 +567,10 @@ def launch():
   metrics_logger = MetricsLogger(
     server_addr = "192.168.1.1:9092",
     max_conn_retries = 5,
-    metric_buffer_len = 40)
-  
+    metric_buffer_len = 40,
+    grafana_user=GRAFANA_USER, 
+    grafana_pass=GRAFANA_PASSWORD,
+    )
 
   # Registering Switch component:
   smart_switch = Smart_Switch(

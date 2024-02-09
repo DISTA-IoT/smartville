@@ -4,17 +4,17 @@ class GraphGenerator:
     interattiva. Ciò viene svolto tramite la libreria che permette la connessione all'host grafana mediante
     la sua chiave api messa a disposizione
     """
-    def __init__(self, grafana_connection):
+    def __init__(self, grafana_connection, prometheus_connection):
         self.num_paneles = 0
         self.grafana_connection = grafana_connection
+        self.prometheus_connection = prometheus_connection
 
 
     def generate_all_graphs(self, panel_title):
-        # Controllo se i vari grafici sono già presenti nelle rispettive, in tal caso non vengono inseriti
-        # nuovamente.
-        # L'inserimento di un grafico avviene tramite la chiamata ai vari metodi "graph_gen", ai quali vengono
-        # passate in ingresso le stringhe relative al nome dei grafici, l'UID che li identifica univocamente
-        # e il colore che questi assumeranno
+        """
+        Controllo se i vari grafici sono già presenti nelle rispettive, 
+        in tal caso non vengono inseriti nuoovamente.
+        """
 
         if not self.graph_exists('CPU_data', panel_title):
             self.generate_graph('CPU_data', panel_title, 'CPU_percentage','semi-dark-yellow')
@@ -48,7 +48,14 @@ class GraphGenerator:
 
 
     def generate_graph(self, dash_UID, panel_title, metric, colortab):
-
+        """
+        Inserimento di un grafico 
+        params: 
+            - stringhe relative al nome dei grafici, 
+            - il nome del pannello,
+            - l'UID che li identifica univocamente
+            - il colore che questi assumeranno.
+        """
         # Configurazione dashboard tramite la definizione del suo JSON model
         panel_config = {
             "type": "timeseries",
@@ -154,3 +161,61 @@ class GraphGenerator:
             #print(f"Grafico '{self.name}' aggiunto alla dashboard '{dash_UID}' con successo!")
         else:
             print(f"Dashboard con UID '{dash_UID}' not presente.")
+
+    
+    def sort_all_graphs(self):
+        """
+        Riorganizzala dashboard in maniera tale che viene riorganizzata
+        in modo tale che i pannelli che presentano valori più alti finiscono in cima
+        """
+        self.sort_single_graph('CPU_data')
+        self.sort_single_graph('RAM_data')
+        self.sort_single_graph('PING_data')
+        self.sort_single_graph('INT_data')
+        self.sort_single_graph('ONT_data')
+
+
+    def sort_single_graph(self, dash_UID):
+
+        dashboard_config = self.grafana_connection.dashboard.get_dashboard(dash_UID)
+        # Ottengo tutti quanti i pannelli appartenenti alla Dashboard
+        panels = dashboard_config['dashboard']['panels']
+
+        for panel in panels:
+            targets = panel.get('targets', [])
+            if targets:
+                target = targets[0]                
+                prometheus_expr = target.get('expr')
+                # Ottengo tutte le informazioni associate al pannello dell'ultimo minuto
+                prometheus_expr_range = f"{prometheus_expr}[1m]"
+                # Ottengo la lista contenente tutti quante le informazioni
+                metric_data_range = self.prometheus_connection.custom_query(query=prometheus_expr_range)
+
+                values = []
+                sum_value = 0
+
+                if metric_data_range:
+                    # Estraggo i valori effettivi
+                    values_range = metric_data_range[0].get('values', [])
+                    values = [float(point[1]) if point and len(point) > 1 and point[1] not in ('+Inf', '-Inf', 'NaN') else 0 for point in values_range] 
+                    # Sommo i valori              
+                    sum_value = sum(values) 
+                # Associo la somma a ciascun pannello
+                panel['sum_value'] = sum_value
+
+
+        # Ordina i pannelli in base al valore somma che presentano
+        sorted_panels = sorted(panels, key=lambda x: x.get('sum_value', 0), reverse=True)
+
+        for i, panel in enumerate(sorted_panels):
+            panel['gridPos'] = {
+                "h": 6,
+                "w": 8,
+                "x": (i % 3)*8,
+                "y": 0
+            }
+
+        # Aggiorna la dashboard con la configurazione stabilita
+        dashboard_config['dashboard']['panels'] = sorted_panels
+        self.grafana_connection.dashboard.update_dashboard(dashboard_config)
+
