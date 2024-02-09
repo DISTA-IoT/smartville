@@ -1,6 +1,6 @@
 from prometheus_client import start_http_server, Gauge
 from prometheus_api_client import PrometheusConnect
-from smartController.simple_consumer_thread import SimpleConsumerThread
+from smartController.consumer_thread import ConsumerThread
 from smartController.dashgenerator import DashGenerator
 from smartController.graphgenerator import GraphGenerator
 from grafana_api.grafana_face import GrafanaFace
@@ -59,13 +59,13 @@ class MetricsLogger:
         self.grafana_pass = grafana_pass
         self.server_addr = server_addr
         self.topics = None
-        self.topicslist = []
+        self.topic_list = []
         self.threads = []
         self.working_threads_count = 0
         self.sortcount = 0
-        self.admin = None
-        self.max_conn_retries = max_conn_retries #max Kafkfa connection retries.
-        self.metrics_dict = {}
+        self.kafka_admin_client = None
+        self.max_conn_retries = max_conn_retries  # max Kafkfa connection retries.
+        # self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
         self.grafana_connection = GrafanaFace(
                 auth=(self.grafana_user, self.grafana_pass), 
@@ -102,15 +102,13 @@ class MetricsLogger:
         while retries < self.max_conn_retries: 
             if server_exist(self.server_addr):
                 try:
-                    #consumer_conf = {'bootstrap.servers': bootstrap_servers, 'group.id': 'my-group'}
                     conf = {'bootstrap.servers': self.server_addr}
-                    #consumer = Consumer(consumer_conf)
-                    self.admin = AdminClient(conf)
-                    self.topics = self.admin.list_topics(timeout=5)
+                    self.kafka_admin_client = AdminClient(conf)
+                    self.topics = self.kafka_admin_client.list_topics(timeout=5)
                     return True
                 except KafkaException as e:
                     print(f"Kafka connection error {e}")
-                    self.admin = None
+                    self.kafka_admin_client = None
                     return False
             else:
                 print(f"Could not find Kafka server at {self.server_addr}")
@@ -142,45 +140,41 @@ class MetricsLogger:
     def start_consuming(self):
 
         while True:
-            updated_topicslist = []
-            updated_topics = self.admin.list_topics()
+            updated_topic_list = []
+            curr_topics_dict = self.kafka_admin_client.list_topics().topics
 
             # Inserimento topics in una lista di topics aggiornata
-            for topic, _ in updated_topics.topics.items():
-                if topic != '__consumer_offsets':
-                    updated_topicslist.append(topic)
-
-            topicslist_set = set(self.topicslist)
-            updated_topicslist_set = set(updated_topicslist)
+            for topic_name in curr_topics_dict.keys():
+                if topic_name != '__consumer_offsets':
+                    updated_topic_list.append(topic_name)
 
             # Creazione di una lista contenente i nuovi topics inseriti
-            new_topicslist_set = updated_topicslist_set - topicslist_set
-            new_topicslist = list(new_topicslist_set)
+            to_add_topic_list = list(set(updated_topic_list) - set(self.topic_list))
 
-            # Tramite questo passaggio, la lista di topics aggiornata prende il posto della lista di topics vecchia
-            # Ciò permetterà poi di essere confrontata in un prossimo ciclo con la futura lista dei topics
-            # aggiornata, in modo tale da verificare ogni volta se sono stati inseriti nuovi topics 
-            self.topicslist = updated_topicslist
+            # La lista di topics aggiornata prende il posto della lista di topics vecchia
+            self.topic_list = updated_topic_list
 
             time.sleep(5)
 
-            # Per ciascun topic nella nuova lista di topics, viene avviato un thread dedicato alla lettura
-            # delle metriche in esso contenuto
-            for topic in new_topicslist:
+            # Per ciascun topic nuovo, viene avviato un thread dedicato alla lettura delle metriche
+            for topic in to_add_topic_list:
 
                 self.graph_generator.generate_all_graphs(topic)
 
+                """
                 self.metrics_dict[topic] = {
                     CPU: deque(maxlen=self.metric_buffer_len), 
                     DELAY: deque(maxlen=self.metric_buffer_len), 
                     IN_TRAFFIC: deque(maxlen=self.metric_buffer_len), 
                     OUT_TRAFFIC: deque(maxlen=self.metric_buffer_len),
                     RAM: deque(maxlen=self.metric_buffer_len) }
+                """
 
                 print(f"Consumer Thread for topic {topic} commencing")
-                thread = SimpleConsumerThread(
+                thread = ConsumerThread(
                     self.server_addr, 
-                    topic, 
+                    topic_name,
+                    curr_topics_dict[topic_name],
                     self.cpu_metric,
                     self.ram_metric,
                     self.ping_metric,
@@ -198,22 +192,19 @@ class MetricsLogger:
 
             self.sortcount +=1
 
-
+    """
     def  update_cpu_metric(self, value, topic):
         self.metrics_dict[topic][CPU].append(value)
-
 
     def update_ram_metric(self, value, topic):
         self.metrics_dict[topic][RAM].append(value)
 
-
     def update_ping_metric(self, value, topic):
         self.metrics_dict[topic][DELAY].append(value)
-
 
     def update_incoming_traffic_metric(self, value, topic):
         self.metrics_dict[topic][IN_TRAFFIC].append(value)
 
-
     def update_outcoming_traffic_metric(self, value, topic):
         self.metrics_dict[topic][OUT_TRAFFIC].append(value)
+    """
