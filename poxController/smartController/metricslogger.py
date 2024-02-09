@@ -67,9 +67,10 @@ class MetricsLogger:
         self.max_conn_retries = max_conn_retries  # max Kafkfa connection retries.
         # self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
+        self.accessible_ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
         self.grafana_connection = GrafanaFace(
                 auth=(self.grafana_user, self.grafana_pass), 
-                host=self.accesible_ip+':3000')
+                host=self.accessible_ip+':3000')
 
         if self.init_kafka_connection(): 
             
@@ -128,13 +129,7 @@ class MetricsLogger:
         
         # prometheus_connection will permit the graph generator 
         # organize graphs...  
-        self.prometheus_endpoint = self.get_prometheus_endpoint()
-        self.prometheus_connection = PrometheusConnect(self.prometheus_endpoint)
-
-
-    def get_prometheus_endpoint(self):
-        ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
-        return 'http://'+ip+':9090'
+        self.prometheus_connection = PrometheusConnect('http://'+self.accessible_ip+':9090')
 
 
     def start_consuming(self):
