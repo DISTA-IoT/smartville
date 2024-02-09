@@ -118,7 +118,7 @@ class MetricsLogger:
     
 
     def init_prometheus_server(self):
-        start_http_server(8000)
+        start_http_server(port=8000, addr=self.accessible_ip)
 
         # Definizione metriche inserite su Prometheus
         self.cpu_metric = Gauge('CPU_percentage', 'Metrica CPU percentuale', ['label_name'])
@@ -129,7 +129,7 @@ class MetricsLogger:
         
         # prometheus_connection will permit the graph generator 
         # organize graphs...  
-        self.prometheus_connection = PrometheusConnect('http://'+self.accessible_ip+':9090')
+        self.prometheus_connection = PrometheusConnect('http://'+self.accessible_ip+':9090/24):9090')
 
 
     def start_consuming(self):
