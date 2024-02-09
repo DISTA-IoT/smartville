@@ -152,12 +152,12 @@ class MetricsLogger:
             time.sleep(5)
 
             # Per ciascun topic nuovo, viene avviato un thread dedicato alla lettura delle metriche
-            for topic in to_add_topic_list:
+            for topic_name in to_add_topic_list:
 
-                self.graph_generator.generate_all_graphs(topic)
+                self.graph_generator.generate_all_graphs(topic_name)
 
                 """
-                self.metrics_dict[topic] = {
+                self.metrics_dict[topic_name] = {
                     CPU: deque(maxlen=self.metric_buffer_len), 
                     DELAY: deque(maxlen=self.metric_buffer_len), 
                     IN_TRAFFIC: deque(maxlen=self.metric_buffer_len), 
@@ -165,7 +165,7 @@ class MetricsLogger:
                     RAM: deque(maxlen=self.metric_buffer_len) }
                 """
 
-                print(f"Consumer Thread for topic {topic} commencing")
+                print(f"Consumer Thread for topic {topic_name} commencing")
                 thread = ConsumerThread(
                     self.server_addr, 
                     topic_name,
