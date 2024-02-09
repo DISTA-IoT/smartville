@@ -56,12 +56,14 @@ def launch_kafka(controller_container):
     output_thread.start()
 
 
-def print_grafana_url(controller_container):
+def launch_brower_consoles(controller_container):
     ifconfig_output = run_command_in_container(
         controller_container, 
         "ifconfig")
     accessible_ip = ifconfig_output.split('eth1')[1].split('inet ')[1].split(' ')[0]
-    url = "http://"+accessible_ip+":3000"
+    url = "http://"+accessible_ip+":9090"  # Prometheus
+    subprocess.call([BROWSER_PATH, url])
+    url = "http://"+accessible_ip+":3000"  # Grafana
     subprocess.call([BROWSER_PATH, url])
 
 
@@ -182,7 +184,7 @@ if __name__ == "__main__":
     elif user_input == 'gra':
         print(launch_grafana(containers_dict['pox-controller-1']))
     elif user_input == 'url':
-        print(print_grafana_url(containers_dict['pox-controller-1']))
+        print(launch_brower_consoles(containers_dict['pox-controller-1']))
     elif user_input == 'zoo':
         print(launch_zookeeper(containers_dict['pox-controller-1']))
     elif user_input == 'kaf':
