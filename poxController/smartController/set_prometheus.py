@@ -30,7 +30,7 @@ def replace_string_in_file(file_name, old_string, new_string):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    file_name = "prometheus.yml"
+    file_name = "pox/smartController/prometheus.yml"
     old_string = "localhost"
     new_string = get_source_ip_address()
     
