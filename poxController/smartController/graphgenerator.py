@@ -64,7 +64,7 @@ class GraphGenerator:
             "type": "timeseries",
             "title": f"{panel_title}",
             "uid": f"{panel_title}",
-            "datasource": "Prometheus",
+            "datasource": "prometheus",
             "transparent": True,
             "fieldConfig": {
                 "defaults": {
