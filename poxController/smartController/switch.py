@@ -53,6 +53,9 @@ REQUEST_STATS_PERIOD_SECONDS = 5
 # Don't re-send ARPs before expiring this interval:
 ARP_REQUEST_EXPIRATION_SECONDS = 4
 
+# Mask port info in packets for AI? (IP adresses are masked by default!)
+ANONYMIZE_TRANSPORT_PORTS = True
+
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
 IPV4_BLACKLIST=["192.168.1.8", "192.168.1.9", "192.168.1.10", "192.168.1.11", "192.168.1.12"]
 
@@ -562,7 +565,8 @@ def launch():
   flow_logger = FlowLogger(
     ipv4_blacklist_for_training=IPV4_BLACKLIST,
     packet_buffer_len=MAX_BUFFERED_PER_IP,
-    packet_feat_dim=PACKET_FEAT_DIM)
+    packet_feat_dim=PACKET_FEAT_DIM,
+    anonymize_transport_ports=ANONYMIZE_TRANSPORT_PORTS)
 
   metrics_logger = MetricsLogger(
     server_addr = "192.168.1.1:9092",

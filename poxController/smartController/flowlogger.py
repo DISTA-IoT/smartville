@@ -3,6 +3,7 @@ from pox.openflow.of_json import flow_stats_to_list
 from smartController.flow import Flow, CircularBuffer
 import torch
 import torch.nn.functional as F
+from pox.lib.packet.ipv4 import ipv4
 
 
 class FlowLogger(object):
@@ -11,7 +12,8 @@ class FlowLogger(object):
       self,
       ipv4_blacklist_for_training,
       packet_buffer_len,
-      packet_feat_dim):
+      packet_feat_dim,
+      anonymize_transport_ports):
 
       """
       TODO: flows_dict should be one for each switch... or, equivalently, we should use one 
@@ -23,6 +25,8 @@ class FlowLogger(object):
       self.ipv4_blacklist_for_training = ipv4_blacklist_for_training
       self.packet_buffer_len = packet_buffer_len
       self.packet_feat_dim = packet_feat_dim
+      self.anomyn_ports = anonymize_transport_ports
+
 
     def extract_flow_feature_tensor(self, flow):
        return torch.Tensor(
@@ -32,11 +36,29 @@ class FlowLogger(object):
             flow['packet_count']]).to(torch.float32)
 
 
+    def get_anonymized_copy(self, original_packet):
+      # Create a new instance of the IPv4 packet
+      new_ipv4_packet = ipv4(raw=original_packet.raw)
+      new_ipv4_packet.srcip = '0.0.0.0'
+      new_ipv4_packet.dstip = '0.0.0.0'
+      if self.anomyn_ports:
+         new_ipv4_packet.next.srcport = 0  # Set source port to 0
+         new_ipv4_packet.next.dstport = 0  # Set destination port to 0
+      return new_ipv4_packet
+
+
     def build_packet_tensor(self, packet):
+        
+        packet_copy = self.get_anonymized_copy(packet)
+        # Old anonymization techniche: (only IP masking was verified, port masking corresponds to last two byte sequences and need verification)
+        # packet_copy.raw = packet.raw[:12] + b'\x00\x00\x00\x00'  + b'\x00\x00\x00\x00' + b'\x00\x00' + b'\x00\x00' + packet.raw[24:]
+        
+        # These prints show that anonymization is working:
+        # print(f" old srcip: {packet.srcip} old dstip: {packet.dstip} old srcport: {packet.next.srcport} old destport: {packet.next.dstport}")
+        # print(f" new srcip: {packet_copy.srcip} new dstip: {packet_copy.dstip} new srcport: {packet_copy.next.srcport} new destport: {packet_copy.next.dstport}")
+
         # Extract the first self.packet_feat_dim bytes of the packet
-        packet_data = packet.raw[:self.packet_feat_dim]
-        # Anonimization
-        packet_data = packet_data[:12] + b'\x00\x00\x00\x00'  + b'\x00\x00\x00\x00' + packet_data[20:]
+        packet_data = packet_copy.raw[:self.packet_feat_dim]
         # Convert packet data to a tensor
         payload_data_tensor = torch.tensor([int(x) for x in packet_data], dtype=torch.float32)
         # Pad the array if it's less than self.packet_feat_dim bytes
