@@ -1,7 +1,10 @@
 import docker
 import threading
 import time
+import subprocess
 
+
+BROWSER_PATH = '/usr/bin/brave-browser'  # Change to your commodity browser
 CONTROLLER_IMG_NAME = 'pox-controller:latest'
 ATTACKER_IMG_NAME = 'attacker:latest'
 VICTIM_IMG_NAME = 'victim:latest'
@@ -57,9 +60,9 @@ def print_grafana_url(controller_container):
     ifconfig_output = run_command_in_container(
         controller_container, 
         "ifconfig")
-    accessible_ip = ifconfig_output.split('eth1')[1].split('inet')[1][1:16]
+    accessible_ip = ifconfig_output.split('eth1')[1].split('inet ')[1].split(' ')[0]
     url = "http://"+accessible_ip+":3000"
-    print(f"Grafana Dashboard available at: {url}")
+    subprocess.call([BROWSER_PATH, url])
 
 
 def delete_kafka_logs(controller_container):
