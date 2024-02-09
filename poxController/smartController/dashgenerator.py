@@ -1,4 +1,3 @@
-from grafana_api.grafana_face import GrafanaFace
 import netifaces as ni
 
 IFACE_NAME = 'eth1'
@@ -18,13 +17,9 @@ class DashGenerator:
     la sua chiave api messa a disposizione
     """
 
-    def __init__(self, grafana_user="admin", grafana_pass="admin"):
-        self.grafana_user = grafana_user
-        self.grafana_pass = grafana_pass
+    def __init__(self, grafana_connection):
         self.accesible_ip = get_source_ip_address()
-        self.grafana_object = GrafanaFace(
-                auth=(self.grafana_user, self.grafana_pass), 
-                host=self.accesible_ip+':3000')
+        self.grafana_connection = grafana_connection
         self.generate_all_dashes()
 
 
@@ -65,7 +60,7 @@ class DashGenerator:
         """
         try:
             # Tentativo di connessione alla dashboard tramite l'UID
-            self.grafana_object.dashboard.get_dashboard(dash_UID)
+            self.grafana_connection.dashboard.get_dashboard(dash_UID)
             return True
         except Exception:
             # Nel caso la connessione non andasse a buon fine, allora significa che la dashboard 
@@ -94,7 +89,7 @@ class DashGenerator:
 
         # Creazione effettiva dashboard 
         try:
-            self.grafana_object.dashboard.update_dashboard(dashboard_config)
+            self.grafana_connection.dashboard.update_dashboard(dashboard_config)
             print(f"Dashboard con UID '{dash_UID}' creata con successo!")
             return True
 
@@ -121,5 +116,5 @@ class DashGenerator:
         }
 
         # Creazione effettiva dashboard 
-        self.grafana_object.dashboard.update_dashboard(dashboard_config)
+        self.grafana_connection.dashboard.update_dashboard(dashboard_config)
         print(f"Dashboard con UID '{dash_UID}' creata con successo!")
