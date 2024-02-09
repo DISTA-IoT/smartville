@@ -1,7 +1,9 @@
 from prometheus_client import start_http_server, Gauge
+from prometheus_api_client import PrometheusConnect
 from smartController.simple_consumer_thread import SimpleConsumerThread
 from smartController.dashgenerator import DashGenerator
 from smartController.graphgenerator import GraphGenerator
+from grafana_api.grafana_face import GrafanaFace
 
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
@@ -9,15 +11,13 @@ import time
 import socket
 from collections import deque
 import threading
+import netifaces as ni
 
 RAM = 'RAM'
 CPU = 'CPU'
 IN_TRAFFIC = 'IN_TRAFFIC'
 OUT_TRAFFIC = 'OUT_TRAFFIC'
 DELAY = 'DELAY'
-
-GRAFANA_USER='admin'
-GRAFANA_PASSWORD='admin'
 
 
 def server_exist(bootstrap_servers):
@@ -51,8 +51,12 @@ class MetricsLogger:
             self, 
             server_addr = "192.168.1.1:9092",
             max_conn_retries = 5,
-            metric_buffer_len = 40):
+            metric_buffer_len = 40,
+            grafana_user="admin", 
+            grafana_pass="admin"):
 
+        self.grafana_user = grafana_user
+        self.grafana_pass = grafana_pass
         self.server_addr = server_addr
         self.topics = None
         self.topicslist = []
@@ -63,21 +67,20 @@ class MetricsLogger:
         self.max_conn_retries = max_conn_retries #max Kafkfa connection retries.
         self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
-        
-        if self.init_connection(): 
+        self.grafana_connection = GrafanaFace(
+                auth=(self.grafana_user, self.grafana_pass), 
+                host=self.accesible_ip+':3000')
+
+        if self.init_kafka_connection(): 
             
             self.init_prometheus_server()
             
-            self.dash_generator = DashGenerator(
-                grafana_user=GRAFANA_USER, 
-                grafana_pass=GRAFANA_PASSWORD
-                )
-            
-            self.grafana_connection = self.dash_generator.grafana_object
+            self.dash_generator = DashGenerator(self.grafana_connection)
 
             self.graph_generator = GraphGenerator(
-                grafana_connection=self.grafana_connection)
-
+                grafana_connection=self.grafana_connection,
+                prometheus_connection=self.prometheus_connection)
+            
             self.consumer_thread_manager = threading.Thread(
                 target=self.start_consuming, 
                 args=())
@@ -94,7 +97,7 @@ class MetricsLogger:
         else: print('MetricsLogger not attached!')
         
 
-    def init_connection(self):
+    def init_kafka_connection(self):
         retries = 0
         while retries < self.max_conn_retries: 
             if server_exist(self.server_addr):
@@ -117,6 +120,7 @@ class MetricsLogger:
 
     def init_prometheus_server(self):
         start_http_server(8000)
+
         # Definizione metriche inserite su Prometheus
         self.cpu_metric = Gauge('CPU_percentage', 'Metrica CPU percentuale', ['label_name'])
         self.ram_metric = Gauge('RAM_GB', 'Metrica RAM', ['label_name'])
@@ -124,6 +128,16 @@ class MetricsLogger:
         self.incoming_traffic_metric = Gauge('Incoming_network_KB', 'Metrica traffico in entrata', ['label_name'])
         self.outcoming_traffic_metric = Gauge('Outcoming_network_KB', 'Metrica traffico in uscita', ['label_name'])
         
+        # prometheus_connection will permit the graph generator 
+        # organize graphs...  
+        self.prometheus_endpoint = self.get_prometheus_endpoint()
+        self.prometheus_connection = PrometheusConnect(self.prometheus_endpoint)
+
+
+    def get_prometheus_endpoint(self):
+        ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
+        return 'http://'+ip+':9090'
+
 
     def start_consuming(self):
 
@@ -164,11 +178,23 @@ class MetricsLogger:
                     RAM: deque(maxlen=self.metric_buffer_len) }
 
                 print(f"Consumer Thread for topic {topic} commencing")
-                thread = SimpleConsumerThread(self.server_addr, topic, self)
-                # thread = consumerthread.consumer_thread(bootstrap_servers, topic, cpu_metric, ram_metric, ping_metric, incoming_traffic_metric, outcoming_traffic_metric)
+                thread = SimpleConsumerThread(
+                    self.server_addr, 
+                    topic, 
+                    self.cpu_metric,
+                    self.ram_metric,
+                    self.ping_metric,
+                    self.incoming_traffic_metric,
+                    self.outcoming_traffic_metric)
 
                 self.threads.append(thread)
                 thread.start()
+
+
+            if (self.sortcount>=12):     # Ogni minuto (5 secs * 12)
+                print(f"Organizing dashboard priorities...")
+                self.graph_generator.sort_all_graphs()
+                self.sortcount = 0
 
             self.sortcount +=1
 
