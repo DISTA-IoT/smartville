@@ -1,3 +1,5 @@
+from prometheus_api_client.exceptions import PrometheusApiClientException
+
 class GraphGenerator:
     """
     Questa classe è dedicata all'inserimento dei vari grafici su Grafana per la visualizzazione 
@@ -5,11 +7,11 @@ class GraphGenerator:
     la sua chiave api messa a disposizione
     """
     def __init__(self, grafana_connection, prometheus_connection):
-        self.num_paneles = 0
+        self.num_panels = 0
         self.grafana_connection = grafana_connection
         self.prometheus_connection = prometheus_connection
 
-
+    
     def generate_all_graphs(self, panel_title):
         """
         Controllo se i vari grafici sono già presenti nelle rispettive, 
@@ -57,6 +59,7 @@ class GraphGenerator:
             - il colore che questi assumeranno.
         """
         # Configurazione dashboard tramite la definizione del suo JSON model
+        # print(f'generando il grafico per {panel_title}')
         panel_config = {
             "type": "timeseries",
             "title": f"{panel_title}",
@@ -158,7 +161,7 @@ class GraphGenerator:
             # Aggiungi il pannello alla relativa dashboard
             dashboard['dashboard']['panels'].append(panel_config)
             self.grafana_connection.dashboard.update_dashboard(dashboard)
-            #print(f"Grafico '{self.name}' aggiunto alla dashboard '{dash_UID}' con successo!")
+            print(f"Grafico '{panel_title}' aggiunto alla dashboard '{dash_UID}' con successo!!!!")
         else:
             print(f"Dashboard con UID '{dash_UID}' not presente.")
 
@@ -189,8 +192,11 @@ class GraphGenerator:
                 # Ottengo tutte le informazioni associate al pannello dell'ultimo minuto
                 prometheus_expr_range = f"{prometheus_expr}[1m]"
                 # Ottengo la lista contenente tutti quante le informazioni
-                metric_data_range = self.prometheus_connection.custom_query(query=prometheus_expr_range)
-
+                try:
+                    metric_data_range = self.prometheus_connection.custom_query(query=prometheus_expr_range)                    
+                except PrometheusApiClientException as e:
+                    print(f"Error while querying prometheus! Query {prometheus_expr_range} | Error Message: {e}")
+                    return
                 values = []
                 sum_value = 0
 
