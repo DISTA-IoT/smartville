@@ -1,6 +1,8 @@
 from prometheus_client import start_http_server, Gauge
 from smartController.simple_consumer_thread import SimpleConsumerThread
 from smartController.dashgenerator import DashGenerator
+from smartController.graphgenerator import GraphGenerator
+
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
 import time
@@ -63,14 +65,23 @@ class MetricsLogger:
         self.metric_buffer_len = metric_buffer_len
         
         if self.init_connection(): 
+            
             self.init_prometheus_server()
+            
             self.dash_generator = DashGenerator(
                 grafana_user=GRAFANA_USER, 
                 grafana_pass=GRAFANA_PASSWORD
                 )
+            
+            self.grafana_connection = self.dash_generator.grafana_object
+
+            self.graph_generator = GraphGenerator(
+                grafana_connection=self.grafana_connection)
+
             self.consumer_thread_manager = threading.Thread(
                 target=self.start_consuming, 
                 args=())
+            
             try:
                 self.consumer_thread_manager.start()
             except KeyboardInterrupt:
@@ -142,6 +153,9 @@ class MetricsLogger:
             # Per ciascun topic nella nuova lista di topics, viene avviato un thread dedicato alla lettura
             # delle metriche in esso contenuto
             for topic in new_topicslist:
+
+                self.graph_generator.generate_all_graphs(topic)
+
                 self.metrics_dict[topic] = {
                     CPU: deque(maxlen=self.metric_buffer_len), 
                     DELAY: deque(maxlen=self.metric_buffer_len), 
@@ -151,6 +165,8 @@ class MetricsLogger:
 
                 print(f"Consumer Thread for topic {topic} commencing")
                 thread = SimpleConsumerThread(self.server_addr, topic, self)
+                # thread = consumerthread.consumer_thread(bootstrap_servers, topic, cpu_metric, ram_metric, ping_metric, incoming_traffic_metric, outcoming_traffic_metric)
+
                 self.threads.append(thread)
                 thread.start()
 
