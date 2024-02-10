@@ -158,7 +158,6 @@ def create_docker_template(server: Server, name: str,  start_command: str, image
                 'default_name_format': '{name}-{0}',
                 'extra_hosts': '',
                 'extra_volumes': [],
-                #'start_command': 'sh',
                 'symbol': ':/symbols/docker_guest.svg',
                 'template_type': 'docker',
                 'usage': ''}
@@ -167,7 +166,6 @@ def create_docker_template(server: Server, name: str,  start_command: str, image
     defaults["image"] = image
     defaults["environment"] = environment
     defaults["start_command"] = start_command
-
 
     req = requests.post(f"http://{server.addr}:{server.port}/v2/templates", data=json.dumps(defaults), auth=(server.user, server.password))
     req.raise_for_status()
