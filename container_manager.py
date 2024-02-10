@@ -3,6 +3,7 @@ import threading
 import time
 import subprocess
 
+TERMINAL_ISSUER_PATH = './terminal_issuer.sh'  # MAKE IT EXECUTABLE WITH chmod +x terminal_issuer.sh
 
 BROWSER_PATH = '/usr/bin/brave-browser'  # Change to your commodity browser
 CONTROLLER_IMG_NAME = 'pox-controller:latest'
@@ -22,9 +23,20 @@ start_grafana_command = "grafana-server -homepath /usr/share/grafana"
 # Function to continuously print output of a command
 def print_output(container, command, thread_name):
     # Execute the command in the container and stream the output
-    return_tuple = container.exec_run(command, stream=True)
+    return_tuple = container.exec_run(command, stream=True, tty=True, stdin=True)
     for line in return_tuple[1]:
         print(thread_name+": "+line.decode().strip())  # Print the output line by line
+
+
+def launch_detached_command(command):
+    # Run the command on a new pseudo TTY
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
 
 
 def launch_prometheus(controller_container):
@@ -36,11 +48,24 @@ def launch_prometheus(controller_container):
     output_thread.start()
 
 
+def launch_prometheus_detached(controller_container):
+    print(run_command_in_container(controller_container, "python3 pox/smartController/set_prometheus.py"))
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:PROMETHEUS:{start_prometheus_command}"]
+    launch_detached_command(command)
+
+
 def launch_grafana(controller_container):
     output_thread = threading.Thread(
         target=print_output, 
         args=(controller_container, start_grafana_command, 'GRAFANA'))
     output_thread.start()
+
+
+def launch_grafana_detached(controller_container):
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:GRAFANA:{start_grafana_command}"]
+    launch_detached_command(command)
 
 
 def launch_zookeeper(controller_container):
@@ -50,11 +75,23 @@ def launch_zookeeper(controller_container):
     output_thread.start()
 
 
+def launch_zookeeper_detached(controller_container):
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:ZOOKEEPER:{start_zookeeper_command}"]
+    launch_detached_command(command)
+
+
 def launch_kafka(controller_container):
     output_thread = threading.Thread(
         target=print_output, 
         args=(controller_container, start_kafka_command, 'KAFKA'))
     output_thread.start()
+
+
+def launch_kafka_detached(controller_container):
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:KAFKA:{start_kafka_command}"]
+    launch_detached_command(command)
 
 
 def launch_brower_consoles(controller_container):
@@ -75,26 +112,25 @@ def delete_kafka_logs(controller_container):
 
 
 def launch_controller_processes(controller_container):
-    launch_prometheus(controller_container)
+    launch_prometheus_detached(controller_container)
     print('Prometheus launched on controller! please wait...')
-    time.sleep(2)
-    launch_grafana(controller_container)
+    time.sleep(1)
+    launch_grafana_detached(controller_container)
     print('Grafana launched on controller! please wait...')
-    time.sleep(2)
-    launch_zookeeper(controller_container)
+    time.sleep(1)
+    launch_zookeeper_detached(controller_container)
     print('Zookeeper launched on controller! please wait...')
-    time.sleep(2)
-    launch_kafka(controller_container)
+    time.sleep(1)
+    launch_kafka_detached(controller_container)
     print('Kafka launched on controller! please wait...')
 
 
-def launch_producers():
+def launch_metrics():
     for i in range(0,5):
         curr_container = containers_dict['victim-'+str(i)]
-        output_thread = threading.Thread(
-            target=print_output, 
-            args=(curr_container,  "python3 producer.py", 'victim-'+str(i)))
-        output_thread.start()
+        # Build the command to execute your Bash script with its arguments
+        command = [TERMINAL_ISSUER_PATH, f"{curr_container.id}:victim-{i}-METRICS:python3 producer.py"]
+        launch_detached_command(command)
 
 
 def run_command_in_container(container, command):
@@ -130,10 +166,11 @@ def switch_case(argument):
 
 
 def launch_traffic():
-    print('Launching attacks:')
+
+    args = []
+
     for container in containers:
         container_info = client.api.inspect_container(container.id)
-        
         # Extract the IP address of the container from its network settings
         container_info_str = container_info['Config']['Hostname']
         container_img_name = container_info_str.split('(')[0]
@@ -142,11 +179,38 @@ def launch_traffic():
         # print("Container IP:", container_ip)
         # Get the proper command
         command_to_run = switch_case(container_img_name)
-        # Execute the command inside the container
-        output_thread = threading.Thread(
-            target=print_output, 
-            args=(container,  command_to_run, container_img_name))
-        output_thread.start()
+        if command_to_run != 'echo hello':
+            args.append(f"{container.id}:{container_info_str}:{command_to_run}")
+
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
+
+def stop_nodes():
+    """
+    Have no time? Do it by hand on GNS3, it is much faster...
+    """
+    for container_img_name, container in containers_dict.items():
+        if 'attacker' in container_img_name or 'victim' in container_img_name:
+            print(f'gracefully stoping {container_img_name}')
+            container.stop()
+
+
+def start_nodes():
+
+    for container_img_name, container in containers_dict.items():
+        if 'attacker' in container_img_name or 'victim' in container_img_name:
+            print(f'starting {container_img_name}')
+            container.start()
 
 
 if __name__ == "__main__":
@@ -166,29 +230,30 @@ if __name__ == "__main__":
         containers_dict[container_img_name] = container
 
     
-    user_input = input("Press '1' to launch traffic, " +\
-                        "'2' to stop attacks, " +\
+    user_input = input("Press '1' to send traffic, " +\
+                        "'2' to send metrics, " +\
                         "'3' to launch controller services, "+\
-                        "'4' to launch producers, "+\
                         "or 'q' to quit: ")
     
     if user_input == '1':
         launch_traffic()
     elif user_input == '2':
-        kill_attacks()
+        launch_metrics()
     elif user_input == '3':
         launch_controller_processes(containers_dict['pox-controller-1'])
-    elif user_input == '4':
-        launch_producers()
     elif user_input == 'pro':
-        print(launch_prometheus(containers_dict['pox-controller-1']))
+        print(launch_prometheus_detached(containers_dict['pox-controller-1']))
     elif user_input == 'gra':
         print(launch_grafana(containers_dict['pox-controller-1']))
     elif user_input == 'url':
         print(launch_brower_consoles(containers_dict['pox-controller-1']))
     elif user_input == 'zoo':
-        print(launch_zookeeper(containers_dict['pox-controller-1']))
+        print(launch_zookeeper_detached(containers_dict['pox-controller-1']))
     elif user_input == 'kaf':
         print(launch_kafka(containers_dict['pox-controller-1']))
     elif user_input == 'dkl':
         print(delete_kafka_logs(containers_dict['pox-controller-1']))
+    elif user_input == 'stop':
+        stop_nodes()
+    elif user_input == 'start':
+        start_nodes()
