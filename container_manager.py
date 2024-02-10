@@ -129,7 +129,7 @@ def switch_case(argument):
     return switch_cases.get(argument, switch_cases['default'])
 
 
-def launch_attacks():
+def launch_traffic():
     print('Launching attacks:')
     for container in containers:
         container_info = client.api.inspect_container(container.id)
@@ -138,15 +138,15 @@ def launch_attacks():
         container_info_str = container_info['Config']['Hostname']
         container_img_name = container_info_str.split('(')[0]
         # container_ip = container_info_str.split('(')[-1][:-1]
-
-        print(container_img_name)
+        # print(container_img_name)
         # print("Container IP:", container_ip)
         # Get the proper command
         command_to_run = switch_case(container_img_name)
         # Execute the command inside the container
-        pid = run_command_in_container(container=container, command=command_to_run)
-        print(f'Process id {pid}')
-        process_ids[container] = pid
+        output_thread = threading.Thread(
+            target=print_output, 
+            args=(container,  command_to_run, container_img_name))
+        output_thread.start()
 
 
 if __name__ == "__main__":
@@ -166,14 +166,14 @@ if __name__ == "__main__":
         containers_dict[container_img_name] = container
 
     
-    user_input = input("Press '1' to launch attacks, " +\
+    user_input = input("Press '1' to launch traffic, " +\
                         "'2' to stop attacks, " +\
                         "'3' to launch controller services, "+\
                         "'4' to launch producers, "+\
                         "or 'q' to quit: ")
     
     if user_input == '1':
-        launch_attacks()
+        launch_traffic()
     elif user_input == '2':
         kill_attacks()
     elif user_input == '3':
