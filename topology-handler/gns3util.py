@@ -149,7 +149,7 @@ def create_docker_template(server: Server, name: str,  start_command: str, image
                 'builtin': False,
                 'category': 'guest',
                 'compute_id': 'local',
-                'console_auto_start': True,
+                'console_auto_start': False,
                 'console_http_path': '/',
                 'console_http_port': 80,
                 'console_resolution': '1024x768',
