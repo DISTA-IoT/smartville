@@ -162,6 +162,7 @@ class ControllerBrain():
             accuracy = self.experience_learning()
             return accuracy
     
+    
     def experience_learning(self):
         flow_batch, packet_batch, batch_labels = self.replay_buffer.sample()
         if self.use_packet_feats:
