@@ -42,6 +42,9 @@ MAX_BUFFERED_PER_IP = 5
 # Max number of packets in the packets feature vector for each flow.
 MAX_PACKETS_PER_FEAT_TENSOR = 1
 
+# Max number of flowstats in the feature vector for each flow.
+MAX_FLOWSTATS_PER_FEAT_TENSOR = 30
+
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
 FLOW_FEAT_DIM = 4
@@ -69,7 +72,7 @@ SEED = 777  # For reproducibility purposes
 
 WB_TRACKING = False
 
-PACKET_FEATURES = True
+PACKET_FEATURES = False
 
 WANDB_PROJECT_NAME = "StarWars"
 
@@ -79,6 +82,7 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
                      "MAX_BUFFERED_PER_IP": MAX_BUFFERED_PER_IP,
                      "MAX_PACKETS_PER_FEAT_TENSOR": MAX_PACKETS_PER_FEAT_TENSOR,
+                     "MAX_FLOWSTATS_PER_FEAT_TENSOR": MAX_FLOWSTATS_PER_FEAT_TENSOR,
                      "MAX_BUFFER_TIME": MAX_BUFFER_TIME,
                      "REQUEST_STATS_PERIOD_SECONDS": REQUEST_STATS_PERIOD_SECONDS,
                      "ARP_REQUEST_EXPIRATION_SECONDS": ARP_REQUEST_EXPIRATION_SECONDS,
@@ -570,7 +574,9 @@ def launch():
     ipv4_blacklist_for_training=IPV4_BLACKLIST,
     packet_buffer_len=MAX_PACKETS_PER_FEAT_TENSOR,
     packet_feat_dim=PACKET_FEAT_DIM,
-    anonymize_transport_ports=ANONYMIZE_TRANSPORT_PORTS)
+    anonymize_transport_ports=ANONYMIZE_TRANSPORT_PORTS,
+    flow_feat_dim=FLOW_FEAT_DIM,
+    flow_buff_len=MAX_FLOWSTATS_PER_FEAT_TENSOR)
 
   metrics_logger = MetricsLogger(
     server_addr = "192.168.1.1:9092",

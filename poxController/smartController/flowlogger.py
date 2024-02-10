@@ -13,7 +13,9 @@ class FlowLogger(object):
       ipv4_blacklist_for_training,
       packet_buffer_len,
       packet_feat_dim,
-      anonymize_transport_ports):
+      anonymize_transport_ports,
+      flow_feat_dim=4,
+      flow_buff_len=10):
 
       """
       TODO: flows_dict should be one for each switch... or, equivalently, we should use one 
@@ -26,7 +28,8 @@ class FlowLogger(object):
       self.packet_buffer_len = packet_buffer_len
       self.packet_feat_dim = packet_feat_dim
       self.anomyn_ports = anonymize_transport_ports
-
+      self.flow_feat_dim = flow_feat_dim
+      self.flow_buff_len = flow_buff_len
 
     def extract_flow_feature_tensor(self, flow):
        return torch.Tensor(
@@ -104,7 +107,9 @@ class FlowLogger(object):
         new_flow = Flow(
           source_ip=sender_ip_addr, 
           dest_ip=flow['match']['nw_dst'].split('/')[0], 
-          switch_output_port=flow['actions'][1]['port'])
+          switch_output_port=flow['actions'][1]['port'],
+          flow_feat_dim=self.flow_feat_dim,
+          flow_buff_len=self.flow_buff_len)
         
         new_flow.infected = sender_ip_addr in self.ipv4_blacklist_for_training
         
