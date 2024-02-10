@@ -37,8 +37,10 @@ FLOW_IDLE_TIMEOUT = 10
 ARP_TIMEOUT = 60 * 2
 
 # Maximum number of packet to buffer on a switch for an unknown IP
-# This is also the number of packets in the packets feature vector for each flow.
 MAX_BUFFERED_PER_IP = 5
+
+# Max number of packets in the packets feature vector for each flow.
+MAX_PACKETS_PER_FEAT_TENSOR = 1
 
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
@@ -71,14 +73,16 @@ PACKET_FEATURES = True
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME="optim"
+WAND_RUN_NAME=f"only {MAX_PACKETS_PER_FEAT_TENSOR} packet per flow"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
                      "MAX_BUFFERED_PER_IP": MAX_BUFFERED_PER_IP,
+                     "MAX_PACKETS_PER_FEAT_TENSOR": MAX_PACKETS_PER_FEAT_TENSOR,
                      "MAX_BUFFER_TIME": MAX_BUFFER_TIME,
                      "REQUEST_STATS_PERIOD_SECONDS": REQUEST_STATS_PERIOD_SECONDS,
                      "ARP_REQUEST_EXPIRATION_SECONDS": ARP_REQUEST_EXPIRATION_SECONDS,
+                     "ANONYMIZE_TRANSPORT_PORTS": ANONYMIZE_TRANSPORT_PORTS,
                      "IPV4_BLACKLIST": IPV4_BLACKLIST,
                      "AI_DEBUG": AI_DEBUG,
                      "SEED": SEED,
@@ -564,7 +568,7 @@ def launch():
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
     ipv4_blacklist_for_training=IPV4_BLACKLIST,
-    packet_buffer_len=MAX_BUFFERED_PER_IP,
+    packet_buffer_len=MAX_PACKETS_PER_FEAT_TENSOR,
     packet_feat_dim=PACKET_FEAT_DIM,
     anonymize_transport_ports=ANONYMIZE_TRANSPORT_PORTS)
 
