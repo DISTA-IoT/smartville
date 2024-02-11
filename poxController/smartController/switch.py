@@ -74,6 +74,8 @@ WB_TRACKING = False
 
 PACKET_FEATURES = False
 
+NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
+
 WANDB_PROJECT_NAME = "StarWars"
 
 WAND_RUN_NAME=f"some name"
@@ -578,13 +580,14 @@ def launch():
     flow_feat_dim=FLOW_FEAT_DIM,
     flow_buff_len=MAX_FLOWSTATS_PER_FEAT_TENSOR)
 
-  metrics_logger = MetricsLogger(
-    server_addr = "192.168.1.1:9092",
-    max_conn_retries = 5,
-    metric_buffer_len = 40,
-    grafana_user=GRAFANA_USER, 
-    grafana_pass=GRAFANA_PASSWORD,
-    )
+  if NODE_FEATURES:
+    metrics_logger = MetricsLogger(
+      server_addr = "192.168.1.1:9092",
+      max_conn_retries = 5,
+      metric_buffer_len = 40,
+      grafana_user=GRAFANA_USER, 
+      grafana_pass=GRAFANA_PASSWORD,
+      )
 
   # Registering Switch component:
   smart_switch = Smart_Switch(
