@@ -94,7 +94,7 @@ def resend_pcap_with_modification_tcpreplay():
             else:
                 print('sending...')
                 # Use tcpreplay command to send the modified packets
-                cmd = f"tcpreplay -i {IFACE_NAME} {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
+                cmd = f"tcpreplay -i {IFACE_NAME}  --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
             subprocess.run(cmd, shell=True)
 
 

@@ -96,16 +96,16 @@ def resend_pcap_with_modification_tcpreplay():
                 if PATTERN_TO_REPLAY == 'doorlock':
                     print('sending...')
                     # Use tcpreplay command to send the modified packets
-                    cmd = f"tcpreplay -i {IFACE_NAME} {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_1-from{SOURCE_IP}to{TARGET_IP}.pcap"
+                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_1-from{SOURCE_IP}to{TARGET_IP}.pcap"
                     subprocess.run(cmd, shell=True)
-                    cmd = f"tcpreplay -i {IFACE_NAME} {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_2-from{SOURCE_IP}to{TARGET_IP}.pcap"
+                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_2-from{SOURCE_IP}to{TARGET_IP}.pcap"
                     subprocess.run(cmd, shell=True)
-                    cmd = f"tcpreplay -i {IFACE_NAME} {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_3-from{SOURCE_IP}to{TARGET_IP}.pcap"
+                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_3-from{SOURCE_IP}to{TARGET_IP}.pcap"
                     subprocess.run(cmd, shell=True)
                 else:
                     print('sending...')
                     # Use tcpreplay command to send the modified packets
-                    cmd = f"tcpreplay -i {IFACE_NAME} {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
+                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
                     subprocess.run(cmd, shell=True)
 
 
