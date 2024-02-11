@@ -41,7 +41,7 @@ class Flow():
                             buffer_size=flow_buff_len, 
                             feature_size=flow_feat_dim)
         self.packets_tensor = None
-        self.infected = False
+        self.element_class = 0
 
     def get_feat_tensor(self):
         return self.__feat_tensor.get_buffer()

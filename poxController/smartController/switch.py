@@ -25,6 +25,7 @@ from smartController.entry import Entry
 from smartController.flowlogger import FlowLogger
 from smartController.controller_brain import ControllerBrain
 from smartController.metricslogger import MetricsLogger
+from collections import defaultdict
 
 openflow_connection = None #openflow connection to switch is stored here
 
@@ -61,8 +62,7 @@ ARP_REQUEST_EXPIRATION_SECONDS = 4
 # Mask port info in packets for AI? (IP adresses are masked by default!)
 ANONYMIZE_TRANSPORT_PORTS = True
 
-# IpV4 attackers (for training purposes) Also victim response flows are considered infected
-IPV4_BLACKLIST=["192.168.1.8", "192.168.1.9", "192.168.1.10", "192.168.1.11", "192.168.1.12"]
+BRAIN_DEVICE = 'cpu'  # eventually, the neural networks could be on a GPU.
 
 print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
 
@@ -75,6 +75,26 @@ WB_TRACKING = False
 PACKET_FEATURES = False
 
 NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
+
+MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
+
+# IpV4 attackers (for training purposes) Also victim response flows are considered infected
+TRAINING_LABELS_DICT=defaultdict(int)  # class "0" is default and is reserved for leggittimate traffic. 
+
+if MULTI_CLASS_CLASSIFICATION:  
+    TRAINING_LABELS_DICT["192.168.1.8"] = 1
+    TRAINING_LABELS_DICT["192.168.1.9"] = 2
+    TRAINING_LABELS_DICT["192.168.1.10"] = 3
+    TRAINING_LABELS_DICT["192.168.1.11"] = 4
+    TRAINING_LABELS_DICT["192.168.1.12"] = 5
+    INIT_KNOWN_CLASSES_COUNT = 6  # this corresponds to the current max number of known classes !!
+else:
+    TRAINING_LABELS_DICT["192.168.1.8"] = 1
+    TRAINING_LABELS_DICT["192.168.1.9"] = 1
+    TRAINING_LABELS_DICT["192.168.1.10"] = 1
+    TRAINING_LABELS_DICT["192.168.1.11"] = 1
+    TRAINING_LABELS_DICT["192.168.1.12"] = 1
+    INIT_KNOWN_CLASSES_COUNT = 1
 
 WANDB_PROJECT_NAME = "StarWars"
 
@@ -89,12 +109,16 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "REQUEST_STATS_PERIOD_SECONDS": REQUEST_STATS_PERIOD_SECONDS,
                      "ARP_REQUEST_EXPIRATION_SECONDS": ARP_REQUEST_EXPIRATION_SECONDS,
                      "ANONYMIZE_TRANSPORT_PORTS": ANONYMIZE_TRANSPORT_PORTS,
-                     "IPV4_BLACKLIST": IPV4_BLACKLIST,
+                     "TRAINING_LABELS_DICT": TRAINING_LABELS_DICT,
                      "AI_DEBUG": AI_DEBUG,
                      "SEED": SEED,
                      "PACKET_FEAT_DIM": PACKET_FEAT_DIM,
                      "FLOW_FEAT_DIM": FLOW_FEAT_DIM,
-                     "PACKET_FEATURES": PACKET_FEATURES
+                     "PACKET_FEATURES": PACKET_FEATURES,
+                     "NODE_FEATURES": NODE_FEATURES,
+                     "MULTI_CLASS_CLASSIFICATION": MULTI_CLASS_CLASSIFICATION,
+                     "INIT_KNOWN_CLASSES_COUNT": INIT_KNOWN_CLASSES_COUNT,
+                     "BRAIN_DEVICE": BRAIN_DEVICE
                      }
 
 GRAFANA_USER='admin'
@@ -133,7 +157,9 @@ class Smart_Switch(EventMixin):
       use_packet_feats=PACKET_FEATURES,
       flow_feat_dim=FLOW_FEAT_DIM,
       packet_feat_dim=PACKET_FEAT_DIM,
-      logger_instance=log, 
+      multi_class=MULTI_CLASS_CLASSIFICATION, 
+      init_known_classes_count=INIT_KNOWN_CLASSES_COUNT,
+      device=BRAIN_DEVICE,
       seed=SEED,
       debug=AI_DEBUG,
       wb_track=WB_TRACKING,
@@ -573,13 +599,15 @@ def launch():
   
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
-    ipv4_blacklist_for_training=IPV4_BLACKLIST,
+    training_labels_dict=TRAINING_LABELS_DICT,
+    multi_class=MULTI_CLASS_CLASSIFICATION,
     packet_buffer_len=MAX_PACKETS_PER_FEAT_TENSOR,
     packet_feat_dim=PACKET_FEAT_DIM,
     anonymize_transport_ports=ANONYMIZE_TRANSPORT_PORTS,
     flow_feat_dim=FLOW_FEAT_DIM,
     flow_buff_len=MAX_FLOWSTATS_PER_FEAT_TENSOR)
 
+  metrics_logger=None
   if NODE_FEATURES:
     metrics_logger = MetricsLogger(
       server_addr = "192.168.1.1:9092",
@@ -588,7 +616,8 @@ def launch():
       grafana_user=GRAFANA_USER, 
       grafana_pass=GRAFANA_PASSWORD,
       )
-
+ 
+     
   # Registering Switch component:
   smart_switch = Smart_Switch(
      flow_logger=flow_logger,

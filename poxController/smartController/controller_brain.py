@@ -1,10 +1,12 @@
-from smartController.neural_modules import BinaryFlowClassifier, TwoStreamBinaryFlowClassifier
+from smartController.neural_modules import BinaryFlowClassifier, \
+    TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, TwoStreamMulticlassFlowClassifier
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
 import torch.optim as optim
 import torch.nn as nn
 from smartController.wandb_tracker import WandBTracker
+from pox.core import core  # only for logging.
 
 """
 ######## PORT STATS: ###################
@@ -45,8 +47,6 @@ REPLAY_BUFFER_BATCH_SIZE=50
 
 LEARNING_RATE=1e-3
 
-DEVICE='cpu'
-
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
 TRAINING = 'Training'
@@ -61,7 +61,9 @@ class ControllerBrain():
                  use_packet_feats,
                  flow_feat_dim,
                  packet_feat_dim,
-                 logger_instance,
+                 multi_class,
+                 init_known_classes_count,
+                 device='cpu',
                  seed=777,
                  debug=False,
                  wb_track=False,
@@ -72,7 +74,7 @@ class ControllerBrain():
         self.use_packet_feats = use_packet_feats
         self.flow_feat_dim = flow_feat_dim
         self.packet_feat_dim = packet_feat_dim
-        self.logger_instance = logger_instance
+        self.multi_class = multi_class
         self.AI_DEBUG = debug
         self.MAX_FLOW_TIMESTEPS=MAX_FLOW_TIMESTEPS
 
@@ -85,6 +87,9 @@ class ControllerBrain():
         self.best_accuracy = 0
         self.inference_counter = 0
         self.wbt = wb_track
+        self.logger_instance = core.getLogger()
+        self.init_known_classes_count = init_known_classes_count
+        self.device=device
 
         if self.wbt:
 
@@ -94,7 +99,6 @@ class ControllerBrain():
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
             wb_config_dict['REPLAY_BUFFER_BATCH_SIZE'] = REPLAY_BUFFER_BATCH_SIZE
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
-            wb_config_dict['DEVICE'] = DEVICE
 
             
             self.wbl = WandBTracker(
@@ -102,30 +106,55 @@ class ControllerBrain():
                 run_name=wb_run_name,
                 config_dict=wb_config_dict).wb_logger
 
-        self.initialize_binary_classifier(DEVICE, LEARNING_RATE, seed)
+        self.initialize_classifier(LEARNING_RATE, seed)
 
 
-    def initialize_binary_classifier(self, device, lr, seed):
+    def initialize_classifier(self, lr, seed):
         
         torch.manual_seed(seed)
         if self.use_packet_feats:
-            self.flow_classifier = TwoStreamBinaryFlowClassifier(
+
+            if self.multi_class:
+                self.flow_classifier = TwoStreamMulticlassFlowClassifier(
                 flow_input_size=self.flow_feat_dim, 
                 packet_input_size=self.packet_feat_dim,
                 hidden_size=40,
-                dropout_prob=0.1)
+                dropout_prob=0.1,
+                device=self.device)
+                self.criterion = nn.CrossEntropyLoss().to(self.device)
+
+            else:
+                self.flow_classifier = TwoStreamBinaryFlowClassifier(
+                    flow_input_size=self.flow_feat_dim, 
+                    packet_input_size=self.packet_feat_dim,
+                    hidden_size=40,
+                    dropout_prob=0.1,
+                    device=self.device)
+                self.criterion = nn.BCELoss().to(self.device)
         else:
-            self.flow_classifier = BinaryFlowClassifier(
-                input_size=self.flow_feat_dim, 
-                hidden_size=40,
-                dropout_prob=0.1)
+
+            if self.multi_class:
+                self.flow_classifier = MultiClassFlowClassifier(
+                    input_size=self.flow_feat_dim, 
+                    hidden_size=40,
+                    dropout_prob=0.1,
+                    device=self.device)
+                self.criterion = nn.CrossEntropyLoss().to(self.device)
+
+            else:
+                self.flow_classifier = BinaryFlowClassifier(
+                    input_size=self.flow_feat_dim, 
+                    hidden_size=40,
+                    dropout_prob=0.1,
+                    device=self.device)
+                self.criterion = nn.BCELoss().to(self.device)
+                
         self.check_pretrained()
-        self.flow_classifier.to(device)
+        self.flow_classifier.to(self.device)
         self.fc_optimizer = optim.Adam(
             self.flow_classifier.parameters(), 
             lr=lr)
-        self.binary_criterion = nn.BCELoss().to(device)
-
+        
 
     def check_pretrained(self):
         # Check if the file exists
@@ -136,6 +165,32 @@ class ControllerBrain():
                 self.logger_instance.info(f"Pre-trained weights loaded successfully from {PRETRAINED_MODEL_PATH}.")
         elif self.AI_DEBUG:
             self.logger_instance.info(f"Pre-trained weights not found at {PRETRAINED_MODEL_PATH}.")
+
+
+    def infer(self, flow_input_batch, packet_input_batch, batch_labels):
+
+        if self.use_packet_feats:
+            if self.multi_class:
+                predictions = self.flow_classifier(
+                    flow_input_batch, 
+                    packet_input_batch, 
+                    batch_labels, 
+                    self.init_known_classes_count)
+            else:
+                predictions = self.flow_classifier(
+                    flow_input_batch, 
+                    packet_input_batch)
+        else:
+            if self.multi_class:
+                predictions = self.flow_classifier(
+                    flow_input_batch, 
+                    batch_labels, 
+                    self.init_known_classes_count)
+            else:
+                predictions = self.flow_classifier(
+                    flow_input_batch)
+
+        return predictions
 
 
     def classify_duet(self, flows):
@@ -150,12 +205,14 @@ class ControllerBrain():
             labels = self.get_labels(flows)
             self.replay_buffer.push(flow_input_batch, packet_input_batch, labels)
 
-            if self.use_packet_feats:
-                predictions = self.flow_classifier(flow_input_batch, packet_input_batch)
-            else:
-                predictions = self.flow_classifier(flow_input_batch)
+            predictions = self.infer(
+                flow_input_batch=flow_input_batch,
+                packet_input_batch=packet_input_batch,
+                batch_labels=labels
+                )
 
-            accuracy = self.learn_binary_classification(labels, predictions, INFERENCE)            
+            accuracy = self.learning_step(labels, predictions, INFERENCE)
+
             if self.AI_DEBUG: 
                 self.logger_instance.info(f'inference accuracy: {accuracy}')
 
@@ -165,17 +222,22 @@ class ControllerBrain():
     
     def experience_learning(self):
         flow_batch, packet_batch, batch_labels = self.replay_buffer.sample()
-        if self.use_packet_feats:
-            more_predictions = self.flow_classifier(flow_batch, packet_batch)
-        else:
-            more_predictions = self.flow_classifier(flow_batch)
+        
+        more_predictions = self.infer(
+            flow_input_batch=flow_batch,
+            packet_input_batch=packet_batch,
+            batch_labels=batch_labels
+            )
 
-        accuracy = self.learn_binary_classification(batch_labels, more_predictions, TRAINING)
+        accuracy = self.learning_step(batch_labels, more_predictions, TRAINING)
+
         self.batch_training_counts += 1
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'batch labels mean: {batch_labels.mean().item()} batch prediction mean: {more_predictions.mean().item()}')
+            self.logger_instance.info(f'batch labels mean: {batch_labels.to(torch.float16).mean().item()} '+\
+                                      f'batch prediction mean: {more_predictions.mean().item()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
+
 
     def check_progress(self, curr_acc):
         if (self.batch_training_counts > 0) and\
@@ -184,6 +246,7 @@ class ControllerBrain():
             self.best_accuracy = curr_acc
             self.save_models()
 
+
     def save_models(self):
         torch.save(
             self.flow_classifier.state_dict(), 
@@ -191,16 +254,23 @@ class ControllerBrain():
         if self.AI_DEBUG: 
             self.logger_instance.info(f'New model version saved')
 
-    def learn_binary_classification(self, labels, predictions, mode):
-        loss = self.binary_criterion(input=predictions,
-                                      target=labels)
+
+    def learning_step(self, labels, predictions, mode):
+        if self.multi_class:
+            loss = self.criterion(input=predictions,
+                                        target=labels.squeeze(1))
+        else: 
+            loss = self.criterion(input=predictions,
+                                        target=labels.to(torch.float32))
         # backward pass
         self.fc_optimizer.zero_grad()
         loss.backward()
         # update weights
         self.fc_optimizer.step()
-        # print progress
-        acc = (predictions.round() == labels).float().mean()
+        # compute accuracy
+        acc = self.get_accuracy(logits_preds=predictions, labels=labels)
+
+        # report progress
         if self.wbt:
             self.wbl.log({mode+'_'+ACC: acc.item(), STEP_LABEL:self.inference_counter})
             self.wbl.log({mode+'_'+LOSS: loss.item(), STEP_LABEL:self.inference_counter})
@@ -208,12 +278,21 @@ class ControllerBrain():
         return acc
     
 
+    def get_accuracy(self, logits_preds, labels):
+
+        if self.multi_class:
+            match_mask = logits_preds.max(1)[1] == labels.max(1)[1]
+            return match_mask.sum() / match_mask.shape[0]
+        else:
+            return (logits_preds.round() == labels).float().mean()
+
+
     def get_labels(self, flows):
-        labels = torch.Tensor([flows[0].infected]).unsqueeze(0).to(torch.float32)
+        labels = torch.Tensor([flows[0].element_class]).unsqueeze(0).to(torch.long)
         for flow in flows[1:]:
             labels = torch.cat([
                 labels,
-                torch.Tensor([flow.infected]).unsqueeze(0).to(torch.float32)
+                torch.Tensor([flow.element_class]).unsqueeze(0).to(torch.long)
             ])
         return labels
     
