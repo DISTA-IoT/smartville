@@ -11,6 +11,7 @@ CONTROLLER_NAME="pox-controller"
 SWITCH_NAME="openvswitch"
 HOST_NAME="custom-host"
 
+EDGE_SWITCH_LABEL="Edge-openvswitch"
 
 def main():
     #create project
@@ -39,10 +40,10 @@ def starTopology():
     #mount controller
     controller_name=mountController(PROJECT_NAME,CONTROLLER_NAME,"openvswitch-1",controller_start_command,"192.168.1.1/24","192.168.1.1")
     print("controllername ",controller_name)
-    mountNAT(PROJECT_NAME,controller_name)
+    mountNAT(PROJECT_NAME,controller_name,EDGE_SWITCH_LABEL)
 
     #mount 10 hosts and link each one to a port of the switch
-    gateway = "192.168.1.1"
+    gateway = "192.168.122.1"
     switch_port = 3
     network = "192.168.1.0"
     netmask = "/24"
@@ -54,19 +55,21 @@ def starTopology():
     half = False
     host_start_command = "sh"
 
+    time.sleep(2)
     for ip in ip_pool:
         if (i > (len(ip_pool))/2) and not half:
             half = True
             x = -300
             y = -200
+        """
         if half:
             host_start_command = "python3 icmp_flood.py"
         if not half:
             host_start_command = "python3 msg_send_sim.py"
-
+        """
         HOST_LABEL = "custom-host ("+ip+")"
         
-        mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,"openvswitch-1",switch_port,ip,gateway,x,y,host_start_command)
+        mountHost(PROJECT_NAME,HOST_NAME,HOST_LABEL,EDGE_SWITCH_LABEL,"openvswitch-1",switch_port,ip,gateway,x,y,host_start_command)
         i = i+1
         y = y+100
         switch_port = switch_port+1

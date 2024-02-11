@@ -4,16 +4,16 @@ from GNS3_mount_switch import *
 from GNS3_mount_topology import SWITCH_NAME
 import gns3fy as gfy
 
-def mountNAT(PROJECT_NAME,CONTROLLER_LABEL):
+def mountNAT(PROJECT_NAME,CONTROLLER_LABEL,SWITCH_LABEL):
     server = Server(*read_local_gns3_config())
     project = get_project_by_name(server, PROJECT_NAME)
 
     gns3_server = gfy.Gns3Connector("http://localhost:3080")
 
     interfaces = []
-    SWITCH_LABEL = "Edge-openvswitch"
+    
 
-    interfaces.extend(["eth1", "eth2"])
+    interfaces.extend(["eth1"])
     mountSwitchDHCP(PROJECT_NAME, SWITCH_NAME,SWITCH_LABEL, interfaces)
     
     templates = get_all_templates(server)
