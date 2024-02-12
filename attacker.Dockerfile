@@ -29,10 +29,15 @@ COPY scripts/. /app/
 
 COPY  bening_traffic/. /app/bening_traffic/
 COPY  cc_heartbeat/. /app/cc_heartbeat/
+COPY  gafgyt/. /app/gafgyt/
 COPY  generic_ddos/. /app/generic_ddos/
 COPY  h_scan/. /app/h_scan/
+COPY  hajime/. /app/hajime/
+COPY  hakai/. /app/hakai/
+COPY  mirai/. /app/mirai/
 COPY  muhstik/. /app/muhstik/
 COPY  okiru/. /app/okiru/
+COPY  torii/. /app/torii/
 
 RUN chmod +x /app/icmp_flood.py
 
