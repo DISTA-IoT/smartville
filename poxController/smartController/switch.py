@@ -41,7 +41,7 @@ ARP_TIMEOUT = 60 * 2
 MAX_BUFFERED_PER_IP = 5
 
 # Max number of packets in the packets feature vector for each flow.
-MAX_PACKETS_PER_FEAT_TENSOR = 1
+MAX_PACKETS_PER_FEAT_TENSOR = 3
 
 # Max number of flowstats in the feature vector for each flow.
 MAX_FLOWSTATS_PER_FEAT_TENSOR = 20
@@ -68,11 +68,13 @@ print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
 
 AI_DEBUG = True
 
+INFERENCE_FREQ_SECONDS = 2  # Seconds between consecutive calls to forward passes
+
 SEED = 777  # For reproducibility purposes
 
 WB_TRACKING = False
 
-PACKET_FEATURES = False
+PACKET_FEATURES = True
 
 NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
 
@@ -99,7 +101,7 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"some name"
+WAND_RUN_NAME=f"multiclass | {MAX_PACKETS_PER_FEAT_TENSOR} PKT | {MAX_FLOWSTATS_PER_FEAT_TENSOR} TS"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
@@ -119,7 +121,8 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "NODE_FEATURES": NODE_FEATURES,
                      "MULTI_CLASS_CLASSIFICATION": MULTI_CLASS_CLASSIFICATION,
                      "INIT_KNOWN_CLASSES_COUNT": INIT_KNOWN_CLASSES_COUNT,
-                     "BRAIN_DEVICE": BRAIN_DEVICE
+                     "BRAIN_DEVICE": BRAIN_DEVICE,
+                     "INFERENCE_FREQ_SECONDS": INFERENCE_FREQ_SECONDS
                      }
 
 GRAFANA_USER='admin'
@@ -173,7 +176,7 @@ class Smart_Switch(EventMixin):
     self._expire_timer = Timer(5, self._handle_expiration, recurring=True)
 
     # Call the smart check function repeatedly:
-    self.smart_check_timer = Timer(5, self.smart_check, recurring=True)
+    self.smart_check_timer = Timer(INFERENCE_FREQ_SECONDS, self.smart_check, recurring=True)
 
     # Our flow logger instance:
     self.flow_logger = flow_logger

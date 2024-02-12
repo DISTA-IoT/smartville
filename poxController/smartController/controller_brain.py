@@ -49,7 +49,10 @@ REPLAY_BUFFER_BATCH_SIZE=50
 
 LEARNING_RATE=1e-3
 
-REPORT_STEP_FREQUENCY = 30
+REPORT_STEP_FREQUENCY = 3
+
+# FOR EPISODIC LEARNING:
+K_SHOT = 2
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -100,21 +103,15 @@ class ControllerBrain():
         self.multi_class = multi_class
         self.AI_DEBUG = debug
         self.MAX_FLOW_TIMESTEPS=MAX_FLOW_TIMESTEPS
-
-        self.replay_buffer = ReplayBuffer(
-            capacity=REPLAY_BUFFER_MAX_CAPACITY,
-            batch_size=REPLAY_BUFFER_BATCH_SIZE,
-            seed=seed)
-        
-        self.batch_training_counts = 0
         self.best_accuracy = 0
         self.inference_counter = 0
         self.wbt = wb_track
         self.logger_instance = core.getLogger()
         self.device=device
+        self.seed = seed
         self.init_knowledge(init_known_classes_count)
         self.initialize_classifier(LEARNING_RATE, seed)
-
+        
         if self.wbt:
 
             wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
@@ -131,12 +128,30 @@ class ControllerBrain():
                 config_dict=wb_config_dict).wb_logger
 
 
-
     def init_knowledge(self, init_known_classes_count):
         self.current_known_classes_count = init_known_classes_count
         self.cs_cm = torch.zeros(
             [self.current_known_classes_count, self.current_known_classes_count],
             device=self.device)
+        self.reset_replay_buffers()
+
+
+    def reset_replay_buffers(self):
+        self.replay_buffers = {}
+        self.inference_allowed = False
+
+        for class_idx in range(self.current_known_classes_count):
+            self.replay_buffers[class_idx] = ReplayBuffer(
+                capacity=REPLAY_BUFFER_MAX_CAPACITY,
+                batch_size=REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count,
+                seed=self.seed)
+
+
+    def add_class_to_knowledge_base(self):
+        self.current_known_classes_count += 1
+        for replay_buff in self.replay_buffers.values():
+            replay_buff.batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
+        print('new replay_buff batch size = ', REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count)
 
 
     def reset_cm(self):
@@ -229,6 +244,34 @@ class ControllerBrain():
         return predictions
 
 
+    def push_to_replay_buffers(
+            self,
+            flow_input_batch, 
+            packet_input_batch, 
+            batch_labels):
+        
+        unique_labels = torch.unique(batch_labels)
+
+        for label in unique_labels:
+            mask = (batch_labels.squeeze(1) == label)
+            if self.use_packet_feats:
+                self.replay_buffers[label.item()].push(
+                    flow_input_batch[mask], 
+                    packet_input_batch[mask], 
+                    label=batch_labels[mask])
+            else: 
+                self.replay_buffers[label.item()].push(
+                    flow_input_batch[mask], 
+                    None, 
+                    label=batch_labels[mask])
+                
+        if not self.inference_allowed:
+            buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
+            print(f'buff_lengths: {buff_lengths}')
+            self.inference_allowed = torch.all(
+                torch.Tensor([buff_len  > K_SHOT*2 for buff_len in buff_lengths]))
+
+
     def classify_duet(self, flows):
         """
         makes inferences about a duet flow (source ip, dest ip)
@@ -236,38 +279,89 @@ class ControllerBrain():
         if len(flows) == 0:
             return None
         else:
-            self.inference_counter += 1
+            
             flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
-            labels = self.get_labels(flows)
-            self.replay_buffer.push(flow_input_batch, packet_input_batch, labels)
+            batch_labels = self.get_labels(flows)
 
-            predictions = self.infer(
-                flow_input_batch=flow_input_batch,
-                packet_input_batch=packet_input_batch,
-                batch_labels=labels
-                )
+            self.push_to_replay_buffers(
+                flow_input_batch, 
+                packet_input_batch, 
+                batch_labels=batch_labels)
 
-            accuracy = self.learning_step(labels, predictions, INFERENCE)
+            if self.inference_allowed:
 
-            if self.AI_DEBUG: 
-                self.logger_instance.info(f'inference accuracy: {accuracy}')
+                predictions = self.infer(
+                    flow_input_batch=flow_input_batch,
+                    packet_input_batch=packet_input_batch,
+                    batch_labels=batch_labels
+                    )
 
-            accuracy = self.experience_learning()
-            return accuracy
+                accuracy = self.learning_step(batch_labels, predictions, INFERENCE)
+
+                self.inference_counter += 1
+
+                if self.AI_DEBUG: 
+                    self.logger_instance.info(f'inference accuracy: {accuracy}')
+
+                accuracy = self.experience_learning()
+                return accuracy
+            
+            return None
+        
     
-    
+    def sample_from_replay_buffers(self):
+
+        support_flow_batch, support_packet_batch, support_labels = None, None, None
+        query_flow_batch, query_packet_batch, query_labels = None, None, None
+        
+        init = True
+
+        for replay_buff in self.replay_buffers.values():
+            flow_batch, packet_batch, batch_labels = replay_buff.sample()
+
+            if init:
+                support_flow_batch, query_flow_batch = flow_batch[:K_SHOT], flow_batch[K_SHOT:]
+                support_labels, query_labels = batch_labels[:K_SHOT], batch_labels[K_SHOT:]
+            else: 
+                support_flow_batch = torch.vstack(
+                    [support_flow_batch, flow_batch[:K_SHOT]])
+                support_labels = torch.vstack(
+                    [support_labels, batch_labels[:K_SHOT]])
+                
+                query_flow_batch = torch.vstack(
+                    [query_flow_batch, flow_batch[K_SHOT:]])
+                query_labels = torch.vstack(
+                    [query_labels, batch_labels[K_SHOT:]])
+                
+            if packet_batch is not None:
+                if init:
+                    support_packet_batch, query_packet_batch = packet_batch[:K_SHOT], packet_batch[K_SHOT:]
+                else: 
+                    support_packet_batch = torch.vstack(
+                        [support_packet_batch, packet_batch[:K_SHOT]]) 
+                    query_packet_batch = torch.vstack(
+                        [query_packet_batch, packet_batch[K_SHOT:]]) 
+                    
+        return support_flow_batch, query_flow_batch, \
+            support_packet_batch, query_packet_batch, \
+                support_labels, query_labels
+                
+                     
     def experience_learning(self):
-        flow_batch, packet_batch, batch_labels = self.replay_buffer.sample()
+
+        support_flow_batch, query_flow_batch, \
+            support_packet_batch, query_packet_batch, \
+                support_labels, query_labels = self.sample_from_replay_buffers()
         
         more_predictions = self.infer(
-            flow_input_batch=flow_batch,
-            packet_input_batch=packet_batch,
-            batch_labels=batch_labels
+            flow_input_batch=query_flow_batch,
+            packet_input_batch=query_packet_batch,
+            batch_labels=query_labels
             )
         
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
-        targets=batch_labels) #  TODO IMLPEMENT MASKING AS IN NERO
+        targets=query_labels) #  TODO IMLPEMENT MASKING AS IN NERO
 
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
             self.plot_confusion_matrix(
@@ -276,19 +370,19 @@ class ControllerBrain():
                 classes=np.arange(self.current_known_classes_count))
             self.reset_cm()
 
-        accuracy = self.learning_step(batch_labels, more_predictions, TRAINING)
+        accuracy = self.learning_step(query_labels, more_predictions, TRAINING)
 
-        self.batch_training_counts += 1
+        self.inference_counter += 1
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'batch labels mean: {batch_labels.to(torch.float16).mean().item()} '+\
+            self.logger_instance.info(f'batch labels mean: {query_labels.to(torch.float16).mean().item()} '+\
                                       f'batch prediction mean: {more_predictions.mean().item()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
 
     def check_progress(self, curr_acc):
-        if (self.batch_training_counts > 0) and\
-              (self.batch_training_counts % SAVING_MODULES_FREQ == 0) and\
+        if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
+            (self.inference_counter > 0) and\
                   (self.best_accuracy < curr_acc):
             self.best_accuracy = curr_acc
             self.save_models()
