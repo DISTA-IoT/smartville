@@ -52,12 +52,12 @@ class MulticlassPrototypicalClassifier(nn.Module):
     def get_oh_labels(
         self,
         decimal_labels,
-        total_classes):
+        n_way):
 
         # create placeholder for one_hot encoding:
         labels_onehot = torch.zeros(
             [decimal_labels.size()[0],
-            total_classes], device=self.device)
+            n_way], device=self.device)
         # transform to one_hot encoding:
         labels_onehot = labels_onehot.scatter(
             1,
@@ -82,22 +82,39 @@ class MulticlassPrototypicalClassifier(nn.Module):
         return centroids, missing_clusters
 
 
-    def forward(self, hidden_vectors, labels, known_attacks_count):
+    def get_support_and_query(self, hidden_vectors, labels, k_shot):
+
+        support_hidden_vectors, support_labels = None, None
+        query_hidden_vectors, query_labels = None, None
+        
+        support_hidden_vectors, query_hidden_vectors = hidden_vectors[:k_shot], hidden_vectors[k_shot:]
+        support_labels, query_labels = labels[:k_shot], labels[k_shot:]      
+
+        return support_hidden_vectors, query_hidden_vectors, support_labels, query_labels
+    
+
+    def forward(self, hidden_vectors, labels, known_attacks_count, k_shot):
         """
         known_attacks_count is the current number of known attacks. 
         """
         # get one_hot_labels of current batch:
         oh_labels = self.get_oh_labels(
             decimal_labels=labels.long(),
-            total_classes=known_attacks_count)
+            n_way=known_attacks_count)
+        
+        support_vector_batch, query_vector_batch, \
+                support_labels, query_labels = self.get_support_and_query(
+                    hidden_vectors,
+                    oh_labels,
+                    k_shot)
     
         # get latent centroids:
         centroids, _ = self.get_centroids(
-            hidden_vectors,
-            oh_labels)
+            support_vector_batch,
+            support_labels)
 
         # compute scores:
-        scores = 1 / (torch.cdist(hidden_vectors, centroids) + 1e-10)
+        scores = 1 / (torch.cdist(query_vector_batch, centroids) + 1e-10)
 
         return scores
 
@@ -127,12 +144,12 @@ class MultiClassFlowClassifier(nn.Module):
         self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
-    def forward(self, x, labels, curr_known_attack_count):
+    def forward(self, x, labels, curr_known_attack_count, k_shot):
         # nn.BatchNorm1d ingests (N,C,L), where N is the batch size, 
         # C is the number of features or channels, and L is the sequence length
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
         x = self.rnn(x)
-        x = self.classifier(x, labels, curr_known_attack_count)
+        x = self.classifier(x, labels, curr_known_attack_count, k_shot)
         return x
 
 
@@ -169,7 +186,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
-    def forward(self, flows, packets, labels, curr_known_attack_count):
+    def forward(self, flows, packets, labels, curr_known_attack_count, k_shot):
         
         flows = self.flow_normalizer(flows.permute((0,2,1))).permute((0,2,1))
         packets = self.packet_normalizer(packets.permute((0,2,1))).permute((0,2,1))
@@ -177,6 +194,6 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         flows = self.flow_rnn(flows)
         packets = self.packet_rnn(packets)
 
-        inferences = self.classifier(torch.cat([flows, packets], dim=1), labels, curr_known_attack_count)
+        inferences = self.classifier(torch.cat([flows, packets], dim=1), labels, curr_known_attack_count, k_shot)
 
         return inferences

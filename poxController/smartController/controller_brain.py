@@ -226,7 +226,8 @@ class ControllerBrain():
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
-                    self.current_known_classes_count)
+                    self.current_known_classes_count,
+                    K_SHOT)
             else:
                 predictions = self.flow_classifier(
                     flow_input_batch, 
@@ -236,7 +237,8 @@ class ControllerBrain():
                 predictions = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
-                    self.current_known_classes_count)
+                    self.current_known_classes_count,
+                    K_SHOT)
             else:
                 predictions = self.flow_classifier(
                     flow_input_batch)
@@ -267,6 +269,8 @@ class ControllerBrain():
                 
         if not self.inference_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
+            if self.AI_DEBUG:
+                self.logger_instance.info(f'Buffer lengths: {buff_lengths}')
             self.inference_allowed = torch.all(
                 torch.Tensor([buff_len  > K_SHOT*2 for buff_len in buff_lengths]))
 
@@ -310,60 +314,43 @@ class ControllerBrain():
     
     def sample_from_replay_buffers(self):
 
-        support_flow_batch, support_packet_batch, support_labels = None, None, None
-        query_flow_batch, query_packet_batch, query_labels = None, None, None
-        
+        balanced_flow_batch, balanced_packet_batch, balanced_labels = None, None, None
+    
         init = True
-
         for replay_buff in self.replay_buffers.values():
             flow_batch, packet_batch, batch_labels = replay_buff.sample()
 
             if init:
-                support_flow_batch, query_flow_batch = flow_batch[:K_SHOT], flow_batch[K_SHOT:]
-                support_labels, query_labels = batch_labels[:K_SHOT], batch_labels[K_SHOT:]
+                balanced_flow_batch = flow_batch
+                balanced_labels = batch_labels
+                if packet_batch is not None:
+                    balanced_packet_batch = packet_batch
             else: 
-                support_flow_batch = torch.vstack(
-                    [support_flow_batch, flow_batch[:K_SHOT]])
-                support_labels = torch.vstack(
-                    [support_labels, batch_labels[:K_SHOT]])
-                
-                query_flow_batch = torch.vstack(
-                    [query_flow_batch, flow_batch[K_SHOT:]])
-                query_labels = torch.vstack(
-                    [query_labels, batch_labels[K_SHOT:]])
-                
-            if packet_batch is not None:
-                if init:
-                    support_packet_batch, query_packet_batch = packet_batch[:K_SHOT], packet_batch[K_SHOT:]
-                else: 
-                    support_packet_batch = torch.vstack(
-                        [support_packet_batch, packet_batch[:K_SHOT]]) 
-                    query_packet_batch = torch.vstack(
-                        [query_packet_batch, packet_batch[K_SHOT:]]) 
-                    
+                balanced_flow_batch = torch.vstack(
+                    [balanced_flow_batch, flow_batch])
+                balanced_labels = torch.vstack(
+                    [balanced_labels, batch_labels])
+                if packet_batch is not None:
+                    balanced_packet_batch = torch.vstack(
+                        [balanced_packet_batch, packet_batch]) 
             init = False
 
-
-        return support_flow_batch, query_flow_batch, \
-            support_packet_batch, query_packet_batch, \
-                support_labels, query_labels
+        return balanced_flow_batch, balanced_packet_batch, balanced_labels
                 
                      
     def experience_learning(self):
 
-        support_flow_batch, query_flow_batch, \
-            support_packet_batch, query_packet_batch, \
-                support_labels, query_labels = self.sample_from_replay_buffers()
+        balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers()
         
         more_predictions = self.infer(
-            flow_input_batch=query_flow_batch,
-            packet_input_batch=query_packet_batch,
-            batch_labels=query_labels
+            flow_input_batch=balanced_flow_batch,
+            packet_input_batch=balanced_packet_batch,
+            batch_labels=balanced_labels
             )
         
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
-        targets=query_labels) #  TODO IMLPEMENT MASKING AS IN NERO
+        targets=balanced_labels) #  TODO IMLPEMENT MASKING AS IN NERO
 
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
             self.plot_confusion_matrix(
@@ -372,12 +359,12 @@ class ControllerBrain():
                 classes=np.arange(self.current_known_classes_count))
             self.reset_cm()
 
-        accuracy = self.learning_step(query_labels, more_predictions, TRAINING)
+        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING)
 
         self.inference_counter += 1
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'batch labels mean: {query_labels.to(torch.float16).mean().item()} '+\
+            self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
                                       f'batch prediction mean: {more_predictions.mean().item()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
@@ -401,7 +388,7 @@ class ControllerBrain():
     def learning_step(self, labels, predictions, mode):
         if self.multi_class:
             loss = self.criterion(input=predictions,
-                                        target=labels.squeeze(1))
+                                        target=labels.squeeze(1)[K_SHOT:])
         else: 
             loss = self.criterion(input=predictions,
                                         target=labels.to(torch.float32))
