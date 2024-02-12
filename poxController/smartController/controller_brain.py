@@ -81,6 +81,39 @@ def efficient_cm(preds, targets):
 
 
 
+class DynamicLabelEncoder:
+
+    def __init__(self):
+        self.label_to_int = {}
+        self.int_to_label = {}
+        self.current_code = 0
+
+
+    def fit(self, labels):
+        """
+        returns the number of new classes found!
+        """
+        new_labels = set(labels) - set(self.label_to_int.keys())
+
+        for label in new_labels:
+            self.label_to_int[label] = self.current_code
+            self.int_to_label[self.current_code] = label
+            self.current_code += 1
+
+        return len(new_labels)
+
+
+    def transform(self, labels):
+        encoded_labels = [self.label_to_int[label] for label in labels]
+        return torch.tensor(encoded_labels)
+
+
+    def inverse_transform(self, encoded_labels):
+        decoded_labels = [self.int_to_label[code.item()] for code in encoded_labels]
+        return decoded_labels
+
+
+
 class ControllerBrain():
 
     def __init__(self,
@@ -88,7 +121,6 @@ class ControllerBrain():
                  flow_feat_dim,
                  packet_feat_dim,
                  multi_class,
-                 init_known_classes_count,
                  device='cpu',
                  seed=777,
                  debug=False,
@@ -109,7 +141,9 @@ class ControllerBrain():
         self.logger_instance = core.getLogger()
         self.device=device
         self.seed = seed
-        self.init_knowledge(init_known_classes_count)
+        self.current_known_classes_count = 0
+        self.encoder = DynamicLabelEncoder()
+        self.replay_buffers = {}
         self.initialize_classifier(LEARNING_RATE, seed)
         
         if self.wbt:
@@ -125,33 +159,32 @@ class ControllerBrain():
             self.wbl = WandBTracker(
                 wanb_project_name=wb_project_name,
                 run_name=wb_run_name,
-                config_dict=wb_config_dict).wb_logger
+                config_dict=wb_config_dict).wb_logger        
 
 
-    def init_knowledge(self, init_known_classes_count):
-        self.current_known_classes_count = init_known_classes_count
-        self.cs_cm = torch.zeros(
-            [self.current_known_classes_count, self.current_known_classes_count],
-            device=self.device)
-        self.reset_replay_buffers()
-
-
-    def reset_replay_buffers(self):
-        self.replay_buffers = {}
+    def add_replay_buffer(self):
         self.inference_allowed = False
-
         for class_idx in range(self.current_known_classes_count):
+            if self.AI_DEBUG:
+                self.logger_instance.info(f'Adding a replay buffer with code {class_idx}')
             self.replay_buffers[class_idx] = ReplayBuffer(
                 capacity=REPLAY_BUFFER_MAX_CAPACITY,
                 batch_size=REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count,
                 seed=self.seed)
 
 
+    def resize_replay_buffer_batchsize(self):
+        new_batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
+        if self.AI_DEBUG:
+            self.logger_instance.info(f'Resizing class batch size to {new_batch_size}')
+        for class_idx in range(self.current_known_classes_count):
+            self.replay_buffers[class_idx].batch_size=new_batch_size
+
+
     def add_class_to_knowledge_base(self):
         self.current_known_classes_count += 1
-        for replay_buff in self.replay_buffers.values():
-            replay_buff.batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
-        print('new replay_buff batch size = ', REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count)
+        self.add_replay_buffer()
+        self.resize_replay_buffer_batchsize()
 
 
     def reset_cm(self):
@@ -348,16 +381,19 @@ class ControllerBrain():
             batch_labels=balanced_labels
             )
         
+        """
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
         targets=balanced_labels) #  TODO IMLPEMENT MASKING AS IN NERO
+        
 
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
             self.plot_confusion_matrix(
                 self.cs_cm,phase=TRAINING,
                 norm=False,
-                classes=np.arange(self.current_known_classes_count))
+                classes=self.encoder.get_labels())
             self.reset_cm()
+        """
 
         accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING)
 
@@ -420,7 +456,16 @@ class ControllerBrain():
 
 
     def get_labels(self, flows):
-        labels = torch.Tensor([flows[0].element_class]).unsqueeze(0).to(torch.long)
+
+        string_labels = [flows[0].element_class]
+        new_classes_count = self.encoder.fit(string_labels)
+
+        for new_class in range(new_classes_count):
+            self.add_class_to_knowledge_base()
+
+        encoded_labels = self.encoder.transform(string_labels)
+
+        labels = torch.Tensor([encoded_labels]).unsqueeze(0).to(torch.long)
         for flow in flows[1:]:
             labels = torch.cat([
                 labels,

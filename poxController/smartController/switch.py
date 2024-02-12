@@ -81,22 +81,20 @@ NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-TRAINING_LABELS_DICT=defaultdict(int)  # class "0" is default and is reserved for leggittimate traffic. 
+TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
 
 if MULTI_CLASS_CLASSIFICATION:  
-    TRAINING_LABELS_DICT["192.168.1.8"] = 1
-    TRAINING_LABELS_DICT["192.168.1.9"] = 2
-    TRAINING_LABELS_DICT["192.168.1.10"] = 3
-    TRAINING_LABELS_DICT["192.168.1.11"] = 4
-    TRAINING_LABELS_DICT["192.168.1.12"] = 5
-    INIT_KNOWN_CLASSES_COUNT = 6  # this corresponds to the current max number of known classes !!
+    TRAINING_LABELS_DICT["192.168.1.8"] = "Hakai"
+    TRAINING_LABELS_DICT["192.168.1.9"] = "Okiru"
+    TRAINING_LABELS_DICT["192.168.1.10"] = "H_Scan"
+    TRAINING_LABELS_DICT["192.168.1.11"] = "CC_HeartBeat"
+    TRAINING_LABELS_DICT["192.168.1.12"] = "Gen_DDoS"
 else:
-    TRAINING_LABELS_DICT["192.168.1.8"] = 1
-    TRAINING_LABELS_DICT["192.168.1.9"] = 1
-    TRAINING_LABELS_DICT["192.168.1.10"] = 1
-    TRAINING_LABELS_DICT["192.168.1.11"] = 1
-    TRAINING_LABELS_DICT["192.168.1.12"] = 1
-    INIT_KNOWN_CLASSES_COUNT = 1
+    TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.10"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.11"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.12"] = "Attack"
 
 
 WANDB_PROJECT_NAME = "StarWars"
@@ -120,7 +118,6 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "PACKET_FEATURES": PACKET_FEATURES,
                      "NODE_FEATURES": NODE_FEATURES,
                      "MULTI_CLASS_CLASSIFICATION": MULTI_CLASS_CLASSIFICATION,
-                     "INIT_KNOWN_CLASSES_COUNT": INIT_KNOWN_CLASSES_COUNT,
                      "BRAIN_DEVICE": BRAIN_DEVICE,
                      "INFERENCE_FREQ_SECONDS": INFERENCE_FREQ_SECONDS
                      }
@@ -162,7 +159,6 @@ class Smart_Switch(EventMixin):
       flow_feat_dim=FLOW_FEAT_DIM,
       packet_feat_dim=PACKET_FEAT_DIM,
       multi_class=MULTI_CLASS_CLASSIFICATION, 
-      init_known_classes_count=INIT_KNOWN_CLASSES_COUNT,
       device=BRAIN_DEVICE,
       seed=SEED,
       debug=AI_DEBUG,
