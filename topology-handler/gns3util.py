@@ -181,7 +181,7 @@ def create_docker_template_switch(server: Server, name: str, image: str, environ
                 'builtin': False,
                 'category': 'guest',
                 'compute_id': 'local',
-                'console_auto_start': True,
+                'console_auto_start': False,
                 'console_http_path': '/',
                 'console_http_port': 80,
                 'console_resolution': '1024x768',

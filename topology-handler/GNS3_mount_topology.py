@@ -215,6 +215,7 @@ def update_generic_template(img_name, start_command):
     print((f"{template_id}: creating a new template using local image"))
     create_docker_template(server, img_name, start_command, str(img_name+":latest"),)
 
+
 def update_switch_template():
     global project
 
