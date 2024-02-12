@@ -80,20 +80,9 @@ class MulticlassPrototypicalClassifier(nn.Module):
         centroids[~missing_clusters] = existent_centroids
         assert torch.all(centroids[~missing_clusters] == existent_centroids)
         return centroids, missing_clusters
-
-
-    def get_support_and_query(self, hidden_vectors, labels, k_shot):
-
-        support_hidden_vectors, support_labels = None, None
-        query_hidden_vectors, query_labels = None, None
-        
-        support_hidden_vectors, query_hidden_vectors = hidden_vectors[:k_shot], hidden_vectors[k_shot:]
-        support_labels, query_labels = labels[:k_shot], labels[k_shot:]      
-
-        return support_hidden_vectors, query_hidden_vectors, support_labels, query_labels
     
 
-    def forward(self, hidden_vectors, labels, known_attacks_count, k_shot):
+    def forward(self, hidden_vectors, labels, known_attacks_count, query_mask):
         """
         known_attacks_count is the current number of known attacks. 
         """
@@ -101,20 +90,20 @@ class MulticlassPrototypicalClassifier(nn.Module):
         oh_labels = self.get_oh_labels(
             decimal_labels=labels.long(),
             n_way=known_attacks_count)
-        
-        support_vector_batch, query_vector_batch, \
-                support_labels, query_labels = self.get_support_and_query(
-                    hidden_vectors,
-                    oh_labels,
-                    k_shot)
     
+        print(f'hidden_vectors.shape: {hidden_vectors.shape}')
+        print(f'query_mask.shape: {query_mask.shape}')
+
+        if hidden_vectors.shape[0] != query_mask.shape[0]:
+            print('hello')
+
         # get latent centroids:
         centroids, _ = self.get_centroids(
-            support_vector_batch,
-            support_labels)
+            hidden_vectors[~query_mask],
+            oh_labels[~query_mask])
 
         # compute scores:
-        scores = 1 / (torch.cdist(query_vector_batch, centroids) + 1e-10)
+        scores = 1 / (torch.cdist(hidden_vectors[query_mask], centroids) + 1e-10)
 
         return scores
 
@@ -144,12 +133,12 @@ class MultiClassFlowClassifier(nn.Module):
         self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
-    def forward(self, x, labels, curr_known_attack_count, k_shot):
+    def forward(self, x, labels, curr_known_attack_count, query_mask):
         # nn.BatchNorm1d ingests (N,C,L), where N is the batch size, 
         # C is the number of features or channels, and L is the sequence length
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
         x = self.rnn(x)
-        x = self.classifier(x, labels, curr_known_attack_count, k_shot)
+        x = self.classifier(x, labels, curr_known_attack_count, query_mask)
         return x
 
 
@@ -186,7 +175,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
-    def forward(self, flows, packets, labels, curr_known_attack_count, k_shot):
+    def forward(self, flows, packets, labels, curr_known_attack_count, query_mask):
         
         flows = self.flow_normalizer(flows.permute((0,2,1))).permute((0,2,1))
         packets = self.packet_normalizer(packets.permute((0,2,1))).permute((0,2,1))
@@ -194,6 +183,6 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         flows = self.flow_rnn(flows)
         packets = self.packet_rnn(packets)
 
-        inferences = self.classifier(torch.cat([flows, packets], dim=1), labels, curr_known_attack_count, k_shot)
+        inferences = self.classifier(torch.cat([flows, packets], dim=1), labels, curr_known_attack_count, query_mask)
 
         return inferences

@@ -45,14 +45,16 @@ MAX_FLOW_TIMESTEPS=10
 
 REPLAY_BUFFER_MAX_CAPACITY=1000
 
-REPLAY_BUFFER_BATCH_SIZE=50
+
+K_SHOT = 2  # FOR EPISODIC LEARNING:
+
+REPLAY_BUFFER_BATCH_SIZE=10  # MUST BE GREATER THAN K_SHOT!
 
 LEARNING_RATE=1e-3
 
 REPORT_STEP_FREQUENCY = 3
 
-# FOR EPISODIC LEARNING:
-K_SHOT = 2
+
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -142,6 +144,7 @@ class ControllerBrain():
         self.device=device
         self.seed = seed
         self.current_known_classes_count = 0
+        self.per_class_batch_size = REPLAY_BUFFER_BATCH_SIZE
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
         self.initialize_classifier(LEARNING_RATE, seed)
@@ -164,25 +167,26 @@ class ControllerBrain():
 
     def add_replay_buffer(self):
         self.inference_allowed = False
+        self.experience_learning_allowed = False
         for class_idx in range(self.current_known_classes_count):
             if self.AI_DEBUG:
                 self.logger_instance.info(f'Adding a replay buffer with code {class_idx}')
             self.replay_buffers[class_idx] = ReplayBuffer(
                 capacity=REPLAY_BUFFER_MAX_CAPACITY,
-                batch_size=REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count,
+                batch_size=self.per_class_batch_size,
                 seed=self.seed)
 
 
     def resize_replay_buffer_batchsize(self):
-        new_batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
-        if self.AI_DEBUG:
-            self.logger_instance.info(f'Resizing class batch size to {new_batch_size}')
         for class_idx in range(self.current_known_classes_count):
-            self.replay_buffers[class_idx].batch_size=new_batch_size
+            self.replay_buffers[class_idx].batch_size=self.per_class_batch_size
 
 
     def add_class_to_knowledge_base(self):
         self.current_known_classes_count += 1
+        self.per_class_batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
+        if self.AI_DEBUG:
+            self.logger_instance.info(f'Setting new per_class_batch_size to {self.per_class_batch_size}')
         self.add_replay_buffer()
         self.resize_replay_buffer_batchsize()
 
@@ -251,7 +255,16 @@ class ControllerBrain():
             self.logger_instance.info(f"Pre-trained weights not found at {PRETRAINED_MODEL_PATH}.")
 
 
-    def infer(self, flow_input_batch, packet_input_batch, batch_labels):
+    def get_canonical_query_mask(self):
+        query_mask = torch.zeros(
+            size=(self.current_known_classes_count, 
+             self.per_class_batch_size),
+            device=self.device).to(torch.bool)
+        query_mask[:, K_SHOT:] = True
+        return query_mask.view(-1)
+    
+
+    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
 
         if self.use_packet_feats:
             if self.multi_class:
@@ -260,7 +273,7 @@ class ControllerBrain():
                     packet_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
-                    K_SHOT)
+                    query_mask)
             else:
                 predictions = self.flow_classifier(
                     flow_input_batch, 
@@ -271,7 +284,7 @@ class ControllerBrain():
                     flow_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
-                    K_SHOT)
+                    query_mask)
             else:
                 predictions = self.flow_classifier(
                     flow_input_batch)
@@ -300,12 +313,14 @@ class ControllerBrain():
                     None, 
                     label=batch_labels[mask])
                 
-        if not self.inference_allowed:
+        if not self.inference_allowed or not self.experience_learning_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
             if self.AI_DEBUG:
                 self.logger_instance.info(f'Buffer lengths: {buff_lengths}')
             self.inference_allowed = torch.all(
-                torch.Tensor([buff_len  > K_SHOT*2 for buff_len in buff_lengths]))
+                torch.Tensor([buff_len  > K_SHOT for buff_len in buff_lengths]))
+            self.experience_learning_allowed = torch.all(
+                torch.Tensor([buff_len  > REPLAY_BUFFER_BATCH_SIZE for buff_len in buff_lengths]))
 
 
     def classify_duet(self, flows):
@@ -326,32 +341,47 @@ class ControllerBrain():
 
             if self.inference_allowed:
 
+                support_flow_batch, support_packet_batch, support_labels = self.sample_from_replay_buffers(
+                    samples_per_class=K_SHOT)
+                
+                query_mask = torch.zeros(
+                    (self.current_known_classes_count * K_SHOT,), 
+                    device=self.device).to(torch.bool)
+
+                query_mask = torch.cat([query_mask, torch.ones_like(batch_labels.squeeze(1)).to(torch.bool)])
+                flow_input_batch = torch.vstack([support_flow_batch, flow_input_batch])
+                if self.use_packet_feats:
+                    packet_input_batch = torch.vstack([support_packet_batch, packet_input_batch])
+                batch_labels = torch.vstack([support_labels, batch_labels])
+
                 predictions = self.infer(
                     flow_input_batch=flow_input_batch,
                     packet_input_batch=packet_input_batch,
-                    batch_labels=batch_labels
+                    batch_labels=batch_labels,
+                    query_mask=query_mask
                     )
 
-                accuracy = self.learning_step(batch_labels, predictions, INFERENCE)
+                accuracy = self.learning_step(batch_labels, predictions, INFERENCE, query_mask)
 
                 self.inference_counter += 1
 
                 if self.AI_DEBUG: 
                     self.logger_instance.info(f'inference accuracy: {accuracy}')
 
-                accuracy = self.experience_learning()
-                return accuracy
-            
-            return None
-        
+                if self.experience_learning_allowed:
+                    self.experience_learning()
+                        
     
-    def sample_from_replay_buffers(self):
+    def sample_from_replay_buffers(self, samples_per_class=None):
 
         balanced_flow_batch, balanced_packet_batch, balanced_labels = None, None, None
     
         init = True
         for replay_buff in self.replay_buffers.values():
-            flow_batch, packet_batch, batch_labels = replay_buff.sample()
+            if samples_per_class is None:
+                flow_batch, packet_batch, batch_labels = replay_buff.sample()
+            else:
+                flow_batch, packet_batch, batch_labels = replay_buff.sample_n(samples_per_class)
 
             if init:
                 balanced_flow_batch = flow_batch
@@ -368,17 +398,23 @@ class ControllerBrain():
                         [balanced_packet_batch, packet_batch]) 
             init = False
 
+        if balanced_flow_batch.shape[0] > 10:
+            print('hello')
         return balanced_flow_batch, balanced_packet_batch, balanced_labels
                 
+
+
                      
     def experience_learning(self):
 
         balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers()
-        
+        query_mask = self.get_canonical_query_mask()
+
         more_predictions = self.infer(
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
-            batch_labels=balanced_labels
+            batch_labels=balanced_labels,
+            query_mask=query_mask
             )
         
         """
@@ -395,7 +431,7 @@ class ControllerBrain():
             self.reset_cm()
         """
 
-        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING)
+        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
 
         self.inference_counter += 1
         self.check_progress(curr_acc=accuracy)
@@ -421,10 +457,11 @@ class ControllerBrain():
             self.logger_instance.info(f'New model version saved')
 
 
-    def learning_step(self, labels, predictions, mode):
+    def learning_step(self, labels, predictions, mode, query_mask):
+        
         if self.multi_class:
             loss = self.criterion(input=predictions,
-                                        target=labels.squeeze(1)[K_SHOT:])
+                                        target=labels[query_mask].to(torch.float32))
         else: 
             loss = self.criterion(input=predictions,
                                         target=labels.to(torch.float32))
@@ -434,7 +471,7 @@ class ControllerBrain():
         # update weights
         self.fc_optimizer.step()
         # compute accuracy
-        acc = self.get_accuracy(logits_preds=predictions, decimal_labels=labels)
+        acc = self.get_accuracy(logits_preds=predictions, decimal_labels=labels, query_mask=query_mask)
 
         # report progress
         if self.wbt:
@@ -444,12 +481,12 @@ class ControllerBrain():
         return acc
     
 
-    def get_accuracy(self, logits_preds, decimal_labels):
+    def get_accuracy(self, logits_preds, decimal_labels, query_mask):
         """
         labels must not be one hot!
         """
         if self.multi_class:
-            match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0]
+            match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0][query_mask]
             return match_mask.sum() / match_mask.shape[0]
         else:
             return (logits_preds.round() == decimal_labels).float().mean()
@@ -465,11 +502,11 @@ class ControllerBrain():
 
         encoded_labels = self.encoder.transform(string_labels)
 
-        labels = torch.Tensor([encoded_labels]).unsqueeze(0).to(torch.long)
+        labels = encoded_labels.unsqueeze(0).to(torch.long)
         for flow in flows[1:]:
             labels = torch.cat([
                 labels,
-                torch.Tensor([flow.element_class]).unsqueeze(0).to(torch.long)
+                encoded_labels.unsqueeze(0).to(torch.long)
             ])
         return labels
     
