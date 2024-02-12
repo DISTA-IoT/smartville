@@ -167,7 +167,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
         self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
         self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
-        self.classifier = MultiClassFlowClassifier(hidden_size*2, hidden_size, dropout_prob, device=self.device)
+        self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
     def forward(self, flows, packets, labels, curr_known_attack_count):
         
