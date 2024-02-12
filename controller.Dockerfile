@@ -12,7 +12,7 @@ RUN pip3 install --upgrade pip
 
 RUN pip3 install scapy networkx pydot numpy scikit-learn \
     wandb confluent_Kafka grafana_api prometheus_client \
-    netifaces prometheus_api_client
+    netifaces prometheus_api_client seaborn
 
 RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 

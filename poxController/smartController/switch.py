@@ -44,7 +44,7 @@ MAX_BUFFERED_PER_IP = 5
 MAX_PACKETS_PER_FEAT_TENSOR = 1
 
 # Max number of flowstats in the feature vector for each flow.
-MAX_FLOWSTATS_PER_FEAT_TENSOR = 30
+MAX_FLOWSTATS_PER_FEAT_TENSOR = 20
 
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
@@ -95,6 +95,7 @@ else:
     TRAINING_LABELS_DICT["192.168.1.11"] = 1
     TRAINING_LABELS_DICT["192.168.1.12"] = 1
     INIT_KNOWN_CLASSES_COUNT = 1
+
 
 WANDB_PROJECT_NAME = "StarWars"
 

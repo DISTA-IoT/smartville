@@ -7,6 +7,9 @@ import torch.optim as optim
 import torch.nn as nn
 from smartController.wandb_tracker import WandBTracker
 from pox.core import core  # only for logging.
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
 
 """
 ######## PORT STATS: ###################
@@ -36,7 +39,6 @@ from pox.core import core  # only for logging.
 
 SAVING_MODULES_FREQ = 50
 
-
 PRETRAINED_MODEL_PATH = 'models/BinaryFlowClassifier.pt'
 
 MAX_FLOW_TIMESTEPS=10
@@ -47,12 +49,33 @@ REPLAY_BUFFER_BATCH_SIZE=50
 
 LEARNING_RATE=1e-3
 
+REPORT_STEP_FREQUENCY = 30
+
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
 TRAINING = 'Training'
 ACC = 'Acc'
 LOSS = 'Loss'
 STEP_LABEL = 'step'
+
+
+def efficient_cm(preds, targets):
+
+    predictions_decimal = preds.argmax(dim=1).to(torch.int64)
+    predictions_onehot = torch.zeros_like(
+        preds,
+        device=preds.device)
+    predictions_onehot.scatter_(1, predictions_decimal.view(-1, 1), 1)
+
+    targets = targets.to(torch.int64)
+    # Create a one-hot encoding of the targets.
+    targets_onehot = torch.zeros_like(
+        preds,
+        device=targets.device)
+    targets_onehot.scatter_(1, targets.view(-1, 1), 1)
+
+    return targets_onehot.T @ predictions_onehot
+
 
 
 class ControllerBrain():
@@ -88,8 +111,9 @@ class ControllerBrain():
         self.inference_counter = 0
         self.wbt = wb_track
         self.logger_instance = core.getLogger()
-        self.init_known_classes_count = init_known_classes_count
         self.device=device
+        self.init_knowledge(init_known_classes_count)
+        self.initialize_classifier(LEARNING_RATE, seed)
 
         if self.wbt:
 
@@ -99,14 +123,26 @@ class ControllerBrain():
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
             wb_config_dict['REPLAY_BUFFER_BATCH_SIZE'] = REPLAY_BUFFER_BATCH_SIZE
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
+            wb_config_dict['REPORT_STEP_FREQUENCY'] = REPORT_STEP_FREQUENCY
 
-            
             self.wbl = WandBTracker(
                 wanb_project_name=wb_project_name,
                 run_name=wb_run_name,
                 config_dict=wb_config_dict).wb_logger
 
-        self.initialize_classifier(LEARNING_RATE, seed)
+
+
+    def init_knowledge(self, init_known_classes_count):
+        self.current_known_classes_count = init_known_classes_count
+        self.cs_cm = torch.zeros(
+            [self.current_known_classes_count, self.current_known_classes_count],
+            device=self.device)
+
+
+    def reset_cm(self):
+        self.cs_cm = torch.zeros(
+            [self.current_known_classes_count, self.current_known_classes_count],
+            device=self.device)
 
 
     def initialize_classifier(self, lr, seed):
@@ -175,7 +211,7 @@ class ControllerBrain():
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
-                    self.init_known_classes_count)
+                    self.current_known_classes_count)
             else:
                 predictions = self.flow_classifier(
                     flow_input_batch, 
@@ -185,7 +221,7 @@ class ControllerBrain():
                 predictions = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
-                    self.init_known_classes_count)
+                    self.current_known_classes_count)
             else:
                 predictions = self.flow_classifier(
                     flow_input_batch)
@@ -228,6 +264,17 @@ class ControllerBrain():
             packet_input_batch=packet_batch,
             batch_labels=batch_labels
             )
+        
+        self.cs_cm += efficient_cm(
+        preds=more_predictions.detach(),
+        targets=batch_labels) #  TODO IMLPEMENT MASKING AS IN NERO
+
+        if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
+            self.plot_confusion_matrix(
+                self.cs_cm,phase=TRAINING,
+                norm=False,
+                classes=np.arange(self.current_known_classes_count))
+            self.reset_cm()
 
         accuracy = self.learning_step(batch_labels, more_predictions, TRAINING)
 
@@ -268,7 +315,7 @@ class ControllerBrain():
         # update weights
         self.fc_optimizer.step()
         # compute accuracy
-        acc = self.get_accuracy(logits_preds=predictions, labels=labels)
+        acc = self.get_accuracy(logits_preds=predictions, decimal_labels=labels)
 
         # report progress
         if self.wbt:
@@ -278,13 +325,15 @@ class ControllerBrain():
         return acc
     
 
-    def get_accuracy(self, logits_preds, labels):
-
+    def get_accuracy(self, logits_preds, decimal_labels):
+        """
+        labels must not be one hot!
+        """
         if self.multi_class:
-            match_mask = logits_preds.max(1)[1] == labels.max(1)[1]
+            match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0]
             return match_mask.sum() / match_mask.shape[0]
         else:
-            return (logits_preds.round() == labels).float().mean()
+            return (logits_preds.round() == decimal_labels).float().mean()
 
 
     def get_labels(self, flows):
@@ -323,3 +372,51 @@ class ControllerBrain():
                     dim=0)
                 
         return flow_input_batch, packet_input_batch
+    
+
+    def plot_confusion_matrix(
+            self,
+            cm,
+            phase,
+            norm=True,
+            dims=(10,10),
+            classes=None):
+
+        if norm:
+            # Rapresented classes:
+            rep_classes = cm.sum(1) > 0
+            # Normalize
+            denom = cm.sum(1).reshape(-1, 1)
+            denom[~rep_classes] = 1
+            cm = cm / denom
+            fmt_str = ".2f"
+        else:
+            fmt_str = ".0f"
+
+        # Plot heatmap using seaborn
+        sns.set_theme()
+        plt.figure(figsize=dims)
+        ax = sns.heatmap(
+            cm,
+            annot=True,
+            cmap='Blues',
+            fmt=fmt_str,
+            xticklabels=classes, 
+            yticklabels=classes)
+
+        # Rotate x-axis and y-axis labels vertically
+        ax.set_xticklabels(classes, rotation=90)
+        ax.set_yticklabels(classes, rotation=0)
+
+        # Add x and y axis labels
+        plt.xlabel("Predicted")
+        plt.ylabel("Baseline")
+
+        plt.title(f'{phase} Confusion Matrix')
+        if self.wbt:
+            self.wbl.log({f'{phase} Confusion Matrix': self.wbl.Image(plt), STEP_LABEL:self.inference_counter})
+        else:
+            plt.show()
+        plt.cla()
+        plt.close()
+
