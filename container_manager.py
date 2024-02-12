@@ -155,7 +155,7 @@ def switch_case(argument):
         'victim-2': 'python3 replay.py hue 192.168.1.3 --repeat 10',
         'victim-3': 'python3 replay.py doorlock 192.168.1.4 --repeat 10',
         'victim-4': 'python3 replay.py echo 192.168.1.8 --repeat 10',
-        'attacker-0': 'python3 replay.py muhstik 192.168.1.3 --repeat 10',
+        'attacker-0': 'python3 replay.py hakai 192.168.1.3 --repeat 10',
         'attacker-1': 'python3 replay.py okiru  192.168.1.4 --repeat 10',
         'attacker-2': 'python3 replay.py h_scan 192.168.1.5 --repeat 10',
         'attacker-3': 'python3 replay.py cc_heartbeat 192.168.1.6 --repeat 10',
