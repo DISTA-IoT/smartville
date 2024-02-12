@@ -267,7 +267,6 @@ class ControllerBrain():
                 
         if not self.inference_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
-            print(f'buff_lengths: {buff_lengths}')
             self.inference_allowed = torch.all(
                 torch.Tensor([buff_len  > K_SHOT*2 for buff_len in buff_lengths]))
 
@@ -342,6 +341,9 @@ class ControllerBrain():
                     query_packet_batch = torch.vstack(
                         [query_packet_batch, packet_batch[K_SHOT:]]) 
                     
+            init = False
+
+
         return support_flow_batch, query_flow_batch, \
             support_packet_batch, query_packet_batch, \
                 support_labels, query_labels
@@ -509,8 +511,8 @@ class ControllerBrain():
         plt.title(f'{phase} Confusion Matrix')
         if self.wbt:
             self.wbl.log({f'{phase} Confusion Matrix': self.wbl.Image(plt), STEP_LABEL:self.inference_counter})
-        else:
-            plt.show()
+      # else:
+      #     plt.show()  
         plt.cla()
         plt.close()
 
