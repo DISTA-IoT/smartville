@@ -167,10 +167,9 @@ class ControllerBrain():
         self.k_shot = k_shot
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
-        self.confidence_decoder = ConfidenceDecoder(device=device)
         self.replay_buffers = {}
         self.cs_cm = torch.zeros(size=(1,1), device=self.device)
-        self.initialize_classifier(LEARNING_RATE, seed)
+        self.initialize_classifiers(LEARNING_RATE, seed)
         
         if self.wbt:
 
@@ -215,9 +214,13 @@ class ControllerBrain():
             device=self.device)
 
 
-    def initialize_classifier(self, lr, seed):
+    def initialize_classifiers(self, lr, seed):
         
         torch.manual_seed(seed)
+        
+        self.confidence_decoder = ConfidenceDecoder(device=self.device)
+        self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
+
         if self.use_packet_feats:
 
             if self.multi_class:
@@ -227,7 +230,7 @@ class ControllerBrain():
                 hidden_size=40,
                 dropout_prob=0.1,
                 device=self.device)
-                self.criterion = nn.CrossEntropyLoss().to(self.device)
+                self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
 
             else:
                 self.flow_classifier = TwoStreamBinaryFlowClassifier(
@@ -236,7 +239,7 @@ class ControllerBrain():
                     hidden_size=40,
                     dropout_prob=0.1,
                     device=self.device)
-                self.criterion = nn.BCELoss().to(self.device)
+                self.cs_criterion = nn.BCELoss().to(self.device)
         else:
 
             if self.multi_class:
@@ -245,7 +248,7 @@ class ControllerBrain():
                     hidden_size=40,
                     dropout_prob=0.1,
                     device=self.device)
-                self.criterion = nn.CrossEntropyLoss().to(self.device)
+                self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
 
             else:
                 self.flow_classifier = BinaryFlowClassifier(
@@ -253,7 +256,7 @@ class ControllerBrain():
                     hidden_size=40,
                     dropout_prob=0.1,
                     device=self.device)
-                self.criterion = nn.BCELoss().to(self.device)
+                self.cs_criterion = nn.BCELoss().to(self.device)
                 
         self.check_pretrained()
         self.flow_classifier.to(self.device)
@@ -445,6 +448,8 @@ class ControllerBrain():
             batch_labels=balanced_labels,
             query_mask=query_mask
         )
+
+        zda_predictions = self.confidence_decoder(scores=more_predictions)
         
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
@@ -501,10 +506,10 @@ class ControllerBrain():
     def learning_step(self, labels, predictions, mode, query_mask):
         
         if self.multi_class:
-            loss = self.criterion(input=predictions,
+            loss = self.cs_criterion(input=predictions,
                                         target=labels[query_mask].squeeze(1))
         else: 
-            loss = self.criterion(input=predictions,
+            loss = self.cs_criterion(input=predictions,
                                         target=labels.to(torch.float32))
         # backward pass
         self.fc_optimizer.zero_grad()

@@ -199,6 +199,7 @@ class ConfidenceDecoder(nn.Module):
             self,
             scores):
 
-        scores = self.score_transform(scores)
+        scores = self.rnn(scores.unsqueeze(-1))
+
         unknown_indicators = torch.sigmoid(scores)
         return unknown_indicators
