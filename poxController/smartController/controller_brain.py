@@ -12,6 +12,22 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import threading
 from wandb import Image as wandbImage
+import itertools
+from sklearn.decomposition import PCA
+
+
+# List of colors
+colors = [
+    'red', 'blue', 'green', 'purple', 'orange', 'pink', 'cyan',  'brown', 'yellow',
+    'olive', 'lime', 'teal', 'maroon', 'navy', 'fuchsia', 'aqua', 'silver', 'sienna', 'gold',
+    'indigo', 'violet', 'turquoise', 'tomato', 'orchid', 'slategray', 'peru', 'magenta', 'limegreen',
+    'royalblue', 'coral', 'darkorange', 'darkviolet', 'darkslateblue', 'dodgerblue', 'firebrick',
+    'lightseagreen', 'mediumorchid', 'orangered', 'powderblue', 'seagreen', 'springgreen', 'tan', 'wheat',
+    'burlywood', 'chartreuse', 'crimson', 'darkgoldenrod', 'darkolivegreen', 'darkseagreen', 'indianred',
+    'lavender', 'lightcoral', 'lightpink', 'lightsalmon', 'limegreen', 'mediumseagreen', 'mediumpurple',
+    'midnightblue', 'palegreen', 'rosybrown', 'saddlebrown', 'salmon', 'slateblue', 'steelblue',
+]
+
 """
 ######## PORT STATS: ###################
 00: 'collisions'
@@ -260,28 +276,28 @@ class ControllerBrain():
 
         if self.use_packet_feats:
             if self.multi_class:
-                predictions = self.flow_classifier(
+                predictions, hiddens = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
             else:
-                predictions = self.flow_classifier(
+                predictions, hiddens = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch)
         else:
             if self.multi_class:
-                predictions = self.flow_classifier(
+                predictions, hiddens = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
             else:
-                predictions = self.flow_classifier(
+                predictions, hiddens = self.flow_classifier(
                     flow_input_batch)
 
-        return predictions
+        return predictions, hiddens
 
 
     def push_to_replay_buffers(
@@ -357,7 +373,7 @@ class ControllerBrain():
                         packet_input_batch = torch.vstack([support_packet_batch, packet_input_batch])
                     batch_labels = torch.cat([support_labels.squeeze(1), batch_labels]).unsqueeze(1)
 
-                    predictions = self.infer(
+                    predictions, _ = self.infer(
                         flow_input_batch=flow_input_batch,
                         packet_input_batch=packet_input_batch,
                         batch_labels=batch_labels,
@@ -415,7 +431,7 @@ class ControllerBrain():
 
         assert query_mask.shape[0] == balanced_labels.shape[0]
 
-        more_predictions = self.infer(
+        more_predictions, hidden_vectors = self.infer(
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
@@ -432,6 +448,8 @@ class ControllerBrain():
                     self.cs_cm,phase=TRAINING,
                     norm=False,
                     classes=self.encoder.get_labels())
+                self.plot_hidden_space(hiddens=hidden_vectors, labels=balanced_labels)
+
             elif self.AI_DEBUG:
                     self.logger_instance.info(f'Conf matrix: \n {self.cs_cm}')
             self.reset_cm()
@@ -578,3 +596,53 @@ class ControllerBrain():
         plt.cla()
         plt.close()
 
+
+
+    def plot_hidden_space(
+        self,
+        hiddens,
+        labels):
+
+        # Create an iterator that cycles through the colors
+        color_iterator = itertools.cycle(colors)
+
+        # If dimensionality is > 2, reduce using PCA
+        if hiddens.shape[1]>2:
+            pca = PCA(n_components=2)
+            hiddens = pca.fit_transform(hiddens)
+
+        plt.figure(figsize=(10, 6))
+
+        # Two plots:
+        plt.subplot(1, 1, 1)
+        
+        # List of attacks:
+        unique_labels = torch.unique(labels)
+        unique_labels = self.encoder.inverse_transform(unique_labels.long())
+        labels = self.encoder.inverse_transform(labels.long())
+
+        # Print points for each attack
+        for label in unique_labels:
+            data = hiddens[labels == label]
+
+            color_for_scatter = next(color_iterator)
+
+            if 'ZdA' in label:
+                color_for_scatter = 'gray'
+
+            plt.scatter(
+                data[:, 0],
+                data[:, 1],
+                label=label,
+                c=color_for_scatter)
+                
+        plt.title(f'Latent Space Representations')
+
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+        plt.tight_layout()
+
+        self.wbl.log({f"Latent Space Representations": wandbImage(plt)})
+
+        plt.cla()
+        plt.close()

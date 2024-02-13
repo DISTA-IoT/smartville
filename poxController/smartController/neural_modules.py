@@ -36,10 +36,10 @@ class BinaryMLPClassifier(nn.Module):
         # Apply dropout layer
         x = self.dropout(x)
         # Apply second fully connected layer without activation
-        x = self.fc2(x)
+        hiddens = self.fc2(x)
         # Apply sigmoid activation to obtain probabilities
-        x = torch.sigmoid(x)
-        return x
+        preds = torch.sigmoid(hiddens)
+        return preds, hiddens
 
 
 class MulticlassPrototypicalClassifier(nn.Module):
@@ -117,8 +117,8 @@ class BinaryFlowClassifier(nn.Module):
         # C is the number of features or channels, and L is the sequence length
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
         x = self.rnn(x)
-        x = self.classifier(x)
-        return x
+        preds, hiddens =  self.classifier(x)
+        return preds, hiddens
     
 
 class MultiClassFlowClassifier(nn.Module):
@@ -133,9 +133,8 @@ class MultiClassFlowClassifier(nn.Module):
         # nn.BatchNorm1d ingests (N,C,L), where N is the batch size, 
         # C is the number of features or channels, and L is the sequence length
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
-        x = self.rnn(x)
-        x = self.classifier(x, labels, curr_known_attack_count, query_mask)
-        return x
+        hiddens = self.rnn(x)
+        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens.detach()
 
 
 class TwoStreamBinaryFlowClassifier(nn.Module):
@@ -156,9 +155,9 @@ class TwoStreamBinaryFlowClassifier(nn.Module):
         flows = self.flow_rnn(flows)
         packets = self.packet_rnn(packets)
 
-        inferences = self.classifier(torch.cat([flows, packets], dim=1))
+        inferences, hiddens = self.classifier(torch.cat([flows, packets], dim=1))
 
-        return inferences
+        return inferences, hiddens
     
 
 class TwoStreamMulticlassFlowClassifier(nn.Module):
@@ -179,9 +178,10 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         flows = self.flow_rnn(flows)
         packets = self.packet_rnn(packets)
 
-        inferences = self.classifier(torch.cat([flows, packets], dim=1), labels, curr_known_attack_count, query_mask)
+        hiddens = torch.cat([flows, packets], dim=1)
 
-        return inferences
+        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens.detach()
+
     
 
 class ConfidenceDecoder(nn.Module):
