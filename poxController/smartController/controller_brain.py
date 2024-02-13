@@ -10,7 +10,7 @@ from pox.core import core  # only for logging.
 import seaborn as sns
 import matplotlib.pyplot as plt
 import threading
-
+from wandb import Image as wandbImage
 """
 ######## PORT STATS: ###################
 00: 'collisions'
@@ -108,8 +108,13 @@ class DynamicLabelEncoder:
         decoded_labels = [self.int_to_label[code.item()] for code in encoded_labels]
         return decoded_labels
 
+
     def get_mapping(self):
         return self.label_to_int
+
+
+    def get_labels(self):
+        return list(self.label_to_int.keys())
 
 
 class ControllerBrain():
@@ -145,6 +150,7 @@ class ControllerBrain():
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
+        self.cs_cm = torch.zeros(size=(1,1), device=self.device)
         self.initialize_classifier(LEARNING_RATE, seed)
         
         if self.wbt:
@@ -178,6 +184,10 @@ class ControllerBrain():
             self.logger_instance.info(f'New class found: {new_class}')
         self.current_known_classes_count += 1
         self.add_replay_buffer()
+        self.cs_cm = torch.zeros(
+            size=(self.current_known_classes_count, self.current_known_classes_count),
+            device=self.device
+            )
 
 
     def reset_cm(self):
@@ -410,20 +420,20 @@ class ControllerBrain():
             query_mask=query_mask
             )
         
-        """
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
-        targets=balanced_labels) #  TODO IMLPEMENT MASKING AS IN NERO
+        targets=balanced_labels[query_mask]) 
         
-
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
-            self.plot_confusion_matrix(
-                self.cs_cm,phase=TRAINING,
-                norm=False,
-                classes=self.encoder.get_labels())
+            if self.wbt:
+                self.plot_confusion_matrix(
+                    self.cs_cm,phase=TRAINING,
+                    norm=False,
+                    classes=self.encoder.get_labels())
+            else:
+                self.logger_instance.debug(f'Conf matrix: {self.cs_cm}')
             self.reset_cm()
-        """
-
+        
         accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
 
         self.inference_counter += 1
@@ -480,8 +490,6 @@ class ControllerBrain():
         """
         if self.multi_class:
             match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0][query_mask]
-            if match_mask.sum() / match_mask.shape[0] is torch.nan:
-                print('hello')
             return match_mask.sum() / match_mask.shape[0]
         else:
             return (logits_preds.round() == decimal_labels).float().mean()
@@ -563,12 +571,8 @@ class ControllerBrain():
         # Add x and y axis labels
         plt.xlabel("Predicted")
         plt.ylabel("Baseline")
-
         plt.title(f'{phase} Confusion Matrix')
-        if self.wbt:
-            self.wbl.log({f'{phase} Confusion Matrix': self.wbl.Image(plt), STEP_LABEL:self.inference_counter})
-      # else:
-      #     plt.show()  
+        self.wbl.log({f'{phase} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.inference_counter})
         plt.cla()
         plt.close()
 
