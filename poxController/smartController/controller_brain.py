@@ -159,6 +159,7 @@ class ControllerBrain():
         self.best_accuracy = 0
         self.inference_counter = 0
         self.wbt = wb_track
+        self.wbl = None
         self.logger_instance = core.getLogger()
         self.device=device
         self.seed = seed
@@ -442,17 +443,11 @@ class ControllerBrain():
         preds=more_predictions.detach(),
         targets=balanced_labels[query_mask]) 
         
-        if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
-            if self.wbt:
-                self.plot_confusion_matrix(
-                    self.cs_cm,phase=TRAINING,
-                    norm=False,
-                    classes=self.encoder.get_labels())
-                self.plot_hidden_space(hiddens=hidden_vectors, labels=balanced_labels)
-
-            elif self.AI_DEBUG:
-                    self.logger_instance.info(f'Conf matrix: \n {self.cs_cm}')
-            self.reset_cm()
+        self.report(
+            preds=more_predictions, 
+            hiddens=hidden_vectors, 
+            labels=balanced_labels, 
+            query_mask=query_mask)
         
         accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
 
@@ -462,6 +457,24 @@ class ControllerBrain():
             self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
                                       f'batch prediction mean: {more_predictions.max(1)[1].to(torch.float32).mean()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
+
+
+    def report(self, preds, hiddens, labels, query_mask):
+
+        if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
+
+            if self.wbt:
+                self.plot_confusion_matrix(
+                    self.cs_cm,phase=TRAINING,
+                    norm=False,
+                    classes=self.encoder.get_labels())
+                self.plot_hidden_space(hiddens=hiddens, labels=labels)
+                self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
+            elif self.AI_DEBUG:
+                    self.logger_instance.info(f'Conf matrix: \n {self.cs_cm}')
+            self.reset_cm()
+            
+
 
 
     def check_progress(self, curr_acc):
@@ -592,7 +605,10 @@ class ControllerBrain():
         plt.xlabel("Predicted")
         plt.ylabel("Baseline")
         plt.title(f'{phase} Confusion Matrix')
-        self.wbl.log({f'{phase} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.inference_counter})
+        
+        if self.wbl is not None:
+            self.wbl.log({f'{phase} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.inference_counter})
+
         plt.cla()
         plt.close()
 
@@ -618,22 +634,21 @@ class ControllerBrain():
         
         # List of attacks:
         unique_labels = torch.unique(labels)
-        unique_labels = self.encoder.inverse_transform(unique_labels.long())
-        labels = self.encoder.inverse_transform(labels.long())
 
         # Print points for each attack
         for label in unique_labels:
-            data = hiddens[labels == label]
+            data = hiddens[labels.squeeze(1) == label]
+            p_label = self.encoder.inverse_transform(label.unsqueeze(0))[0]
 
             color_for_scatter = next(color_iterator)
 
-            if 'ZdA' in label:
+            if 'ZdA' in p_label:
                 color_for_scatter = 'gray'
 
             plt.scatter(
                 data[:, 0],
                 data[:, 1],
-                label=label,
+                label=p_label,
                 c=color_for_scatter)
                 
         plt.title(f'Latent Space Representations')
@@ -642,7 +657,56 @@ class ControllerBrain():
 
         plt.tight_layout()
 
-        self.wbl.log({f"Latent Space Representations": wandbImage(plt)})
+        if self.wbl is not None:
+            self.wbl.log({f"Latent Space Representations": wandbImage(plt)})
+
+        plt.cla()
+        plt.close()
+
+
+    def plot_scores_vectors(
+        self,
+        score_vectors,
+        labels):
+
+        # Create an iterator that cycles through the colors
+        color_iterator = itertools.cycle(colors)
+        
+        pca = PCA(n_components=2)
+        score_vectors = pca.fit_transform(score_vectors.detach())
+
+        plt.figure(figsize=(10, 6))
+
+        # Two plots:
+        plt.subplot(1, 1, 1)
+        
+        # List of attacks:
+        unique_labels = torch.unique(labels)
+
+        # Print points for each attack
+        for label in unique_labels:
+
+            data = score_vectors[labels.squeeze(1) == label]
+            p_label = self.encoder.inverse_transform(label.unsqueeze(0))[0]
+
+            color_for_scatter = next(color_iterator)
+            if 'ZdA' in p_label:
+                color_for_scatter = 'black'
+
+            plt.scatter(
+                data[:, 0],
+                data[:, 1],
+                label=p_label,
+                c=color_for_scatter)
+                
+        plt.title(f'PCA reduction of association scores')
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+
+        plt.tight_layout()
+        
+        if self.wbl is not None:
+            self.wbl.log({f"PCA of ass. scores": wandbImage(plt)})
 
         plt.cla()
         plt.close()
