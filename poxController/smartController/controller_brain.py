@@ -9,6 +9,7 @@ from smartController.wandb_tracker import WandBTracker
 from pox.core import core  # only for logging.
 import seaborn as sns
 import matplotlib.pyplot as plt
+import threading
 
 """
 ######## PORT STATS: ###################
@@ -47,7 +48,7 @@ REPLAY_BUFFER_MAX_CAPACITY=1000
 
 K_SHOT = 2  # FOR EPISODIC LEARNING:
 
-REPLAY_BUFFER_BATCH_SIZE=5  # MUST BE GREATER THAN K_SHOT!
+REPLAY_BUFFER_BATCH_SIZE= 5  # MUST BE GREATER THAN K_SHOT!
 
 LEARNING_RATE=1e-3
 
@@ -61,6 +62,9 @@ TRAINING = 'Training'
 ACC = 'Acc'
 LOSS = 'Loss'
 STEP_LABEL = 'step'
+
+# Create a lock object
+lock = threading.Lock()
 
 
 def efficient_cm(preds, targets):
@@ -101,7 +105,7 @@ class DynamicLabelEncoder:
             self.int_to_label[self.current_code] = label
             self.current_code += 1
 
-        return len(new_labels)
+        return new_labels
 
 
     def transform(self, labels):
@@ -169,26 +173,27 @@ class ControllerBrain():
     def add_replay_buffer(self):
         self.inference_allowed = False
         self.experience_learning_allowed = False
-        for class_idx in range(self.current_known_classes_count):
-            if self.AI_DEBUG:
-                self.logger_instance.info(f'Adding a replay buffer with code {class_idx}')
-                self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
-            self.replay_buffers[class_idx] = ReplayBuffer(
-                capacity=REPLAY_BUFFER_MAX_CAPACITY,
-                batch_size=self.per_class_batch_size,
-                seed=self.seed)
+        if self.AI_DEBUG:
+            self.logger_instance.info(f'Adding a replay buffer with code {self.current_known_classes_count-1}')
+            self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
+        self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
+            capacity=REPLAY_BUFFER_MAX_CAPACITY,
+            batch_size=self.per_class_batch_size,
+            seed=self.seed)
 
 
     def resize_replay_buffer_batchsize(self):
-        for class_idx in range(self.current_known_classes_count):
-            self.replay_buffers[class_idx].batch_size=self.per_class_batch_size
-
-
-    def add_class_to_knowledge_base(self):
-        self.current_known_classes_count += 1
         self.per_class_batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
         if self.AI_DEBUG:
             self.logger_instance.info(f'Setting new per_class_batch_size to {self.per_class_batch_size}')
+        for class_idx in range(self.current_known_classes_count-1):
+            self.replay_buffers[class_idx].batch_size=self.per_class_batch_size
+
+
+    def add_class_to_knowledge_base(self, new_class):
+        if self.AI_DEBUG:
+            self.logger_instance.info(f'New class found: {new_class}')
+        self.current_known_classes_count += 1
         self.add_replay_buffer()
         self.resize_replay_buffer_batchsize()
 
@@ -301,7 +306,8 @@ class ControllerBrain():
         unique_labels = torch.unique(batch_labels)
 
         for label in unique_labels:
-            mask = (batch_labels.squeeze(1) == label)
+            mask = batch_labels == label
+
             if self.use_packet_feats:
                 for sample_idx in range(flow_input_batch[mask].shape[0]):
                     self.replay_buffers[label.item()].push(
@@ -329,51 +335,52 @@ class ControllerBrain():
         """
         makes inferences about a duet flow (source ip, dest ip)
         """
-        if len(flows) == 0:
-            return None
-        else:
-            
-            flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
-            batch_labels = self.get_labels(flows)
+        with lock:
 
-            self.push_to_replay_buffers(
-                flow_input_batch, 
-                packet_input_batch, 
-                batch_labels=batch_labels)
+            if len(flows) == 0:
+                return None
+            else:
+                flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
+                batch_labels = self.get_labels(flows)
 
-            if self.inference_allowed:
+                self.push_to_replay_buffers(
+                    flow_input_batch, 
+                    packet_input_batch, 
+                    batch_labels=batch_labels)
 
-                support_flow_batch, support_packet_batch, support_labels = self.sample_from_replay_buffers(
-                    samples_per_class=K_SHOT)
-                
-                query_mask = torch.zeros(
-                    size=(support_labels.shape[0],), 
-                    device=self.device).to(torch.bool)
+                if self.inference_allowed:
 
-                query_mask = torch.cat([query_mask, torch.ones_like(batch_labels.squeeze(1)).to(torch.bool)])
-                flow_input_batch = torch.vstack([support_flow_batch, flow_input_batch])
-                if self.use_packet_feats:
-                    packet_input_batch = torch.vstack([support_packet_batch, packet_input_batch])
-                batch_labels = torch.vstack([support_labels, batch_labels])
+                    support_flow_batch, support_packet_batch, support_labels = self.sample_from_replay_buffers(
+                        samples_per_class=K_SHOT)
+                    
+                    query_mask = torch.zeros(
+                        size=(support_labels.shape[0],), 
+                        device=self.device).to(torch.bool)
 
-                predictions = self.infer(
-                    flow_input_batch=flow_input_batch,
-                    packet_input_batch=packet_input_batch,
-                    batch_labels=batch_labels,
-                    query_mask=query_mask
-                    )
+                    query_mask = torch.cat([query_mask, torch.ones_like(batch_labels).to(torch.bool)])
+                    flow_input_batch = torch.vstack([support_flow_batch, flow_input_batch])
+                    if self.use_packet_feats:
+                        packet_input_batch = torch.vstack([support_packet_batch, packet_input_batch])
+                    batch_labels = torch.cat([support_labels.squeeze(1), batch_labels]).unsqueeze(1)
 
-                accuracy = self.learning_step(batch_labels, predictions, INFERENCE, query_mask)
+                    predictions = self.infer(
+                        flow_input_batch=flow_input_batch,
+                        packet_input_batch=packet_input_batch,
+                        batch_labels=batch_labels,
+                        query_mask=query_mask
+                        )
 
-                self.inference_counter += 1
+                    accuracy = self.learning_step(batch_labels, predictions, INFERENCE, query_mask)
 
-                if self.AI_DEBUG: 
-                    self.logger_instance.info(f'inference accuracy: {accuracy}')
+                    self.inference_counter += 1
 
-                if self.experience_learning_allowed:
-                    self.experience_learning()
-                        
-    
+                    if self.AI_DEBUG: 
+                        self.logger_instance.info(f'inference accuracy: {accuracy}')
+
+                    if self.experience_learning_allowed:
+                        self.experience_learning()
+                            
+        
     def sample_from_replay_buffers(self, samples_per_class):
     
         init = True
@@ -412,7 +419,7 @@ class ControllerBrain():
         current_batch_dim = current_class_count * self.per_class_batch_size
 
         balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers(
-            samples_per_class=current_batch_dim)
+            samples_per_class=current_batch_dim//current_class_count)
         
         query_mask = self.get_canonical_query_mask(current_class_count, current_batch_dim)
 
@@ -467,7 +474,7 @@ class ControllerBrain():
         
         if self.multi_class:
             loss = self.criterion(input=predictions,
-                                        target=labels[query_mask].to(torch.float32))
+                                        target=labels[query_mask].squeeze(1))
         else: 
             loss = self.criterion(input=predictions,
                                         target=labels.to(torch.float32))
@@ -500,21 +507,13 @@ class ControllerBrain():
 
     def get_labels(self, flows):
 
-        string_labels = [flows[0].element_class]
-        new_classes_count = self.encoder.fit(string_labels)
-
-        for new_class in range(new_classes_count):
-            self.add_class_to_knowledge_base()
+        string_labels = [flow.element_class for flow in flows]
+        new_classes = self.encoder.fit(string_labels)
+        for new_class in new_classes:
+            self.add_class_to_knowledge_base(new_class)
 
         encoded_labels = self.encoder.transform(string_labels)
-
-        labels = encoded_labels.unsqueeze(0).to(torch.long)
-        for flow in flows[1:]:
-            labels = torch.cat([
-                labels,
-                encoded_labels.unsqueeze(0).to(torch.long)
-            ])
-        return labels
+        return encoded_labels.to(torch.long)
     
 
     def assembly_input_tensor(
