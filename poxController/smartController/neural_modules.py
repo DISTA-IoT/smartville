@@ -90,12 +90,6 @@ class MulticlassPrototypicalClassifier(nn.Module):
         oh_labels = self.get_oh_labels(
             decimal_labels=labels.long(),
             n_way=known_attacks_count)
-    
-        print(f'hidden_vectors.shape: {hidden_vectors.shape}')
-        print(f'query_mask.shape: {query_mask.shape}')
-
-        if hidden_vectors.shape[0] != query_mask.shape[0]:
-            print('hello')
 
         # get latent centroids:
         centroids, _ = self.get_centroids(

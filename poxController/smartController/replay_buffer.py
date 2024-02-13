@@ -2,6 +2,8 @@ import torch
 import random
 from collections import deque
 
+
+
 class ReplayBuffer():
     
     def __init__(self, capacity, batch_size, seed):
@@ -9,15 +11,18 @@ class ReplayBuffer():
         self.buffer = deque(maxlen=capacity)
         random.seed(seed)
 
+
     def push(self, flow_state, packet_state, label):
         self.buffer.append((flow_state, packet_state, label))
 
 
-    def sample(self):
-        if len(self.buffer) < self.batch_size:
-            batch = random.sample(self.buffer, len(self.buffer))
-        else:
-            batch = random.sample(self.buffer, self.batch_size)
+    def sample(self, num_of_samples):
+        """
+        Buffer length is continuosly incremented by other threads, 
+        can't rely on it to control the sampling process. 
+        Exceptions must be handled in upper level.
+        """
+        batch = random.sample(self.buffer, num_of_samples)
         
         flow_state_batch, packet_state_batch, label_batch = zip(*batch)
 

@@ -378,10 +378,7 @@ class ControllerBrain():
     
         init = True
         for replay_buff in self.replay_buffers.values():
-            if samples_per_class is None:
-                flow_batch, packet_batch, batch_labels = replay_buff.sample()
-            else:
-                flow_batch, packet_batch, batch_labels = replay_buff.sample_n(samples_per_class)
+            flow_batch, packet_batch, batch_labels = replay_buff.sample(samples_per_class)
 
             if init:
                 balanced_flow_batch = flow_batch
@@ -398,8 +395,6 @@ class ControllerBrain():
                         [balanced_packet_batch, packet_batch]) 
             init = False
 
-        if balanced_flow_batch.shape[0] > 10:
-            print('hello')
         return balanced_flow_batch, balanced_packet_batch, balanced_labels
                 
 
@@ -407,7 +402,8 @@ class ControllerBrain():
                      
     def experience_learning(self):
 
-        balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers()
+        balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers(
+            samples_per_class=self.per_class_batch_size)
         query_mask = self.get_canonical_query_mask()
 
         more_predictions = self.infer(
