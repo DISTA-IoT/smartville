@@ -72,6 +72,10 @@ INFERENCE_FREQ_SECONDS = 2  # Seconds between consecutive calls to forward passe
 
 SEED = 777  # For reproducibility purposes
 
+K_SHOT = 2  # FOR EPISODIC LEARNING:
+
+REPLAY_BUFFER_BATCH_SIZE= 5  # MUST BE GREATER THAN K_SHOT!
+
 WB_TRACKING = False
 
 PACKET_FEATURES = True
@@ -119,7 +123,9 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "NODE_FEATURES": NODE_FEATURES,
                      "MULTI_CLASS_CLASSIFICATION": MULTI_CLASS_CLASSIFICATION,
                      "BRAIN_DEVICE": BRAIN_DEVICE,
-                     "INFERENCE_FREQ_SECONDS": INFERENCE_FREQ_SECONDS
+                     "INFERENCE_FREQ_SECONDS": INFERENCE_FREQ_SECONDS,
+                     "K_SHOT": K_SHOT,
+                     "REPLAY_BUFFER_BATCH_SIZE": REPLAY_BUFFER_BATCH_SIZE
                      }
 
 GRAFANA_USER='admin'
@@ -159,6 +165,8 @@ class Smart_Switch(EventMixin):
       flow_feat_dim=FLOW_FEAT_DIM,
       packet_feat_dim=PACKET_FEAT_DIM,
       multi_class=MULTI_CLASS_CLASSIFICATION, 
+      k_shot=K_SHOT,
+      replay_buffer_batch_size=REPLAY_BUFFER_BATCH_SIZE,
       device=BRAIN_DEVICE,
       seed=SEED,
       debug=AI_DEBUG,

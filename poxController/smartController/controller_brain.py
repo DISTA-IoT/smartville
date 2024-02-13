@@ -41,20 +41,11 @@ SAVING_MODULES_FREQ = 50
 
 PRETRAINED_MODEL_PATH = 'models/BinaryFlowClassifier.pt'
 
-MAX_FLOW_TIMESTEPS=10
-
 REPLAY_BUFFER_MAX_CAPACITY=1000
-
-
-K_SHOT = 2  # FOR EPISODIC LEARNING:
-
-REPLAY_BUFFER_BATCH_SIZE= 5  # MUST BE GREATER THAN K_SHOT!
 
 LEARNING_RATE=1e-3
 
 REPORT_STEP_FREQUENCY = 3
-
-
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -128,6 +119,8 @@ class ControllerBrain():
                  flow_feat_dim,
                  packet_feat_dim,
                  multi_class,
+                 k_shot,
+                 replay_buffer_batch_size,
                  device='cpu',
                  seed=777,
                  debug=False,
@@ -141,7 +134,6 @@ class ControllerBrain():
         self.packet_feat_dim = packet_feat_dim
         self.multi_class = multi_class
         self.AI_DEBUG = debug
-        self.MAX_FLOW_TIMESTEPS=MAX_FLOW_TIMESTEPS
         self.best_accuracy = 0
         self.inference_counter = 0
         self.wbt = wb_track
@@ -149,6 +141,8 @@ class ControllerBrain():
         self.device=device
         self.seed = seed
         self.current_known_classes_count = 0
+        self.k_shot = k_shot
+        self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
         self.initialize_classifier(LEARNING_RATE, seed)
@@ -157,9 +151,7 @@ class ControllerBrain():
 
             wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
             wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODEL_PATH
-            wb_config_dict['MAX_FLOW_TIMESTEPS'] = MAX_FLOW_TIMESTEPS
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
-            wb_config_dict['REPLAY_BUFFER_BATCH_SIZE'] = REPLAY_BUFFER_BATCH_SIZE
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
             wb_config_dict['REPORT_STEP_FREQUENCY'] = REPORT_STEP_FREQUENCY
 
@@ -177,7 +169,7 @@ class ControllerBrain():
             self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
         self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
             capacity=REPLAY_BUFFER_MAX_CAPACITY,
-            batch_size=REPLAY_BUFFER_BATCH_SIZE,
+            batch_size=self.replay_buff_batch_size,
             seed=self.seed)
 
 
@@ -316,9 +308,9 @@ class ControllerBrain():
             if self.AI_DEBUG:
                 self.logger_instance.info(f'Buffer lengths: {buff_lengths}')
             self.inference_allowed = torch.all(
-                torch.Tensor([buff_len  > K_SHOT for buff_len in buff_lengths]))
+                torch.Tensor([buff_len  > self.k_shot for buff_len in buff_lengths]))
             self.experience_learning_allowed = torch.all(
-                torch.Tensor([buff_len  > REPLAY_BUFFER_BATCH_SIZE for buff_len in buff_lengths]))
+                torch.Tensor([buff_len  > self.replay_buff_batch_size for buff_len in buff_lengths]))
 
 
     def classify_duet(self, flows):
@@ -341,7 +333,7 @@ class ControllerBrain():
                 if self.inference_allowed:
 
                     support_flow_batch, support_packet_batch, support_labels = self.sample_from_replay_buffers(
-                        samples_per_class=K_SHOT)
+                        samples_per_class=self.k_shot)
                     
                     query_mask = torch.zeros(
                         size=(support_labels.shape[0],), 
@@ -396,16 +388,16 @@ class ControllerBrain():
 
     def get_canonical_query_mask(self):
         query_mask = torch.zeros(
-            size=(self.current_known_classes_count, REPLAY_BUFFER_BATCH_SIZE),
+            size=(self.current_known_classes_count, self.replay_buff_batch_size),
             device=self.device).to(torch.bool)
-        query_mask[:, K_SHOT:] = True
+        query_mask[:, self.k_shot:] = True
         return query_mask.view(-1)
 
 
     def experience_learning(self):
 
         balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers(
-            samples_per_class=REPLAY_BUFFER_BATCH_SIZE)
+            samples_per_class=self.replay_buff_batch_size)
         
         query_mask = self.get_canonical_query_mask()
 
