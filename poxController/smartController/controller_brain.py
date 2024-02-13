@@ -430,8 +430,8 @@ class ControllerBrain():
                     self.cs_cm,phase=TRAINING,
                     norm=False,
                     classes=self.encoder.get_labels())
-            else:
-                self.logger_instance.debug(f'Conf matrix: {self.cs_cm}')
+            elif self.AI_DEBUG:
+                    self.logger_instance.info(f'Conf matrix: \n {self.cs_cm}')
             self.reset_cm()
         
         accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
