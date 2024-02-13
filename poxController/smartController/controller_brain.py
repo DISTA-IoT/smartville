@@ -1,5 +1,6 @@
 from smartController.neural_modules import BinaryFlowClassifier, \
-    TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, TwoStreamMulticlassFlowClassifier
+    TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
+        TwoStreamMulticlassFlowClassifier, ConfidenceDecoder
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
@@ -149,6 +150,7 @@ class ControllerBrain():
         self.k_shot = k_shot
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
+        self.confidence_decoder = ConfidenceDecoder(device=device)
         self.replay_buffers = {}
         self.cs_cm = torch.zeros(size=(1,1), device=self.device)
         self.initialize_classifier(LEARNING_RATE, seed)
@@ -374,7 +376,7 @@ class ControllerBrain():
                             
         
     def sample_from_replay_buffers(self, samples_per_class):
-    
+        balanced_packet_batch = None
         init = True
         for replay_buff in self.replay_buffers.values():
             flow_batch, packet_batch, batch_labels = replay_buff.sample(samples_per_class)

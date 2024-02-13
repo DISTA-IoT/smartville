@@ -182,3 +182,23 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         inferences = self.classifier(torch.cat([flows, packets], dim=1), labels, curr_known_attack_count, query_mask)
 
         return inferences
+    
+
+class ConfidenceDecoder(nn.Module):
+
+    def __init__(
+            self,
+            device):
+
+        super(ConfidenceDecoder, self).__init__()
+        self.rnn = RecurrentModel(input_size=1,hidden_size=1,device=device)
+        self.device = device
+
+
+    def forward(
+            self,
+            scores):
+
+        scores = self.score_transform(scores)
+        unknown_indicators = torch.sigmoid(scores)
+        return unknown_indicators
