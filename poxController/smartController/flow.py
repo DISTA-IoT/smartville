@@ -42,6 +42,7 @@ class Flow():
                             feature_size=flow_feat_dim)
         self.packets_tensor = None
         self.element_class = "Bening"
+        self.zda = False
 
     def get_feat_tensor(self):
         return self.__feat_tensor.get_buffer()

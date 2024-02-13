@@ -12,6 +12,7 @@ class FlowLogger(object):
     def __init__(
       self,
       training_labels_dict,
+      zda_dict,
       multi_class,
       packet_buffer_len,
       packet_feat_dim,
@@ -27,6 +28,7 @@ class FlowLogger(object):
       self.packet_cache = {}
       self.logger_instance = core.getLogger()
       self.training_labels_dict = training_labels_dict
+      self.zda_dict = zda_dict
       self.multi_class = multi_class
       self.packet_buffer_len = packet_buffer_len
       self.packet_feat_dim = packet_feat_dim
@@ -116,6 +118,7 @@ class FlowLogger(object):
           flow_buff_len=self.flow_buff_len)
         
         new_flow.element_class = self.training_labels_dict[sender_ip_addr]
+        new_flow.zda = self.zda_dict[sender_ip_addr]
         
         flow_features = self.extract_flow_feature_tensor(flow=flow)
 

@@ -72,13 +72,13 @@ INFERENCE_FREQ_SECONDS = 2  # Seconds between consecutive calls to forward passe
 
 SEED = 777  # For reproducibility purposes
 
-K_SHOT = 2  # FOR EPISODIC LEARNING:
+K_SHOT = 3  # FOR EPISODIC LEARNING:
 
-REPLAY_BUFFER_BATCH_SIZE= 5  # MUST BE GREATER THAN K_SHOT!
+REPLAY_BUFFER_BATCH_SIZE= 6  # MUST BE GREATER THAN K_SHOT!
 
 WB_TRACKING = False
 
-PACKET_FEATURES = True
+PACKET_FEATURES = False
 
 NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
 
@@ -86,13 +86,17 @@ MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
 TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+ZDA_DICT = defaultdict(lambda: False) 
 
 if MULTI_CLASS_CLASSIFICATION:  
     TRAINING_LABELS_DICT["192.168.1.8"] = "Hakai"
     TRAINING_LABELS_DICT["192.168.1.9"] = "Okiru"
     TRAINING_LABELS_DICT["192.168.1.10"] = "H_Scan"
     TRAINING_LABELS_DICT["192.168.1.11"] = "CC_HeartBeat"
+    ZDA_DICT["192.168.1.11"] = True
     TRAINING_LABELS_DICT["192.168.1.12"] = "Gen_DDoS"
+    ZDA_DICT["192.168.1.12"] = True
+
 else:
     TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
@@ -103,7 +107,7 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"multiclass | {MAX_PACKETS_PER_FEAT_TENSOR} PKT | {MAX_FLOWSTATS_PER_FEAT_TENSOR} TS"
+WAND_RUN_NAME=f"some title"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
@@ -608,6 +612,7 @@ def launch():
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
     training_labels_dict=TRAINING_LABELS_DICT,
+    zda_dict=ZDA_DICT,
     multi_class=MULTI_CLASS_CLASSIFICATION,
     packet_buffer_len=MAX_PACKETS_PER_FEAT_TENSOR,
     packet_feat_dim=PACKET_FEAT_DIM,
