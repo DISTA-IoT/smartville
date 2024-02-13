@@ -149,7 +149,6 @@ class ControllerBrain():
         self.device=device
         self.seed = seed
         self.current_known_classes_count = 0
-        self.per_class_batch_size = REPLAY_BUFFER_BATCH_SIZE
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
         self.initialize_classifier(LEARNING_RATE, seed)
@@ -178,16 +177,8 @@ class ControllerBrain():
             self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
         self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
             capacity=REPLAY_BUFFER_MAX_CAPACITY,
-            batch_size=self.per_class_batch_size,
+            batch_size=REPLAY_BUFFER_BATCH_SIZE,
             seed=self.seed)
-
-
-    def resize_replay_buffer_batchsize(self):
-        self.per_class_batch_size = REPLAY_BUFFER_BATCH_SIZE // self.current_known_classes_count
-        if self.AI_DEBUG:
-            self.logger_instance.info(f'Setting new per_class_batch_size to {self.per_class_batch_size}')
-        for class_idx in range(self.current_known_classes_count-1):
-            self.replay_buffers[class_idx].batch_size=self.per_class_batch_size
 
 
     def add_class_to_knowledge_base(self, new_class):
@@ -195,7 +186,6 @@ class ControllerBrain():
             self.logger_instance.info(f'New class found: {new_class}')
         self.current_known_classes_count += 1
         self.add_replay_buffer()
-        self.resize_replay_buffer_batchsize()
 
 
     def reset_cm(self):
@@ -404,9 +394,9 @@ class ControllerBrain():
         return balanced_flow_batch, balanced_packet_batch, balanced_labels
 
 
-    def get_canonical_query_mask(self, current_class_count, current_batch_dim):
+    def get_canonical_query_mask(self):
         query_mask = torch.zeros(
-            size=(current_class_count, current_batch_dim//current_class_count),
+            size=(self.current_known_classes_count, REPLAY_BUFFER_BATCH_SIZE),
             device=self.device).to(torch.bool)
         query_mask[:, K_SHOT:] = True
         return query_mask.view(-1)
@@ -414,14 +404,12 @@ class ControllerBrain():
 
     def experience_learning(self):
 
-        # Threading modifications to self.per_class_batch_size might happen, fix a value:
-        current_class_count = self.current_known_classes_count
-        current_batch_dim = current_class_count * self.per_class_batch_size
-
         balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers(
-            samples_per_class=current_batch_dim//current_class_count)
+            samples_per_class=REPLAY_BUFFER_BATCH_SIZE)
         
-        query_mask = self.get_canonical_query_mask(current_class_count, current_batch_dim)
+        query_mask = self.get_canonical_query_mask()
+
+        assert query_mask.shape[0] == balanced_labels.shape[0]
 
         more_predictions = self.infer(
             flow_input_batch=balanced_flow_batch,
@@ -450,7 +438,7 @@ class ControllerBrain():
         self.check_progress(curr_acc=accuracy)
         if self.AI_DEBUG: 
             self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
-                                      f'batch prediction mean: {more_predictions.mean().item()}')
+                                      f'batch prediction mean: {more_predictions.max(1)[1].to(torch.float32).mean()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
 
@@ -500,6 +488,8 @@ class ControllerBrain():
         """
         if self.multi_class:
             match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0][query_mask]
+            if match_mask.sum() / match_mask.shape[0] is torch.nan:
+                print('hello')
             return match_mask.sum() / match_mask.shape[0]
         else:
             return (logits_preds.round() == decimal_labels).float().mean()

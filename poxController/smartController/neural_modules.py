@@ -99,6 +99,8 @@ class MulticlassPrototypicalClassifier(nn.Module):
         # compute scores:
         scores = 1 / (torch.cdist(hidden_vectors[query_mask], centroids) + 1e-10)
 
+        if scores.shape[0] == 0:
+            print('hello')
         return scores
 
 
