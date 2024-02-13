@@ -9,7 +9,6 @@ from smartController.wandb_tracker import WandBTracker
 from pox.core import core  # only for logging.
 import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
 
 """
 ######## PORT STATS: ###################
@@ -48,7 +47,7 @@ REPLAY_BUFFER_MAX_CAPACITY=1000
 
 K_SHOT = 2  # FOR EPISODIC LEARNING:
 
-REPLAY_BUFFER_BATCH_SIZE=10  # MUST BE GREATER THAN K_SHOT!
+REPLAY_BUFFER_BATCH_SIZE=5  # MUST BE GREATER THAN K_SHOT!
 
 LEARNING_RATE=1e-3
 
@@ -114,6 +113,8 @@ class DynamicLabelEncoder:
         decoded_labels = [self.int_to_label[code.item()] for code in encoded_labels]
         return decoded_labels
 
+    def get_mapping(self):
+        return self.label_to_int
 
 
 class ControllerBrain():
@@ -171,6 +172,7 @@ class ControllerBrain():
         for class_idx in range(self.current_known_classes_count):
             if self.AI_DEBUG:
                 self.logger_instance.info(f'Adding a replay buffer with code {class_idx}')
+                self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
             self.replay_buffers[class_idx] = ReplayBuffer(
                 capacity=REPLAY_BUFFER_MAX_CAPACITY,
                 batch_size=self.per_class_batch_size,
@@ -255,15 +257,6 @@ class ControllerBrain():
             self.logger_instance.info(f"Pre-trained weights not found at {PRETRAINED_MODEL_PATH}.")
 
 
-    def get_canonical_query_mask(self):
-        query_mask = torch.zeros(
-            size=(self.current_known_classes_count, 
-             self.per_class_batch_size),
-            device=self.device).to(torch.bool)
-        query_mask[:, K_SHOT:] = True
-        return query_mask.view(-1)
-    
-
     def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
 
         if self.use_packet_feats:
@@ -297,21 +290,30 @@ class ControllerBrain():
             flow_input_batch, 
             packet_input_batch, 
             batch_labels):
-        
+        """
+        Don't know why, but you can have more than one sample
+        per class in inference time. 
+        (More than one flowstats object for a single Flow!)
+        So we need to take care of carefully populating our buffers...
+        Otherwise we will have bad surprises when sampling from them!!!
+        (i.e. sampling more elements than those requested!)
+        """
         unique_labels = torch.unique(batch_labels)
 
         for label in unique_labels:
             mask = (batch_labels.squeeze(1) == label)
             if self.use_packet_feats:
-                self.replay_buffers[label.item()].push(
-                    flow_input_batch[mask], 
-                    packet_input_batch[mask], 
-                    label=batch_labels[mask])
+                for sample_idx in range(flow_input_batch[mask].shape[0]):
+                    self.replay_buffers[label.item()].push(
+                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                        packet_input_batch[mask][sample_idx].unsqueeze(0), 
+                        label=batch_labels[mask][sample_idx].unsqueeze(0))
             else: 
-                self.replay_buffers[label.item()].push(
-                    flow_input_batch[mask], 
-                    None, 
-                    label=batch_labels[mask])
+                for sample_idx in range(flow_input_batch[mask].shape[0]):
+                    self.replay_buffers[label.item()].push(
+                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                        None, 
+                        label=batch_labels[mask][sample_idx].unsqueeze(0))
                 
         if not self.inference_allowed or not self.experience_learning_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
@@ -345,7 +347,7 @@ class ControllerBrain():
                     samples_per_class=K_SHOT)
                 
                 query_mask = torch.zeros(
-                    (self.current_known_classes_count * K_SHOT,), 
+                    size=(support_labels.shape[0],), 
                     device=self.device).to(torch.bool)
 
                 query_mask = torch.cat([query_mask, torch.ones_like(batch_labels.squeeze(1)).to(torch.bool)])
@@ -372,14 +374,11 @@ class ControllerBrain():
                     self.experience_learning()
                         
     
-    def sample_from_replay_buffers(self, samples_per_class=None):
-
-        balanced_flow_batch, balanced_packet_batch, balanced_labels = None, None, None
+    def sample_from_replay_buffers(self, samples_per_class):
     
         init = True
         for replay_buff in self.replay_buffers.values():
             flow_batch, packet_batch, batch_labels = replay_buff.sample(samples_per_class)
-
             if init:
                 balanced_flow_batch = flow_batch
                 balanced_labels = batch_labels
@@ -396,15 +395,26 @@ class ControllerBrain():
             init = False
 
         return balanced_flow_batch, balanced_packet_batch, balanced_labels
-                
 
 
-                     
+    def get_canonical_query_mask(self, current_class_count, current_batch_dim):
+        query_mask = torch.zeros(
+            size=(current_class_count, current_batch_dim//current_class_count),
+            device=self.device).to(torch.bool)
+        query_mask[:, K_SHOT:] = True
+        return query_mask.view(-1)
+
+
     def experience_learning(self):
 
+        # Threading modifications to self.per_class_batch_size might happen, fix a value:
+        current_class_count = self.current_known_classes_count
+        current_batch_dim = current_class_count * self.per_class_batch_size
+
         balanced_flow_batch, balanced_packet_batch, balanced_labels = self.sample_from_replay_buffers(
-            samples_per_class=self.per_class_batch_size)
-        query_mask = self.get_canonical_query_mask()
+            samples_per_class=current_batch_dim)
+        
+        query_mask = self.get_canonical_query_mask(current_class_count, current_batch_dim)
 
         more_predictions = self.infer(
             flow_input_batch=balanced_flow_batch,

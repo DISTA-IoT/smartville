@@ -17,13 +17,9 @@ class ReplayBuffer():
 
 
     def sample(self, num_of_samples):
-        """
-        Buffer length is continuosly incremented by other threads, 
-        can't rely on it to control the sampling process. 
-        Exceptions must be handled in upper level.
-        """
-        batch = random.sample(self.buffer, num_of_samples)
         
+        batch = random.sample(self.buffer, num_of_samples)
+
         flow_state_batch, packet_state_batch, label_batch = zip(*batch)
 
         if packet_state_batch[0] is None:
