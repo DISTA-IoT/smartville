@@ -68,19 +68,19 @@ print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
 
 AI_DEBUG = True
 
-INFERENCE_FREQ_SECONDS = 2  # Seconds between consecutive calls to forward passes
+INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passes
 
 SEED = 777  # For reproducibility purposes
 
-K_SHOT = 3  # FOR EPISODIC LEARNING:
+K_SHOT = 5  # FOR EPISODIC LEARNING:
 
-REPLAY_BUFFER_BATCH_SIZE= 6  # MUST BE GREATER THAN K_SHOT!
+REPLAY_BUFFER_BATCH_SIZE= 20  # MUST BE GREATER THAN K_SHOT!
 
 LS_REGULARIZATION = False
 
 WB_TRACKING = False
 
-PACKET_FEATURES = False
+PACKET_FEATURES = True
 
 NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
 
@@ -135,7 +135,7 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"LS reg"
+WAND_RUN_NAME=f"Simple Good Old model"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
