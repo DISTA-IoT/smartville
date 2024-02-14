@@ -73,6 +73,8 @@ OS_ACC = 'AD Acc'
 OS_LOSS = 'AD Loss'
 STEP_LABEL = 'step'
 ANOMALY_BALANCE = 'ANOMALY_BALANCE'
+CLOSED_SET = 'CS'
+ANOMALY_DETECTION = 'AD'
 
 # Create a lock object
 lock = threading.Lock()
@@ -563,19 +565,23 @@ class ControllerBrain():
 
             if self.wbt:
                 self.plot_confusion_matrix(
-                    self.cs_cm,phase=TRAINING,
+                    mod=CLOSED_SET,
+                    cm=self.cs_cm,
+                    phase=TRAINING,
                     norm=False,
                     classes=self.encoder.get_labels())
                 self.plot_confusion_matrix(
-                    self.os_cm,phase=TRAINING,
+                    mod=ANOMALY_DETECTION,
+                    cm=self.os_cm,
+                    phase=TRAINING,
                     norm=False,
                     classes=['Known', 'ZdA'])
                 self.plot_hidden_space(hiddens=hiddens, labels=labels)
                 self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
 
-            elif self.AI_DEBUG:
-                    self.logger_instance.info(f'CS Conf matrix: \n {self.cs_cm}')
-                    self.logger_instance.info(f'AD Conf matrix: \n {self.os_cm}')
+            if self.AI_DEBUG:
+                self.logger_instance.info(f'CS Conf matrix: \n {self.cs_cm}')
+                self.logger_instance.info(f'AD Conf matrix: \n {self.os_cm}')
             self.reset_cms()
 
 
@@ -675,6 +681,7 @@ class ControllerBrain():
 
     def plot_confusion_matrix(
             self,
+            mod,
             cm,
             phase,
             norm=True,
@@ -713,7 +720,7 @@ class ControllerBrain():
         plt.title(f'{phase} Confusion Matrix')
         
         if self.wbl is not None:
-            self.wbl.log({f'{phase} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.inference_counter})
+            self.wbl.log({f'{phase} {mod} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.inference_counter})
 
         plt.cla()
         plt.close()
