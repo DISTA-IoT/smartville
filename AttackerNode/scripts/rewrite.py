@@ -44,7 +44,7 @@ if __name__ == "__main__":
     print(f'Source IP {SOURCE_IP}')
     print(f'Target IP {TARGET_IP}')
     print(f'Pattern to rewrite: {PATTERN_TO_REWRITE}')
-    input_file_name = 'AttackerNode/'+PATTERN_TO_REWRITE+'/'+PATTERN_TO_REWRITE+'.pcap'
-    output_file_name = 'AttackerNode/'+PATTERN_TO_REWRITE+'/'+PATTERN_TO_REWRITE+'-from'+SOURCE_IP+'to'+TARGET_IP+'.pcap'
+    input_file_name = PATTERN_TO_REWRITE+'/'+PATTERN_TO_REWRITE+'.pcap'
+    output_file_name = PATTERN_TO_REWRITE+'/'+PATTERN_TO_REWRITE+'-from'+SOURCE_IP+'to'+TARGET_IP+'.pcap'
     # Resend packets with modified IPs
     modify_and_save_pcap(input_file_name, output_file_name)

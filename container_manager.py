@@ -150,19 +150,105 @@ def kill_attacks():
 
 def switch_case(argument):
     switch_cases = {
+        # Known Bening:
         'victim-0': 'python3 replay.py doorlock 192.168.1.6 --repeat 10',
         'victim-1': 'python3 replay.py echo 192.168.1.5 --repeat 10',
         'victim-2': 'python3 replay.py hue 192.168.1.3 --repeat 10',
         'victim-3': 'python3 replay.py doorlock 192.168.1.4 --repeat 10',
-        'victim-4': 'python3 replay.py echo 192.168.1.8 --repeat 10',
-        'attacker-0': 'python3 replay.py hakai 192.168.1.3 --repeat 10',
-        'attacker-1': 'python3 replay.py okiru  192.168.1.4 --repeat 10',
-        'attacker-2': 'python3 replay.py h_scan 192.168.1.5 --repeat 10',
-        'attacker-3': 'python3 replay.py cc_heartbeat 192.168.1.6 --repeat 10',
-        'attacker-4': 'python3 replay.py generic_ddos 192.168.1.7 --repeat 10',
+        # Known Attacks:
+        'attacker-4': 'python3 replay.py cc_heartbeat 192.168.1.3 --repeat 10',
+        'attacker-5': 'python3 replay.py generic_ddos  192.168.1.4 --repeat 10',
+        'attacker-6': 'python3 replay.py h_scan 192.168.1.5 --repeat 10',
+        # Training ZdAs:
+        'attacker-7': 'python3 replay.py hakai 192.168.1.6 --repeat 10',
+        'attacker-8': 'python3 replay.py torii 192.168.1.4 --repeat 10',
+        'attacker-9': 'python3 replay.py mirai 192.168.1.5 --repeat 10',
+        'attacker-10': 'python3 replay.py gafgyt 192.168.1.3 --repeat 10',
+        # Test ZdAs:
+        'attacker-11': 'python3 replay.py hajime 192.168.1.6 --repeat 10',
+        'attacker-12': 'python3 replay.py okiru 192.168.1.5 --repeat 10',
+        'attacker-13': 'python3 replay.py muhstik 192.168.1.3 --repeat 10',
+
         'default': 'echo hello'
     }
     return switch_cases.get(argument, switch_cases['default'])
+
+
+def send_known_traffic():
+    args = []
+
+    for container in containers:
+        container_info = client.api.inspect_container(container.id)
+        # Extract the IP address of the container from its network settings
+        container_info_str = container_info['Config']['Hostname']
+        container_img_name = container_info_str.split('(')[0]
+        container_id = int(container_img_name.split('-')[-1])
+        if container_id <= 6:
+            command_to_run = switch_case(container_img_name)
+            if command_to_run != 'echo hello':
+                args.append(f"{container.id}:{container_info_str}:{command_to_run}")
+
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
+
+def send_training_zdas():
+    
+    args = []
+
+    for i in range(7,11):
+        container_img_name = 'attacker-'+str(i)
+
+        curr_container = containers_dict[container_img_name]
+        command_to_run = switch_case(container_img_name)
+        args.append(f"{curr_container.id}:{container_img_name} (Training ZdA):{command_to_run}")
+    
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
+
+
+def send_test_zdas():
+
+    args = []
+
+    for i in range(11,14):
+        container_img_name = 'attacker-'+str(i)
+
+        curr_container = containers_dict[container_img_name]
+        command_to_run = switch_case(container_img_name)
+        args.append(f"{curr_container.id}:{container_img_name} (Test ZdA):{command_to_run}")
+    
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
 
 
 def launch_traffic():
@@ -230,16 +316,22 @@ if __name__ == "__main__":
         containers_dict[container_img_name] = container
 
     
-    user_input = input("Press '1' to send traffic, " +\
-                        "'2' to send metrics, " +\
-                        "'3' to launch controller services, "+\
+    user_input = input("Press '1' to send known traffic, \n" +\
+                       "'2' to send training zdas \n" +\
+                       "'3' to send test zdas \n" +\
+                        "'4' to send metrics, \n" +\
+                        "'5' to launch controller services, \n"+\
                         "or 'q' to quit: ")
     
     if user_input == '1':
-        launch_traffic()
-    elif user_input == '2':
+        send_known_traffic()
+    if user_input == '2':
+        send_training_zdas()
+    if user_input == '3':
+        send_test_zdas()
+    elif user_input == '4':
         launch_metrics()
-    elif user_input == '3':
+    elif user_input == '5':
         launch_controller_processes(containers_dict['pox-controller-1'])
     elif user_input == 'pro':
         print(launch_prometheus_detached(containers_dict['pox-controller-1']))

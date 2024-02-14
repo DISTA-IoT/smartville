@@ -151,18 +151,18 @@ def mount_all_hosts(switch_node_name):
     half = False
 
     for idx, ip in enumerate(ip_pool):
-        host_id = int(idx % (len(ip_pool)/2))
+
         img_name = VICTIM_IMG_NAME
-        curr_node_name = VICTIM_IMG_NAME+"-"+str(host_id)+"("+ip+")"
+        curr_node_name = VICTIM_IMG_NAME+"-"+str(idx)+"("+ip+")"
 
         if (i > (len(ip_pool))/2) and not half:
             half = True
             x = -300
             y = -200
         
-        if half:
+        if idx > 3:
             img_name = ATTACKER_IMG_NAME
-            curr_node_name = ATTACKER_IMG_NAME+"-"+str(host_id)+"("+ip+")"
+            curr_node_name = ATTACKER_IMG_NAME+"-"+str(idx)+"("+ip+")"
         
         mount_single_Host(
             img_name,
