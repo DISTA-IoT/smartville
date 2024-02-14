@@ -138,13 +138,13 @@ def mount_single_Host(curr_img_name, curr_node_name,switch1_node_name,switch_por
 
 def mount_all_hosts(switch_node_name):
     node_names = []
-    # mounts 10 hosts and links each one to a port of the switch
+    # mounts hosts and links each one to a port of the switch
     gateway = None  
     switch_port = 3
     network = "192.168.1.0"
     netmask = "/24"
     #generate pool of ip addresses for specified network (es. 192.168.1.0)
-    ip_pool = generateIPList(18, network, netmask)
+    ip_pool = generateIPList(14, network, netmask)
     x = 300
     y = -200
     i = 1
