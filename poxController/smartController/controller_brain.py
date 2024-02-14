@@ -492,7 +492,7 @@ class ControllerBrain():
         # Open set confusion matrix
         self.os_cm += efficient_os_cm(
             preds=(zda_predictions.detach() > 0.5).long(),
-            targets_onehot=zda_labels[query_mask].long()
+            targets_onehot=onehot_zda_labels[query_mask].long()
             )
     
         os_acc = get_balanced_accuracy(self.os_cm, negative_weight=0.5)
