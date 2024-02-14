@@ -486,6 +486,9 @@ class ControllerBrain():
         os_loss.backward()
         self.os_optimizer.step()
 
+        onehot_zda_labels = torch.zeros(size=(zda_labels.shape[0],2)).long()
+        onehot_zda_labels.scatter_(1, zda_labels.long().view(-1, 1), 1)
+
         # Open set confusion matrix
         self.os_cm += efficient_os_cm(
             preds=(zda_predictions.detach() > 0.5).long(),
@@ -571,7 +574,8 @@ class ControllerBrain():
                 self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
 
             elif self.AI_DEBUG:
-                    self.logger_instance.info(f'Conf matrix: \n {self.cs_cm}')
+                    self.logger_instance.info(f'CS Conf matrix: \n {self.cs_cm}')
+                    self.logger_instance.info(f'AD Conf matrix: \n {self.os_cm}')
             self.reset_cms()
 
 
