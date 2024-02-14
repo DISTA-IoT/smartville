@@ -101,7 +101,6 @@ def efficient_os_cm(preds, targets_onehot):
     return targets_onehot.T @ predictions_onehot.long()
 
 
-
 def get_balanced_accuracy(os_cm, negative_weight):
         
     N = os_cm[0][0] + os_cm[0][1]
@@ -207,7 +206,7 @@ class ControllerBrain():
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
-        self.initialize_classifiers(LEARNING_RATE, seed)
+        self.initialize_neural_modules(LEARNING_RATE, seed)
         
         if self.wbt:
 
@@ -255,7 +254,7 @@ class ControllerBrain():
             device=self.device)
         
 
-    def initialize_classifiers(self, lr, seed):
+    def initialize_neural_modules(self, lr, seed):
         
         torch.manual_seed(seed)
         
@@ -321,32 +320,34 @@ class ControllerBrain():
             self.logger_instance.info(f"Pre-trained weights not found at {PRETRAINED_MODEL_PATH}.")
 
 
-    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
-
+    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask, zda_mask):
+        predicted_kernel = None
         if self.use_packet_feats:
             if self.multi_class:
-                predictions, hiddens = self.flow_classifier(
+                predictions, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
-                    query_mask)
+                    query_mask,
+                    zda_mask)
             else:
-                predictions, hiddens = self.flow_classifier(
+                predictions, hiddens, _ = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch)
         else:
             if self.multi_class:
-                predictions, hiddens = self.flow_classifier(
+                predictions, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
-                    query_mask)
+                    query_mask,
+                    zda_mask)
             else:
-                predictions, hiddens = self.flow_classifier(
+                predictions, hiddens, _ = self.flow_classifier(
                     flow_input_batch)
 
-        return predictions, hiddens
+        return predictions, hiddens, predicted_kernel
 
 
     def push_to_replay_buffers(
@@ -406,22 +407,22 @@ class ControllerBrain():
                 return None
             else:
                 flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
-                batch_labels, zda_labels, test_zda_labels = self.get_labels(flows)
+                batch_labels, curr_zda_labels, curr_test_zda_labels = self.get_labels(flows)
 
                 self.push_to_replay_buffers(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels=batch_labels,
-                    zda_batch_labels=zda_labels,
-                    test_zda_batch_labels=test_zda_labels)
+                    zda_batch_labels=curr_zda_labels,
+                    test_zda_batch_labels=curr_test_zda_labels)
 
                 if self.inference_allowed:
 
                     support_flow_batch, \
                         support_packet_batch, \
                             support_labels, \
-                                zda_labels, \
-                                    test_zda_labels = self.sample_from_replay_buffers(
+                                support_zda_labels, \
+                                    support_test_zda_labels = self.sample_from_replay_buffers(
                         samples_per_class=self.k_shot)
                     
                     query_mask = torch.zeros(
@@ -429,16 +430,20 @@ class ControllerBrain():
                         device=self.device).to(torch.bool)
 
                     query_mask = torch.cat([query_mask, torch.ones_like(batch_labels).to(torch.bool)])
+
+                    zda_mask = torch.cat([support_zda_labels.squeeze(1), torch.ones_like(curr_zda_labels).to(torch.bool)])
+
                     flow_input_batch = torch.vstack([support_flow_batch, flow_input_batch])
                     if self.use_packet_feats:
                         packet_input_batch = torch.vstack([support_packet_batch, packet_input_batch])
                     batch_labels = torch.cat([support_labels.squeeze(1), batch_labels]).unsqueeze(1)
 
-                    predictions, _ = self.infer(
+                    predictions, _, _ = self.infer(
                         flow_input_batch=flow_input_batch,
                         packet_input_batch=packet_input_batch,
                         batch_labels=batch_labels,
-                        query_mask=query_mask
+                        query_mask=query_mask,
+                        zda_mask=zda_mask
                         )
 
                     accuracy = self.learning_step(batch_labels, predictions, INFERENCE, query_mask)
@@ -545,11 +550,9 @@ class ControllerBrain():
 
 
 
-    def get_reg_loss(self, oh_labels, preds):
+    def get_reg_loss(self, oh_labels, predicted_kernel):
         # semantic kernel:
         semantic_kernel = oh_labels @ oh_labels.T
-        # predicted kernel:
-        predicted_kernel = preds @ preds.T
 
         # Processor regularization:
         return get_kernel_kernel_loss(
@@ -570,11 +573,12 @@ class ControllerBrain():
 
         assert query_mask.shape[0] == balanced_labels.shape[0]
 
-        more_predictions, hidden_vectors = self.infer(
+        more_predictions, hidden_vectors, predicted_kernel = self.infer(
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
-            query_mask=query_mask
+            query_mask=query_mask,
+            zda_mask=balanced_zda_labels
         )
 
         # one_hot_labels
@@ -585,8 +589,8 @@ class ControllerBrain():
         reg_loss = None
         if self.ls_reg:
             reg_loss = self.get_reg_loss(
-                oh_labels=one_hot_labels[query_mask],
-                preds=more_predictions)
+                oh_labels=one_hot_labels,
+                predicted_kernel=predicted_kernel)
 
         self.os_step(
             oh_labels=one_hot_labels, 
@@ -813,9 +817,6 @@ class ControllerBrain():
 
             color_for_scatter = next(color_iterator)
 
-            if 'ZdA' in p_label:
-                color_for_scatter = 'gray'
-
             plt.scatter(
                 data[:, 0],
                 data[:, 1],
@@ -861,8 +862,6 @@ class ControllerBrain():
             p_label = self.encoder.inverse_transform(label.unsqueeze(0))[0]
 
             color_for_scatter = next(color_iterator)
-            if 'ZdA' in p_label:
-                color_for_scatter = 'black'
 
             plt.scatter(
                 data[:, 0],
