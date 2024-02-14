@@ -477,6 +477,7 @@ class ControllerBrain():
         known_class_h_mask = known_oh_labels.sum(0)>0
         # detach CS from OS classification:
         os_scores_input = preds.detach()
+        os_scores_input.requires_grad = True
         # confidence predictions:
         zda_predictions = self.confidence_decoder(scores=os_scores_input[:, known_class_h_mask])
         
