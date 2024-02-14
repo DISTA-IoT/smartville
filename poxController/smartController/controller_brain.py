@@ -179,6 +179,7 @@ class ControllerBrain():
                  multi_class,
                  k_shot,
                  replay_buffer_batch_size,
+                 ls_reg,
                  device='cpu',
                  seed=777,
                  debug=False,
@@ -196,6 +197,7 @@ class ControllerBrain():
         self.inference_counter = 0
         self.wbt = wb_track
         self.wbl = None
+        self.ls_reg = ls_reg
         self.logger_instance = core.getLogger()
         self.device=device
         self.seed = seed
@@ -528,7 +530,7 @@ class ControllerBrain():
 
 
 
-    def ls_regularization(self, oh_labels, preds):
+    def get_reg_loss(self, oh_labels, preds):
         # semantic kernel:
         semantic_kernel = oh_labels @ oh_labels.T
         # predicted kernel:
@@ -561,9 +563,11 @@ class ControllerBrain():
             curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
             targets=balanced_labels)
         
-        self.ls_regularization(
-            oh_labels=one_hot_labels[query_mask],
-            preds=more_predictions)
+        reg_loss = None
+        if self.ls_reg:
+            reg_loss = self.get_reg_loss(
+                oh_labels=one_hot_labels[query_mask],
+                preds=more_predictions)
 
         self.os_step(
             oh_labels=one_hot_labels, 
@@ -581,7 +585,7 @@ class ControllerBrain():
             labels=balanced_labels, 
             query_mask=query_mask)
         
-        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
+        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, reg_loss)
 
         self.inference_counter += 1
         self.check_progress(curr_acc=accuracy)
@@ -633,17 +637,21 @@ class ControllerBrain():
             self.logger_instance.info(f'New model version saved')
 
 
-    def learning_step(self, labels, predictions, mode, query_mask):
+    def learning_step(self, labels, predictions, mode, query_mask, reg_loss=None):
         
         if self.multi_class:
-            loss = self.cs_criterion(input=predictions,
+            cs_loss = self.cs_criterion(input=predictions,
                                         target=labels[query_mask].squeeze(1))
         else: 
-            loss = self.cs_criterion(input=predictions,
+            cs_loss = self.cs_criterion(input=predictions,
                                         target=labels.to(torch.float32))
+            
+        if reg_loss is not None:
+            cs_loss += reg_loss
+
         # backward pass
         self.cs_optimizer.zero_grad()
-        loss.backward()
+        cs_loss.backward()
         # update weights
         self.cs_optimizer.step()
         # compute accuracy
@@ -652,7 +660,7 @@ class ControllerBrain():
         # report progress
         if self.wbt:
             self.wbl.log({mode+'_'+CS_ACC: acc.item(), STEP_LABEL:self.inference_counter})
-            self.wbl.log({mode+'_'+CS_LOSS: loss.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({mode+'_'+CS_LOSS: cs_loss.item(), STEP_LABEL:self.inference_counter})
 
         return acc
     

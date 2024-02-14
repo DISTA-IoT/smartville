@@ -76,6 +76,8 @@ K_SHOT = 3  # FOR EPISODIC LEARNING:
 
 REPLAY_BUFFER_BATCH_SIZE= 6  # MUST BE GREATER THAN K_SHOT!
 
+LS_REGULARIZATION = True
+
 WB_TRACKING = False
 
 PACKET_FEATURES = False
@@ -128,7 +130,7 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"OS classification"
+WAND_RUN_NAME=f"OS class. requiresgrad"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
@@ -192,6 +194,7 @@ class Smart_Switch(EventMixin):
       multi_class=MULTI_CLASS_CLASSIFICATION, 
       k_shot=K_SHOT,
       replay_buffer_batch_size=REPLAY_BUFFER_BATCH_SIZE,
+      ls_reg=LS_REGULARIZATION,
       device=BRAIN_DEVICE,
       seed=SEED,
       debug=AI_DEBUG,
