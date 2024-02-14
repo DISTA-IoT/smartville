@@ -67,15 +67,18 @@ REPORT_STEP_FREQUENCY = 3
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
 TRAINING = 'Training'
-ACC = 'Acc'
-LOSS = 'Loss'
+CS_ACC = 'Acc'
+CS_LOSS = 'Loss'
+OS_ACC = 'AD Acc'
+OS_LOSS = 'AD Loss'
 STEP_LABEL = 'step'
+ANOMALY_BALANCE = 'ANOMALY_BALANCE'
 
 # Create a lock object
 lock = threading.Lock()
 
 
-def efficient_cm(preds, targets):
+def efficient_cm(preds, targets_onehot):
 
     predictions_decimal = preds.argmax(dim=1).to(torch.int64)
     predictions_onehot = torch.zeros_like(
@@ -83,15 +86,31 @@ def efficient_cm(preds, targets):
         device=preds.device)
     predictions_onehot.scatter_(1, predictions_decimal.view(-1, 1), 1)
 
-    targets = targets.to(torch.int64)
-    # Create a one-hot encoding of the targets.
-    targets_onehot = torch.zeros_like(
-        preds,
-        device=targets.device)
-    targets_onehot.scatter_(1, targets.view(-1, 1), 1)
-
     return targets_onehot.T @ predictions_onehot
 
+
+def efficient_os_cm(preds, targets_onehot):
+
+    predictions_onehot = torch.zeros(
+        [preds.size(0), 2],
+        device=preds.device)
+    predictions_onehot.scatter_(1, preds.view(-1, 1), 1)
+
+    return targets_onehot.T @ predictions_onehot.long()
+
+
+
+def get_balanced_accuracy(os_cm, negative_weight):
+        
+    N = os_cm[1][1] + os_cm[1][0]
+    TN = os_cm[1][1]
+    TNR = TN / N
+
+    P = os_cm[0][0] + os_cm[0][1]
+    TP = os_cm[0][0]
+    TPR = TP / P
+    
+    return (negative_weight * TNR) + ((1-negative_weight) * TPR)
 
 
 class DynamicLabelEncoder:
@@ -164,11 +183,11 @@ class ControllerBrain():
         self.device=device
         self.seed = seed
         self.current_known_classes_count = 0
+        self.reset_cms()
         self.k_shot = k_shot
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
-        self.cs_cm = torch.zeros(size=(1,1), device=self.device)
         self.initialize_classifiers(LEARNING_RATE, seed)
         
         if self.wbt:
@@ -208,11 +227,14 @@ class ControllerBrain():
             )
 
 
-    def reset_cm(self):
+    def reset_cms(self):
         self.cs_cm = torch.zeros(
             [self.current_known_classes_count, self.current_known_classes_count],
             device=self.device)
-
+        self.os_cm = torch.zeros(
+            size=(2, 2),
+            device=self.device)
+        
 
     def initialize_classifiers(self, lr, seed):
         
@@ -220,7 +242,10 @@ class ControllerBrain():
         
         self.confidence_decoder = ConfidenceDecoder(device=self.device)
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
-
+        self.os_optimizer = optim.Adam(
+            self.confidence_decoder.parameters(), 
+            lr=lr)
+        
         if self.use_packet_feats:
 
             if self.multi_class:
@@ -260,9 +285,10 @@ class ControllerBrain():
                 
         self.check_pretrained()
         self.flow_classifier.to(self.device)
-        self.fc_optimizer = optim.Adam(
+        self.cs_optimizer = optim.Adam(
             self.flow_classifier.parameters(), 
             lr=lr)
+
         
 
     def check_pretrained(self):
@@ -433,6 +459,54 @@ class ControllerBrain():
         return query_mask.view(-1)
 
 
+    def get_oh_labels(self, curr_shape, targets):
+        targets = targets.to(torch.int64)
+        # Create a one-hot encoding of the targets.
+        targets_onehot = torch.zeros(
+            size=curr_shape,
+            device=targets.device)
+        targets_onehot.scatter_(1, targets.view(-1, 1), 1)
+        return targets_onehot
+    
+
+    def os_step(self, oh_labels, zda_labels, preds, query_mask):
+        # known class horizonal mask:
+        known_oh_labels = oh_labels[~zda_labels.squeeze(1).bool()]
+        known_class_h_mask = known_oh_labels.sum(0)>0
+        # detach CS from OS classification:
+        os_scores_input = preds.detach()
+        # confidence predictions:
+        zda_predictions = self.confidence_decoder(scores=os_scores_input[:, known_class_h_mask])
+        
+        os_loss = self.os_criterion(
+            input=zda_predictions,
+            target=zda_labels[query_mask])
+        
+        self.os_optimizer.zero_grad()
+        os_loss.backward()
+        self.os_optimizer.step()
+
+        # Open set confusion matrix
+        self.os_cm += efficient_os_cm(
+            preds=(zda_predictions.detach() > 0.5).long(),
+            targets_onehot=zda_labels[query_mask].long()
+            )
+    
+        os_acc = get_balanced_accuracy(self.os_cm, negative_weight=0.5)
+
+        zda_balance = zda_labels[query_mask].to(torch.float16).mean().item()
+        if self.wbt:
+            self.wbl.log({TRAINING+'_'+OS_ACC: os_acc.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({TRAINING+'_'+OS_LOSS: os_loss.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({TRAINING+'_'+ANOMALY_BALANCE: zda_balance, STEP_LABEL:self.inference_counter})
+
+        if self.AI_DEBUG: 
+            self.logger_instance.info(f'batch AD labels mean: {zda_balance} '+\
+                                      f'batch AD prediction mean: {zda_predictions.to(torch.float32).mean()}')
+            self.logger_instance.info(f'mean AD training accuracy: {os_acc}')
+
+
+
     def experience_learning(self):
 
         balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels = self.sample_from_replay_buffers(
@@ -449,11 +523,20 @@ class ControllerBrain():
             query_mask=query_mask
         )
 
-        zda_predictions = self.confidence_decoder(scores=more_predictions)
+        # one_hot_labels
+        one_hot_labels = self.get_oh_labels(
+            curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
+            targets=balanced_labels)
         
+        self.os_step(
+            oh_labels=one_hot_labels, 
+            zda_labels=balanced_zda_labels, 
+            preds=more_predictions, 
+            query_mask=query_mask)
+
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
-        targets=balanced_labels[query_mask]) 
+        targets_onehot=one_hot_labels[query_mask]) 
         
         self.report(
             preds=more_predictions, 
@@ -480,11 +563,16 @@ class ControllerBrain():
                     self.cs_cm,phase=TRAINING,
                     norm=False,
                     classes=self.encoder.get_labels())
+                self.plot_confusion_matrix(
+                    self.os_cm,phase=TRAINING,
+                    norm=False,
+                    classes=['Known', 'ZdA'])
                 self.plot_hidden_space(hiddens=hiddens, labels=labels)
                 self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
+
             elif self.AI_DEBUG:
                     self.logger_instance.info(f'Conf matrix: \n {self.cs_cm}')
-            self.reset_cm()
+            self.reset_cms()
 
 
     def check_progress(self, curr_acc):
@@ -512,17 +600,17 @@ class ControllerBrain():
             loss = self.cs_criterion(input=predictions,
                                         target=labels.to(torch.float32))
         # backward pass
-        self.fc_optimizer.zero_grad()
+        self.cs_optimizer.zero_grad()
         loss.backward()
         # update weights
-        self.fc_optimizer.step()
+        self.cs_optimizer.step()
         # compute accuracy
         acc = self.get_accuracy(logits_preds=predictions, decimal_labels=labels, query_mask=query_mask)
 
         # report progress
         if self.wbt:
-            self.wbl.log({mode+'_'+ACC: acc.item(), STEP_LABEL:self.inference_counter})
-            self.wbl.log({mode+'_'+LOSS: loss.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({mode+'_'+CS_ACC: acc.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({mode+'_'+CS_LOSS: loss.item(), STEP_LABEL:self.inference_counter})
 
         return acc
     

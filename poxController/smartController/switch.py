@@ -89,20 +89,41 @@ TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default 
 ZDA_DICT = defaultdict(lambda: False) 
 
 if MULTI_CLASS_CLASSIFICATION:  
-    TRAINING_LABELS_DICT["192.168.1.8"] = "Hakai"
-    TRAINING_LABELS_DICT["192.168.1.9"] = "Okiru"
-    TRAINING_LABELS_DICT["192.168.1.10"] = "H_Scan"
-    TRAINING_LABELS_DICT["192.168.1.11"] = "CC_HeartBeat (ZdA)"
+    TRAINING_LABELS_DICT["192.168.1.7"] = "CC_HeartBeat"
+    TRAINING_LABELS_DICT["192.168.1.8"] = "Gen_DDoS"
+    TRAINING_LABELS_DICT["192.168.1.9"] = "H_Scan"
+    # ZdAs group 1:
+    TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai (ZdA G1)"
+    ZDA_DICT["192.168.1.10"] = True
+    TRAINING_LABELS_DICT["192.168.1.11"] = "Torii (ZdA G1)"
     ZDA_DICT["192.168.1.11"] = True
-    TRAINING_LABELS_DICT["192.168.1.12"] = "Gen_DDoS (ZdA)"
+    TRAINING_LABELS_DICT["192.168.1.12"] = "Mirai (ZdA G1)"
     ZDA_DICT["192.168.1.12"] = True
+    TRAINING_LABELS_DICT["192.168.1.13"] = "Gafgyt (ZdA G1)"
+    ZDA_DICT["192.168.1.13"] = True
+
+    # ZdAs group 2:
+    TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime(ZdA G2)"
+    ZDA_DICT["192.168.1.14"] = True
+    TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru (ZdA G2)"
+    ZDA_DICT["192.168.1.15"] = True
+    TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik (ZdA G2)"
+    ZDA_DICT["192.168.1.16"] = True
 
 else:
+    TRAINING_LABELS_DICT["192.168.1.7"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
+
     TRAINING_LABELS_DICT["192.168.1.10"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.11"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.12"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.13"] = "Attack"
+
+    TRAINING_LABELS_DICT["192.168.1.14"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.15"] = "Attack"
+    TRAINING_LABELS_DICT["192.168.1.16"] = "Attack"
+
 
 
 WANDB_PROJECT_NAME = "StarWars"
