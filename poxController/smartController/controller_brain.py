@@ -104,15 +104,30 @@ def efficient_os_cm(preds, targets_onehot):
 
 def get_balanced_accuracy(os_cm, negative_weight):
         
-    N = os_cm[1][1] + os_cm[1][0]
-    TN = os_cm[1][1]
-    TNR = TN / N
+    N = os_cm[0][0] + os_cm[0][1]
+    TN = os_cm[0][0]
+    TNR = TN / (N + 1e-10)
+        
 
-    P = os_cm[0][0] + os_cm[0][1]
-    TP = os_cm[0][0]
-    TPR = TP / P
+    P = os_cm[1][1] + os_cm[1][0]
+    TP = os_cm[1][1]
+    TPR = TP / (P + 1e-10)
     
     return (negative_weight * TNR) + ((1-negative_weight) * TPR)
+
+
+def get_kernel_kernel_loss(baseline_kernel, predicted_kernel, a_w=1, r_w=1):
+    # REPULSIVE force
+    repulsive_CE_term = -(1 - baseline_kernel) * torch.log(1-predicted_kernel + 1e-10)
+    repulsive_CE_term = repulsive_CE_term.sum(dim=1)
+    repulsive_CE_term = repulsive_CE_term.mean()
+
+    # The following acts as an ATTRACTIVE force for the embedding learning:
+    attractive_CE_term = -(baseline_kernel * torch.log(predicted_kernel + 1e-10))
+    attractive_CE_term = attractive_CE_term.sum(dim=1)
+    attractive_CE_term = attractive_CE_term.mean()
+
+    return (r_w * repulsive_CE_term) + (a_w * attractive_CE_term)
 
 
 class DynamicLabelEncoder:
@@ -513,6 +528,18 @@ class ControllerBrain():
 
 
 
+    def ls_regularization(self, oh_labels, preds):
+        # semantic kernel:
+        semantic_kernel = oh_labels @ oh_labels.T
+        # predicted kernel:
+        predicted_kernel = preds @ preds.T
+
+        # Processor regularization:
+        return get_kernel_kernel_loss(
+            baseline_kernel=semantic_kernel,
+            predicted_kernel=predicted_kernel)
+
+
     def experience_learning(self):
 
         balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels = self.sample_from_replay_buffers(
@@ -534,6 +561,10 @@ class ControllerBrain():
             curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
             targets=balanced_labels)
         
+        self.ls_regularization(
+            oh_labels=one_hot_labels[query_mask],
+            preds=more_predictions)
+
         self.os_step(
             oh_labels=one_hot_labels, 
             zda_labels=balanced_zda_labels, 
