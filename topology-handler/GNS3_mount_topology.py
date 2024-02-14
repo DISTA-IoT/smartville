@@ -144,7 +144,7 @@ def mount_all_hosts(switch_node_name):
     network = "192.168.1.0"
     netmask = "/24"
     #generate pool of ip addresses for specified network (es. 192.168.1.0)
-    ip_pool = generateIPList(10, network, netmask)
+    ip_pool = generateIPList(20, network, netmask)
     x = 300
     y = -200
     i = 1
