@@ -76,7 +76,7 @@ K_SHOT = 3  # FOR EPISODIC LEARNING:
 
 REPLAY_BUFFER_BATCH_SIZE= 6  # MUST BE GREATER THAN K_SHOT!
 
-LS_REGULARIZATION = True
+LS_REGULARIZATION = False
 
 WB_TRACKING = False
 
@@ -89,6 +89,7 @@ MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
 TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
 ZDA_DICT = defaultdict(lambda: False) 
+TEST_ZDA_DICT = defaultdict(lambda: False) 
 
 if MULTI_CLASS_CLASSIFICATION:  
     TRAINING_LABELS_DICT["192.168.1.7"] = "CC_HeartBeat"
@@ -107,10 +108,14 @@ if MULTI_CLASS_CLASSIFICATION:
     # ZdAs group 2:
     TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime(ZdA G2)"
     ZDA_DICT["192.168.1.14"] = True
+    TEST_ZDA_DICT["192.168.1.14"] = True
     TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru (ZdA G2)"
     ZDA_DICT["192.168.1.15"] = True
+    TEST_ZDA_DICT["192.168.1.15"] = True
     TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik (ZdA G2)"
     ZDA_DICT["192.168.1.16"] = True
+    TEST_ZDA_DICT["192.168.1.16"] = True
+
 
 else:
     TRAINING_LABELS_DICT["192.168.1.7"] = "Attack"
@@ -130,7 +135,7 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"OS class. requiresgrad"
+WAND_RUN_NAME=f"LS reg"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
@@ -637,6 +642,7 @@ def launch():
   flow_logger = FlowLogger(
     training_labels_dict=TRAINING_LABELS_DICT,
     zda_dict=ZDA_DICT,
+    test_zda_dict=TEST_ZDA_DICT,
     multi_class=MULTI_CLASS_CLASSIFICATION,
     packet_buffer_len=MAX_PACKETS_PER_FEAT_TENSOR,
     packet_feat_dim=PACKET_FEAT_DIM,

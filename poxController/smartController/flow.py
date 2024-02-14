@@ -43,6 +43,7 @@ class Flow():
         self.packets_tensor = None
         self.element_class = "Bening"
         self.zda = False
+        self.test_zda = False
 
     def get_feat_tensor(self):
         return self.__feat_tensor.get_buffer()

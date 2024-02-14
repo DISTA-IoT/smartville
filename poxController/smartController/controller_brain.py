@@ -354,7 +354,8 @@ class ControllerBrain():
             flow_input_batch, 
             packet_input_batch, 
             batch_labels,
-            zda_batch_labels):
+            zda_batch_labels,
+            test_zda_batch_labels):
         """
         Don't know why, but you can have more than one sample
         per class in inference time. 
@@ -374,14 +375,16 @@ class ControllerBrain():
                         flow_input_batch[mask][sample_idx].unsqueeze(0), 
                         packet_input_batch[mask][sample_idx].unsqueeze(0), 
                         label=batch_labels[mask][sample_idx].unsqueeze(0),
-                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0))
+                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
             else: 
                 for sample_idx in range(flow_input_batch[mask].shape[0]):
                     self.replay_buffers[label.item()].push(
                         flow_input_batch[mask][sample_idx].unsqueeze(0), 
                         None, 
                         label=batch_labels[mask][sample_idx].unsqueeze(0),
-                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0))
+                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
                 
         if not self.inference_allowed or not self.experience_learning_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
@@ -403,17 +406,22 @@ class ControllerBrain():
                 return None
             else:
                 flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
-                batch_labels, zda_labels = self.get_labels(flows)
+                batch_labels, zda_labels, test_zda_labels = self.get_labels(flows)
 
                 self.push_to_replay_buffers(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels=batch_labels,
-                    zda_batch_labels=zda_labels)
+                    zda_batch_labels=zda_labels,
+                    test_zda_batch_labels=test_zda_labels)
 
                 if self.inference_allowed:
 
-                    support_flow_batch, support_packet_batch, support_labels, zda_labels = self.sample_from_replay_buffers(
+                    support_flow_batch, \
+                        support_packet_batch, \
+                            support_labels, \
+                                zda_labels, \
+                                    test_zda_labels = self.sample_from_replay_buffers(
                         samples_per_class=self.k_shot)
                     
                     query_mask = torch.zeros(
@@ -448,11 +456,16 @@ class ControllerBrain():
         balanced_packet_batch = None
         init = True
         for replay_buff in self.replay_buffers.values():
-            flow_batch, packet_batch, batch_labels, zda_batch_labels = replay_buff.sample(samples_per_class)
+            flow_batch, \
+                packet_batch, \
+                    batch_labels, \
+                        zda_batch_labels, \
+                             test_zda_batch_labels = replay_buff.sample(samples_per_class)
             if init:
                 balanced_flow_batch = flow_batch
                 balanced_labels = batch_labels
                 balanced_zda_labels = zda_batch_labels
+                balanced_test_zda_labels = test_zda_batch_labels
                 if packet_batch is not None:
                     balanced_packet_batch = packet_batch
             else: 
@@ -462,12 +475,14 @@ class ControllerBrain():
                     [balanced_labels, batch_labels])
                 balanced_zda_labels = torch.vstack(
                     [balanced_zda_labels, zda_batch_labels])
+                balanced_test_zda_labels = torch.vstack(
+                    [balanced_test_zda_labels, test_zda_batch_labels])
                 if packet_batch is not None:
                     balanced_packet_batch = torch.vstack(
                         [balanced_packet_batch, packet_batch]) 
             init = False
 
-        return balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels
+        return balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels, balanced_test_zda_labels
 
 
     def get_canonical_query_mask(self):
@@ -544,7 +559,11 @@ class ControllerBrain():
 
     def experience_learning(self):
 
-        balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels = self.sample_from_replay_buffers(
+        balanced_flow_batch, \
+            balanced_packet_batch, \
+                balanced_labels, \
+                    balanced_zda_labels, \
+                         balanced_test_zda_labels = self.sample_from_replay_buffers(
             samples_per_class=self.replay_buff_batch_size)
         
         query_mask = self.get_canonical_query_mask()
@@ -684,11 +703,10 @@ class ControllerBrain():
             self.add_class_to_knowledge_base(new_class)
 
         encoded_labels = self.encoder.transform(string_labels)
-
-        zda_labels = [flow.zda for flow in flows]
         zda_labels = torch.Tensor([flow.zda for flow in flows])
+        test_zda_labels = torch.Tensor([flow.test_zda for flow in flows])
 
-        return encoded_labels.to(torch.long), zda_labels
+        return encoded_labels.to(torch.long), zda_labels, test_zda_labels
     
 
     def assembly_input_tensor(
