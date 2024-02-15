@@ -1,6 +1,7 @@
 from smartController.neural_modules import BinaryFlowClassifier, \
     TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
-        TwoStreamMulticlassFlowClassifier, ConfidenceDecoder
+        TwoStreamMulticlassFlowClassifier, ConfidenceDecoder, \
+            KernelRegressor, KernelRegressionLoss
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
@@ -71,6 +72,8 @@ CS_ACC = 'Acc'
 CS_LOSS = 'Loss'
 OS_ACC = 'AD Acc'
 OS_LOSS = 'AD Loss'
+KR_LOSS = 'KR_LOSS'
+KR_PRECISION = 'KR_PRECISION'
 STEP_LABEL = 'step'
 ANOMALY_BALANCE = 'ANOMALY_BALANCE'
 CLOSED_SET = 'CS'
@@ -180,7 +183,7 @@ class ControllerBrain():
                  multi_class,
                  k_shot,
                  replay_buffer_batch_size,
-                 ls_reg,
+                 kernel_regression,
                  device='cpu',
                  seed=777,
                  debug=False,
@@ -199,7 +202,7 @@ class ControllerBrain():
         self.inference_counter = 0
         self.wbt = wb_track
         self.wbl = None
-        self.ls_reg = ls_reg
+        self.kernel_regression = kernel_regression
         self.logger_instance = core.getLogger()
         self.device=device
         self.seed = seed
@@ -209,7 +212,7 @@ class ControllerBrain():
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
-        self.initialize_classifiers(LEARNING_RATE, seed)
+        self.init_neural_modules(LEARNING_RATE, seed)
         
         if self.wbt:
 
@@ -257,7 +260,7 @@ class ControllerBrain():
             device=self.device)
         
 
-    def initialize_classifiers(self, lr, seed):
+    def init_neural_modules(self, lr, seed):
         
         torch.manual_seed(seed)
         
@@ -267,22 +270,32 @@ class ControllerBrain():
             self.confidence_decoder.parameters(), 
             lr=lr)
         
+        self.kernel_regressor = None
+        hidden_size = 40
+      
         if self.use_packet_feats:
 
             if self.multi_class:
                 self.flow_classifier = TwoStreamMulticlassFlowClassifier(
                 flow_input_size=self.flow_feat_dim, 
                 packet_input_size=self.packet_feat_dim,
-                hidden_size=40,
+                hidden_size=hidden_size,
                 dropout_prob=0.1,
                 device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
+
+                self.kernel_regressor = KernelRegressor(
+                    in_features=hidden_size*2,
+                    out_features=2,
+                    n_heads=2,
+                    
+                    device=self.device)
 
             else:
                 self.flow_classifier = TwoStreamBinaryFlowClassifier(
                     flow_input_size=self.flow_feat_dim, 
                     packet_input_size=self.packet_feat_dim,
-                    hidden_size=40,
+                    hidden_size=hidden_size,
                     dropout_prob=0.1,
                     device=self.device)
                 self.cs_criterion = nn.BCELoss().to(self.device)
@@ -291,19 +304,30 @@ class ControllerBrain():
             if self.multi_class:
                 self.flow_classifier = MultiClassFlowClassifier(
                     input_size=self.flow_feat_dim, 
-                    hidden_size=40,
+                    hidden_size=hidden_size,
                     dropout_prob=0.1,
                     device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
 
+                self.kernel_regressor = KernelRegressor(
+                    in_features=hidden_size,
+                    out_features=2,
+                    n_heads=2,
+                    device=self.device)
+
             else:
                 self.flow_classifier = BinaryFlowClassifier(
                     input_size=self.flow_feat_dim, 
-                    hidden_size=40,
+                    hidden_size=hidden_size,
                     dropout_prob=0.1,
                     device=self.device)
                 self.cs_criterion = nn.BCELoss().to(self.device)
-                
+        
+        self.kr_criterion = KernelRegressionLoss().to(self.device)
+        self.kr_optimizer = optim.Adam(
+            self.kernel_regressor.parameters(), 
+            lr=lr)
+
         self.check_pretrained()
         self.flow_classifier.to(self.device)
         self.cs_optimizer = optim.Adam(
@@ -318,15 +342,18 @@ class ControllerBrain():
     def check_pretrained(self):
         self.flow_classifier_path = ""
         self.confidence_decoder_path = ""
+        self.kernel_regressor_path = ""
         # Check if the file exists
         if os.path.exists(PRETRAINED_MODELS_DIR):
             if self.multi_class:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained.pt'
                     self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained.pt'
+                    self.kernel_regressor_path = PRETRAINED_MODELS_DIR+'twostream-kernel_regressor_pretrained.pt'
                 else:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained.pt'
                     self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained.pt'
+                    self.kernel_regressor_path = PRETRAINED_MODELS_DIR+'kernel_regressor_pretrained.pt'
             else:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained.pt'
@@ -345,7 +372,14 @@ class ControllerBrain():
                     self.confidence_decoder.load_state_dict(torch.load(self.confidence_decoder_path))
                     self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.confidence_decoder_path}.")
                 else:
-                    self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")                
+                    self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")   
+
+                if os.path.exists(self.kernel_regressor_path):
+                    self.kernel_regressor.load_state_dict(torch.load(self.kernel_regressor_path))
+                    self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.kernel_regressor_path}.")
+                else:
+                    self.logger_instance.info(f"Pre-trained weights not found at {self.kernel_regressor_path}.")                
+             
 
         elif self.AI_DEBUG:
             self.logger_instance.info(f"Pre-trained folder not found at {PRETRAINED_MODELS_DIR}.")
@@ -575,17 +609,33 @@ class ControllerBrain():
             self.logger_instance.info(f'mean AD training accuracy: {os_acc}')
 
 
+    def kernel_regression_step(self, hidden_vectors, one_hot_labels):
 
-    def get_reg_loss(self, oh_labels, preds):
-        # semantic kernel:
-        semantic_kernel = oh_labels @ oh_labels.T
-        # predicted kernel:
-        predicted_kernel = preds @ preds.T
+        if self.kernel_regression:
+            input_for_kr = hidden_vectors.detach()
+            input_for_kr.requires_grad = True
+            predicted_kernel = self.kernel_regressor(input_for_kr)
+            semantic_kernel = one_hot_labels @ one_hot_labels.T
 
-        # Processor regularization:
-        return get_kernel_kernel_loss(
-            baseline_kernel=semantic_kernel,
-            predicted_kernel=predicted_kernel)
+            kernel_loss = self.kr_criterion(
+                baseline_kernel=semantic_kernel,
+                predicted_kernel=predicted_kernel
+            )
+
+            if not self.eval:
+                self.kr_optimizer.zero_grad()
+                kernel_loss.backward()
+                self.kr_optimizer.step()
+
+            mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
+            inverse_mae = 1 / (mae + 1e-10)
+            if self.wbt:
+                self.wbl.log({TRAINING+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.inference_counter})
+                self.wbl.log({TRAINING+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.inference_counter})
+
+            if self.AI_DEBUG: 
+                self.logger_instance.info(f'kernel regression precision: {inverse_mae.item()}')
+                self.logger_instance.info(f'kernel regression loss: {kernel_loss.item()}')
 
 
     def experience_learning(self):
@@ -613,11 +663,7 @@ class ControllerBrain():
             curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
             targets=balanced_labels)
         
-        reg_loss = None
-        if self.ls_reg:
-            reg_loss = self.get_reg_loss(
-                oh_labels=one_hot_labels[query_mask],
-                preds=more_predictions)
+        self.kernel_regression_step(hidden_vectors, one_hot_labels)
 
         if self.multi_class:
             self.os_step(
@@ -636,7 +682,7 @@ class ControllerBrain():
             labels=balanced_labels, 
             query_mask=query_mask)
         
-        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, reg_loss)
+        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
 
         self.inference_counter += 1
         self.check_progress(curr_acc=accuracy)
@@ -675,7 +721,7 @@ class ControllerBrain():
     def check_progress(self, curr_acc):
         if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
             (self.inference_counter > 0) and\
-                  (self.best_accuracy < curr_acc):
+                  (self.best_accuracy < curr_acc.item()):
             self.best_accuracy = curr_acc
             self.save_models()
 
@@ -694,7 +740,7 @@ class ControllerBrain():
                 self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
 
 
-    def learning_step(self, labels, predictions, mode, query_mask, reg_loss=None):
+    def learning_step(self, labels, predictions, mode, query_mask):
         
         if self.multi_class:
             cs_loss = self.cs_criterion(input=predictions,
@@ -702,9 +748,6 @@ class ControllerBrain():
         else: 
             cs_loss = self.cs_criterion(input=predictions,
                                         target=labels.to(torch.float32))
-            
-        if reg_loss is not None:
-            cs_loss += reg_loss
 
         if not self.eval:
             # backward pass

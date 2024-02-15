@@ -201,3 +201,189 @@ class ConfidenceDecoder(nn.Module):
 
         unknown_indicators = torch.sigmoid(scores)
         return unknown_indicators
+    
+
+
+class KernelRegressionLoss(nn.Module):
+
+    def __init__(
+            self,
+            repulsive_weigth: int = 1, 
+            attractive_weigth: int = 1,
+            device: str = "cpu"):
+        super(KernelRegressionLoss, self).__init__()
+        self.r_w = repulsive_weigth
+        self.a_w = attractive_weigth
+        self.device = device
+
+    def forward(self, baseline_kernel, predicted_kernel):
+        # REPULSIVE force
+        repulsive_CE_term = -(1 - baseline_kernel) * torch.log(1-predicted_kernel + 1e-10)
+        repulsive_CE_term = repulsive_CE_term.sum(dim=1)
+        repulsive_CE_term = repulsive_CE_term.mean()
+
+        # The following acts as an ATTRACTIVE force for the embedding learning:
+        attractive_CE_term = -(baseline_kernel * torch.log(predicted_kernel + 1e-10))
+        attractive_CE_term = attractive_CE_term.sum(dim=1)
+        attractive_CE_term = attractive_CE_term.mean()
+
+        return (self.r_w * repulsive_CE_term) + (self.a_w * attractive_CE_term)
+    
+
+
+class KernelRegressor(nn.Module):
+
+    def __init__(
+            self,
+            in_features: int,
+            out_features: int,
+            n_heads: int,
+            is_concat: bool = False,
+            dropout: float = 0.0,
+            leaky_relu_negative_slope: float = 0.2,
+            share_weights: bool = True,
+            device: str = "cpu"):
+
+        super(KernelRegressor, self).__init__()
+
+        self.regressor = GraphAttentionV2Layer(
+            in_features=in_features,
+            out_features=out_features,
+            n_heads=n_heads,
+            is_concat=is_concat,
+            dropout=dropout,
+            leaky_relu_negative_slope=leaky_relu_negative_slope,
+            share_weights=share_weights
+        )
+        self.device = device
+
+
+    def forward(
+            self,
+            hiddens):
+
+        return self.regressor(hiddens)
+
+
+class GraphAttentionV2Layer(nn.Module):
+
+
+    def __init__(self,
+                 in_features: int,
+                 out_features: int,
+                 n_heads: int,
+                 is_concat: bool = False,
+                 dropout: float = 0.1,
+                 leaky_relu_negative_slope: float = 0.2,
+                 share_weights: bool = True):
+
+        super().__init__()
+
+        self.is_concat = is_concat
+        self.n_heads = n_heads
+        self.share_weights = share_weights
+
+        # Calculate the number of dimensions per head
+        if is_concat:
+            assert out_features % n_heads == 0
+            self.n_hidden = out_features // n_heads
+        else:
+            self.n_hidden = out_features
+
+        self.linear_l = nn.Linear(
+            in_features,
+            self.n_hidden * n_heads,
+            bias=False)
+
+        if share_weights:
+            self.linear_r = self.linear_l
+        else:
+            self.linear_r = nn.Linear(
+                in_features,
+                self.n_hidden * n_heads,
+                bias=False)
+
+        # Linear layer to compute attention score $e_{ij}$
+        self.attn = nn.Linear(
+            self.n_hidden,
+            1,
+            bias=False)
+
+        # The activation for attention score $e_{ij}$
+        self.activation = nn.LeakyReLU(
+            negative_slope=leaky_relu_negative_slope)
+
+        # Softmax to compute attention $\alpha_{ij}$
+        self.softmax = nn.Softmax(dim=1)
+
+        # Dropout layer to be applied for attention
+        self.dropout = nn.Dropout(dropout)
+
+
+    def forward(self,
+                h: torch.Tensor):
+
+        # Number of nodes
+        n_nodes = h.shape[0]
+
+        # The initial GAT transformations,
+        # We do two linear transformations and then split it up for each head.
+        g_l = self.linear_l(h).view(
+            n_nodes,
+            self.n_heads,
+            self.n_hidden)
+
+        g_r = self.linear_r(h).view(
+            n_nodes,
+            self.n_heads,
+            self.n_hidden)
+
+        # #### Calculate attention score
+        g_l_repeat = g_l.repeat(
+            n_nodes,
+            1,
+            1)
+
+        g_r_repeat_interleave = g_r.repeat_interleave(
+            n_nodes,
+            dim=0)
+
+        g_sum = g_l_repeat + g_r_repeat_interleave
+
+        g_sum = g_sum.view(
+            n_nodes,
+            n_nodes,
+            self.n_heads,
+            self.n_hidden)
+
+        # get energies
+        e = self.attn(self.activation(g_sum))
+        e = e.squeeze(-1)
+
+        """
+        # We assume a fully connected adj_mat
+        assert adj_mat.shape[0] == n_nodes
+        assert adj_mat.shape[1] == n_nodes
+        adj_mat = adj_mat.unsqueeze(-1)
+        adj_mat = adj_mat.repeat(1, 1, self.n_heads)
+
+        e = e.masked_fill(adj_mat == 0, float('-inf'))
+        """
+
+        # Normalization
+        a = self.softmax(e)
+        a = self.dropout(a)
+
+        """
+        # Calculate final output for each head
+        attn_res = torch.einsum('ijh,jhf->ihf', a, g_r)
+        
+        # Concatenate the heads
+        if self.is_concat:
+            return attn_res.reshape(n_nodes, self.n_heads * self.n_hidden), a.mean(dim=2)
+        # Take the mean of the heads
+        else:
+            return attn_res.mean(dim=1), a.mean(dim=2)
+        """
+
+        return a.mean(dim=2)

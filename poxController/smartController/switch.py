@@ -31,62 +31,55 @@ openflow_connection = None #openflow connection to switch is stored here
 
 log = core.getLogger()
 
+
+############ SWITCH CONF #######################################
 # Timeout for flows
 FLOW_IDLE_TIMEOUT = 10
-
 # Timeout for ARP entries
 ARP_TIMEOUT = 60 * 2
-
 # Maximum number of packet to buffer on a switch for an unknown IP
 MAX_BUFFERED_PER_IP = 5
+# Maximum time to hang on to a buffer for an unknown IP in seconds
+MAX_BUFFER_TIME = 5
+# Don't re-send ARPs before expiring this interval:
+ARP_REQUEST_EXPIRATION_SECONDS = 4
+# print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
+#################################################################
 
-# Max number of packets in the packets feature vector for each flow.
-MAX_PACKETS_PER_FEAT_TENSOR = 3
+######### MONITORING ###########################################
+# Interval in which the stats request is triggered
+REQUEST_STATS_PERIOD_SECONDS = 5
+NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
+GRAFANA_USER='admin'
+GRAFANA_PASSWORD='admin'
+################################################################
 
-# Max number of flowstats in the feature vector for each flow.
-MAX_FLOWSTATS_PER_FEAT_TENSOR = 20
 
+######## AI #####################################################
+
+AI_DEBUG = True
+BRAIN_DEVICE = 'cpu' # eventually, the neural networks could be on a GPU.
+
+SEED = 777  # For reproducibility purposes
+INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passes
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
 FLOW_FEAT_DIM = 4
 
-# Maximum time to hang on to a buffer for an unknown IP in seconds
-MAX_BUFFER_TIME = 5
-
-# Interval in which the stats request is triggered
-REQUEST_STATS_PERIOD_SECONDS = 5
-
-# Don't re-send ARPs before expiring this interval:
-ARP_REQUEST_EXPIRATION_SECONDS = 4
-
-# Mask port info in packets for AI? (IP adresses are masked by default!)
-ANONYMIZE_TRANSPORT_PORTS = True
-
-BRAIN_DEVICE = 'cpu'  # eventually, the neural networks could be on a GPU.
-
-print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
-
-AI_DEBUG = True
-
-INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passes
-
-SEED = 777  # For reproducibility purposes
-
+MAX_PACKETS_PER_FEAT_TENSOR = 3  # Max number of packets in the packets feature vector for each flow.
+MAX_FLOWSTATS_PER_FEAT_TENSOR = 10  # Max number of flowstats in the feature vector for each flow.
+ANONYMIZE_TRANSPORT_PORTS = True  # Mask port info in packets for AI? (IP adresses are masked by default!)
 K_SHOT = 5  # FOR EPISODIC LEARNING:
-
 REPLAY_BUFFER_BATCH_SIZE= 20  # MUST BE GREATER THAN K_SHOT!
 
-LS_REGULARIZATION = False
-
-WB_TRACKING = False
-
-PACKET_FEATURES = True
-
-NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
-
+KERNEL_REGRESSION = True  # learn relations between attacks.
+PACKET_FEATURES = True  # use packet features
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
+EVAL = False  # use models in eval mode
 
-EVAL = False
+WB_TRACKING = True
+WAND_RUN_NAME=f"Kernel Reg |{MAX_PACKETS_PER_FEAT_TENSOR} PKT | {MAX_FLOWSTATS_PER_FEAT_TENSOR} TS"
+###################################################################
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
 TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
@@ -137,8 +130,6 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"No PKT"
-
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
                      "MAX_BUFFERED_PER_IP": MAX_BUFFERED_PER_IP,
@@ -161,10 +152,6 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "K_SHOT": K_SHOT,
                      "REPLAY_BUFFER_BATCH_SIZE": REPLAY_BUFFER_BATCH_SIZE
                      }
-
-GRAFANA_USER='admin'
-GRAFANA_PASSWORD='admin'
-
 
 
 class Smart_Switch(EventMixin):
@@ -202,7 +189,7 @@ class Smart_Switch(EventMixin):
       multi_class=MULTI_CLASS_CLASSIFICATION, 
       k_shot=K_SHOT,
       replay_buffer_batch_size=REPLAY_BUFFER_BATCH_SIZE,
-      ls_reg=LS_REGULARIZATION,
+      kernel_regression=KERNEL_REGRESSION,
       device=BRAIN_DEVICE,
       seed=SEED,
       debug=AI_DEBUG,
