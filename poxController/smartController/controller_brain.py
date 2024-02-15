@@ -337,7 +337,8 @@ class ControllerBrain():
         if self.eval:
             self.flow_classifier.eval()
             self.confidence_decoder.eval()
-        
+            self.logger_instance.info(f"Using MODULES in EVAL mode!")                
+
 
     def check_pretrained(self):
         self.flow_classifier_path = ""
