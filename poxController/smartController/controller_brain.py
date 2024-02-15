@@ -316,6 +316,8 @@ class ControllerBrain():
         
 
     def check_pretrained(self):
+        self.flow_classifier_path = ""
+        self.confidence_decoder_path = ""
         # Check if the file exists
         if os.path.exists(PRETRAINED_MODELS_DIR):
             if self.multi_class:
