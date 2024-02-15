@@ -372,6 +372,7 @@ class GraphAttentionV2Layer(nn.Module):
 
         # Normalization
         a = self.softmax(e)
+
         a = self.dropout(a)
 
         """
@@ -386,4 +387,10 @@ class GraphAttentionV2Layer(nn.Module):
             return attn_res.mean(dim=1), a.mean(dim=2)
         """
 
-        return a.mean(dim=2)
+        a =  a.mean(dim=2)
+        # we are making discrete kernel regression. 
+        # A node might have many neighbours:
+        a = a / (a.max(dim=1)[0] + 1e-10)
+        
+        a = a.clamp(min=0, max=1)
+        return a
