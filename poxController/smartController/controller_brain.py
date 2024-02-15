@@ -56,7 +56,7 @@ colors = [
 
 SAVING_MODULES_FREQ = 50
 
-PRETRAINED_MODEL_PATH = 'models/BinaryFlowClassifier.pt'
+PRETRAINED_MODELS_DIR = 'models/'
 
 REPLAY_BUFFER_MAX_CAPACITY=1000
 
@@ -173,6 +173,7 @@ class DynamicLabelEncoder:
 class ControllerBrain():
 
     def __init__(self,
+                 eval,
                  use_packet_feats,
                  flow_feat_dim,
                  packet_feat_dim,
@@ -187,7 +188,8 @@ class ControllerBrain():
                  wb_project_name='',
                  wb_run_name='',
                  **wb_config_dict):
-                
+        
+        self.eval = eval
         self.use_packet_feats = use_packet_feats
         self.flow_feat_dim = flow_feat_dim
         self.packet_feat_dim = packet_feat_dim
@@ -212,7 +214,7 @@ class ControllerBrain():
         if self.wbt:
 
             wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
-            wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODEL_PATH
+            wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODELS_DIR
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
             wb_config_dict['REPORT_STEP_FREQUENCY'] = REPORT_STEP_FREQUENCY
@@ -308,17 +310,43 @@ class ControllerBrain():
             self.flow_classifier.parameters(), 
             lr=lr)
 
+        if self.eval:
+            self.flow_classifier.eval()
+            self.confidence_decoder.eval()
         
 
     def check_pretrained(self):
         # Check if the file exists
-        if os.path.exists(PRETRAINED_MODEL_PATH):
-            # Load the pre-trained weights
-            self.flow_classifier.load_state_dict(torch.load(PRETRAINED_MODEL_PATH))
-            if self.AI_DEBUG:
-                self.logger_instance.info(f"Pre-trained weights loaded successfully from {PRETRAINED_MODEL_PATH}.")
+        if os.path.exists(PRETRAINED_MODELS_DIR):
+            if self.multi_class:
+                if self.use_packet_feats:
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained.pt'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained.pt'
+                else:
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained.pt'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained.pt'
+            else:
+                if self.use_packet_feats:
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained.pt'
+                else:
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'binary-flow_classifier_pretrained.pt'
+
+            if os.path.exists(self.flow_classifier_path):
+                # Load the pre-trained weights
+                self.flow_classifier.load_state_dict(torch.load(self.flow_classifier_path))
+                self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.flow_classifier_path}.")
+            else:
+                self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")
+                
+            if self.multi_class:
+                if os.path.exists(self.confidence_decoder_path):
+                    self.confidence_decoder.load_state_dict(torch.load(self.confidence_decoder_path))
+                    self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.confidence_decoder_path}.")
+                else:
+                    self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")                
+
         elif self.AI_DEBUG:
-            self.logger_instance.info(f"Pre-trained weights not found at {PRETRAINED_MODEL_PATH}.")
+            self.logger_instance.info(f"Pre-trained folder not found at {PRETRAINED_MODELS_DIR}.")
 
 
     def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
@@ -517,9 +545,10 @@ class ControllerBrain():
             input=zda_predictions,
             target=zda_labels[query_mask])
         
-        self.os_optimizer.zero_grad()
-        os_loss.backward()
-        self.os_optimizer.step()
+        if not self.eval:
+            self.os_optimizer.zero_grad()
+            os_loss.backward()
+            self.os_optimizer.step()
 
         onehot_zda_labels = torch.zeros(size=(zda_labels.shape[0],2)).long()
         onehot_zda_labels.scatter_(1, zda_labels.long().view(-1, 1), 1)
@@ -588,11 +617,12 @@ class ControllerBrain():
                 oh_labels=one_hot_labels[query_mask],
                 preds=more_predictions)
 
-        self.os_step(
-            oh_labels=one_hot_labels, 
-            zda_labels=balanced_zda_labels, 
-            preds=more_predictions, 
-            query_mask=query_mask)
+        if self.multi_class:
+            self.os_step(
+                oh_labels=one_hot_labels, 
+                zda_labels=balanced_zda_labels, 
+                preds=more_predictions, 
+                query_mask=query_mask)
 
         self.cs_cm += efficient_cm(
         preds=more_predictions.detach(),
@@ -651,9 +681,15 @@ class ControllerBrain():
     def save_models(self):
         torch.save(
             self.flow_classifier.state_dict(), 
-            'BinaryFlowClassifier.pt')
+            self.flow_classifier_path)
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'New model version saved')
+            self.logger_instance.info(f'New flow classifier model version saved to {self.flow_classifier_path}')
+        if self.multi_class:
+            torch.save(
+            self.confidence_decoder.state_dict(), 
+            self.confidence_decoder_path)
+            if self.AI_DEBUG: 
+                self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
 
 
     def learning_step(self, labels, predictions, mode, query_mask, reg_loss=None):
@@ -668,11 +704,13 @@ class ControllerBrain():
         if reg_loss is not None:
             cs_loss += reg_loss
 
-        # backward pass
-        self.cs_optimizer.zero_grad()
-        cs_loss.backward()
-        # update weights
-        self.cs_optimizer.step()
+        if not self.eval:
+            # backward pass
+            self.cs_optimizer.zero_grad()
+            cs_loss.backward()
+            # update weights
+            self.cs_optimizer.step()
+
         # compute accuracy
         acc = self.get_accuracy(logits_preds=predictions, decimal_labels=labels, query_mask=query_mask)
 

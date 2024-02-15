@@ -86,6 +86,8 @@ NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
 
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
 
+EVAL = False
+
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
 TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
 ZDA_DICT = defaultdict(lambda: False) 
@@ -135,7 +137,7 @@ else:
 
 WANDB_PROJECT_NAME = "StarWars"
 
-WAND_RUN_NAME=f"Simple Good Old model"
+WAND_RUN_NAME=f"No PKT"
 
 WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "ARP_TIMEOUT": ARP_TIMEOUT,
@@ -193,6 +195,7 @@ class Smart_Switch(EventMixin):
     self.arpTables = {}
 
     self.brain = ControllerBrain(
+      eval=EVAL,
       use_packet_feats=PACKET_FEATURES,
       flow_feat_dim=FLOW_FEAT_DIM,
       packet_feat_dim=PACKET_FEAT_DIM,
