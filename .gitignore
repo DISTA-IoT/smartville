@@ -4,6 +4,7 @@
 /buildstatus/*
 /bin/*
 gns3_thesis/*
+gns3-thesis/*
 AttackerNode/bening_traffic/*
 AttackerNode/hakai/*
 AttackerNode/hajime/*
