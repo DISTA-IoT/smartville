@@ -1,7 +1,7 @@
 from smartController.neural_modules import BinaryFlowClassifier, \
     TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
-        TwoStreamMulticlassFlowClassifier, ConfidenceDecoder, \
-            KernelRegressor, KernelRegressionLoss
+        TwoStreamMulticlassFlowClassifier, LinearConfidenceDecoder, \
+            KernelRegressor, KernelRegressionLoss, ConfidenceDecoder
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
@@ -55,7 +55,9 @@ colors = [
 #########################################
 """
 
-SAVING_MODULES_FREQ = 50
+CONFIDENCE_DECODER = 'Linear'
+
+SAVING_MODULES_FREQ = 5
 
 PRETRAINED_MODELS_DIR = 'models/'
 
@@ -263,8 +265,12 @@ class ControllerBrain():
     def init_neural_modules(self, lr, seed):
         
         torch.manual_seed(seed)
-        
-        self.confidence_decoder = ConfidenceDecoder(device=self.device)
+
+        if CONFIDENCE_DECODER == 'Linear':
+            self.confidence_decoder = LinearConfidenceDecoder(device=self.device)
+        elif CONFIDENCE_DECODER == 'Recurrent':
+            self.confidence_decoder = ConfidenceDecoder(device=self.device)
+
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
         self.os_optimizer = optim.Adam(
             self.confidence_decoder.parameters(), 
@@ -349,11 +355,11 @@ class ControllerBrain():
             if self.multi_class:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained.pt'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained.pt'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+CONFIDENCE_DECODER+'-twostream-confidence_decoder_pretrained.pt'
                     self.kernel_regressor_path = PRETRAINED_MODELS_DIR+'twostream-kernel_regressor_pretrained.pt'
                 else:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained.pt'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained.pt'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+CONFIDENCE_DECODER+'-confidence_decoder_pretrained.pt'
                     self.kernel_regressor_path = PRETRAINED_MODELS_DIR+'kernel_regressor_pretrained.pt'
             else:
                 if self.use_packet_feats:
@@ -575,9 +581,20 @@ class ControllerBrain():
         # detach CS from OS classification:
         os_scores_input = preds.detach()
         os_scores_input.requires_grad = True
-        # confidence predictions:
-        zda_predictions = self.confidence_decoder(scores=os_scores_input[:, known_class_h_mask])
-        
+
+        if CONFIDENCE_DECODER == 'Linear':
+            os_scores_input = torch.where(
+            condition=known_class_h_mask.unsqueeze(0).repeat((os_scores_input.shape[0],1)),
+            input=os_scores_input,
+            other=torch.zeros_like(os_scores_input))
+            placeholder= torch.zeros(size=(os_scores_input.shape[0],20))
+            placeholder[:,:os_scores_input.shape[1]] = os_scores_input
+            os_scores_input = placeholder
+            zda_predictions = self.confidence_decoder(scores=os_scores_input)
+
+        elif CONFIDENCE_DECODER == 'Recurrent':
+            zda_predictions = self.confidence_decoder(scores=os_scores_input[:, known_class_h_mask])
+
         os_loss = self.os_criterion(
             input=zda_predictions,
             target=zda_labels[query_mask])
@@ -739,6 +756,11 @@ class ControllerBrain():
             self.confidence_decoder_path)
             if self.AI_DEBUG: 
                 self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
+            torch.save(
+            self.kernel_regressor.state_dict(), 
+            self.kernel_regressor_path)
+            if self.AI_DEBUG: 
+                self.logger_instance.info(f'New kernel regressor model version saved to {self.kernel_regressor_path}')
 
 
     def learning_step(self, labels, predictions, mode, query_mask):
