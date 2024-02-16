@@ -579,15 +579,12 @@ class ControllerBrain():
         # known class horizonal mask:
         known_oh_labels = oh_labels[~zda_labels.squeeze(1).bool()]
         known_class_h_mask = known_oh_labels.sum(0)>0
-        # detach CS from OS classification:
-        os_scores_input = preds.detach()
-        os_scores_input.requires_grad = True
 
         if CONFIDENCE_DECODER == 'Linear':
             os_scores_input = torch.where(
-            condition=known_class_h_mask.unsqueeze(0).repeat((os_scores_input.shape[0],1)),
-            input=os_scores_input,
-            other=torch.zeros_like(os_scores_input))
+            condition=known_class_h_mask.unsqueeze(0).repeat((preds.shape[0],1)),
+            input=preds,
+            other=torch.zeros_like(preds))
             placeholder= torch.zeros(size=(os_scores_input.shape[0],20))
             placeholder[:,:os_scores_input.shape[1]] = os_scores_input
             os_scores_input = placeholder
@@ -600,11 +597,6 @@ class ControllerBrain():
             input=zda_predictions,
             target=zda_labels[query_mask])
         
-        if not self.eval:
-            self.os_optimizer.zero_grad()
-            os_loss.backward()
-            self.os_optimizer.step()
-
         onehot_zda_labels = torch.zeros(size=(zda_labels.shape[0],2)).long()
         onehot_zda_labels.scatter_(1, zda_labels.long().view(-1, 1), 1)
 
@@ -627,6 +619,7 @@ class ControllerBrain():
                                       f'batch AD prediction mean: {zda_predictions.to(torch.float32).mean()}')
             self.logger_instance.info(f'mean AD training accuracy: {os_acc}')
 
+        return os_loss
 
     def kernel_regression_step(self, hidden_vectors, one_hot_labels):
 
@@ -684,8 +677,9 @@ class ControllerBrain():
         
         self.kernel_regression_step(hidden_vectors, one_hot_labels)
 
+        os_loss = 0
         if self.multi_class:
-            self.os_step(
+            os_loss = self.os_step(
                 oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
                 preds=more_predictions, 
@@ -701,7 +695,7 @@ class ControllerBrain():
             labels=balanced_labels, 
             query_mask=query_mask)
         
-        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
+        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, os_loss)
 
         self.inference_counter += 1
         if not self.eval: 
@@ -766,7 +760,7 @@ class ControllerBrain():
                 self.logger_instance.info(f'New kernel regressor model version saved to {self.kernel_regressor_path}')
 
 
-    def learning_step(self, labels, predictions, mode, query_mask):
+    def learning_step(self, labels, predictions, mode, query_mask, os_loss=0):
         
         if self.multi_class:
             cs_loss = self.cs_criterion(input=predictions,
@@ -776,9 +770,10 @@ class ControllerBrain():
                                         target=labels.to(torch.float32))
 
         if not self.eval:
+            loss = os_loss + cs_loss
             # backward pass
             self.cs_optimizer.zero_grad()
-            cs_loss.backward()
+            loss.backward()
             # update weights
             self.cs_optimizer.step()
 
