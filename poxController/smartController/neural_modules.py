@@ -189,7 +189,6 @@ class ConfidenceDecoder(nn.Module):
             device):
 
         super(ConfidenceDecoder, self).__init__()
-        self.rnn = RecurrentModel(input_size=1,hidden_size=1,device=device)
         self.device = device
 
 
@@ -197,7 +196,7 @@ class ConfidenceDecoder(nn.Module):
             self,
             scores):
 
-        scores = self.rnn(scores.unsqueeze(-1))
+        scores = (1 - scores.unsqueeze(-1)).min(1)[0]
 
         unknown_indicators = torch.sigmoid(scores)
         return unknown_indicators

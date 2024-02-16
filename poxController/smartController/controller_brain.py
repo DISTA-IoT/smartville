@@ -55,7 +55,7 @@ colors = [
 #########################################
 """
 
-CONFIDENCE_DECODER = 'Linear'
+CONFIDENCE_DECODER = 'Recurrent'
 
 SAVING_MODULES_FREQ = 5
 
@@ -272,9 +272,6 @@ class ControllerBrain():
             self.confidence_decoder = ConfidenceDecoder(device=self.device)
 
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
-        self.os_optimizer = optim.Adam(
-            self.confidence_decoder.parameters(), 
-            lr=lr)
         
         self.kernel_regressor = None
         hidden_size = 40
@@ -330,14 +327,18 @@ class ControllerBrain():
                 self.cs_criterion = nn.BCELoss().to(self.device)
         
         self.kr_criterion = KernelRegressionLoss().to(self.device)
-        self.kr_optimizer = optim.Adam(
-            self.kernel_regressor.parameters(), 
-            lr=lr)
 
         self.check_pretrained()
+
+        params_for_optimizer = \
+            list(self.confidence_decoder.parameters()) + \
+                list(self.flow_classifier.parameters()) + \
+                    list(self.kernel_regressor.parameters())
+
+
         self.flow_classifier.to(self.device)
         self.cs_optimizer = optim.Adam(
-            self.flow_classifier.parameters(), 
+            params_for_optimizer, 
             lr=lr)
 
         if self.eval:
@@ -591,7 +592,7 @@ class ControllerBrain():
             zda_predictions = self.confidence_decoder(scores=os_scores_input)
 
         elif CONFIDENCE_DECODER == 'Recurrent':
-            zda_predictions = self.confidence_decoder(scores=os_scores_input[:, known_class_h_mask])
+            zda_predictions = self.confidence_decoder(scores=preds[:, known_class_h_mask])
 
         os_loss = self.os_criterion(
             input=zda_predictions,
@@ -634,11 +635,6 @@ class ControllerBrain():
                 predicted_kernel=predicted_kernel
             )
 
-            if not self.eval:
-                self.kr_optimizer.zero_grad()
-                kernel_loss.backward()
-                self.kr_optimizer.step()
-
             mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
             inverse_mae = 1 / (mae + 1e-10)
             if self.wbt:
@@ -648,6 +644,8 @@ class ControllerBrain():
             if self.AI_DEBUG: 
                 self.logger_instance.info(f'kernel regression precision: {inverse_mae.item()}')
                 self.logger_instance.info(f'kernel regression loss: {kernel_loss.item()}')
+
+            return kernel_loss
 
 
     def experience_learning(self):
@@ -675,11 +673,10 @@ class ControllerBrain():
             curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
             targets=balanced_labels)
         
-        self.kernel_regression_step(hidden_vectors, one_hot_labels)
+        prev_loss = self.kernel_regression_step(hidden_vectors, one_hot_labels)
 
-        os_loss = 0
         if self.multi_class:
-            os_loss = self.os_step(
+            prev_loss += self.os_step(
                 oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
                 preds=more_predictions, 
@@ -695,7 +692,7 @@ class ControllerBrain():
             labels=balanced_labels, 
             query_mask=query_mask)
         
-        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, os_loss)
+        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, prev_loss)
 
         self.inference_counter += 1
         if not self.eval: 
@@ -760,7 +757,7 @@ class ControllerBrain():
                 self.logger_instance.info(f'New kernel regressor model version saved to {self.kernel_regressor_path}')
 
 
-    def learning_step(self, labels, predictions, mode, query_mask, os_loss=0):
+    def learning_step(self, labels, predictions, mode, query_mask, prev_loss=0):
         
         if self.multi_class:
             cs_loss = self.cs_criterion(input=predictions,
@@ -770,7 +767,7 @@ class ControllerBrain():
                                         target=labels.to(torch.float32))
 
         if not self.eval:
-            loss = os_loss + cs_loss
+            loss = prev_loss + cs_loss
             # backward pass
             self.cs_optimizer.zero_grad()
             loss.backward()

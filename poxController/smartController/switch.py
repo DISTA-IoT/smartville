@@ -75,10 +75,10 @@ REPLAY_BUFFER_BATCH_SIZE= 20  # MUST BE GREATER THAN K_SHOT!
 KERNEL_REGRESSION = True  # learn relations between attacks.
 PACKET_FEATURES = True  # use packet features
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
-EVAL = False  # use models in eval mode
+EVAL = True  # use models in eval mode
 
 WB_TRACKING = True
-WAND_RUN_NAME=f"Kernel Reg |{MAX_PACKETS_PER_FEAT_TENSOR} PKT | {MAX_FLOWSTATS_PER_FEAT_TENSOR} TS"
+WAND_RUN_NAME=f"HardEvalEndToEndMyDc|{MAX_PACKETS_PER_FEAT_TENSOR}PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
 ###################################################################
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
