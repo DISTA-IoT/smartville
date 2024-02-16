@@ -343,6 +343,7 @@ class ControllerBrain():
         if self.eval:
             self.flow_classifier.eval()
             self.confidence_decoder.eval()
+            self.kernel_regressor.eval()
             self.logger_instance.info(f"Using MODULES in EVAL mode!")                
 
 
@@ -703,7 +704,9 @@ class ControllerBrain():
         accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask)
 
         self.inference_counter += 1
-        self.check_progress(curr_acc=accuracy)
+        if not self.eval: 
+            self.check_progress(curr_acc=accuracy)
+            
         if self.AI_DEBUG: 
             self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
                                       f'batch prediction mean: {more_predictions.max(1)[1].to(torch.float32).mean()}')
