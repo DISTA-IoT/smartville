@@ -177,16 +177,19 @@ def switch_case(argument):
 def send_known_traffic():
     args = []
 
-    for container in containers:
-        container_info = client.api.inspect_container(container.id)
-        # Extract the IP address of the container from its network settings
-        container_info_str = container_info['Config']['Hostname']
-        container_img_name = container_info_str.split('(')[0]
-        container_id = int(container_img_name.split('-')[-1])
-        if container_id <= 6:
-            command_to_run = switch_case(container_img_name)
-            if command_to_run != 'echo hello':
-                args.append(f"{container.id}:{container_info_str}:{command_to_run}")
+    for container_img_name in [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-7',
+        'attacker-8',
+        'attacker-12',]:
+        container = containers_dict[container_img_name]
+
+        command_to_run = switch_case(container_img_name)
+        if command_to_run != 'echo hello':
+            args.append(f"{container.id}:{container_img_name}:{command_to_run}")
 
     # Build the command to execute your Bash script with its arguments
     command = [TERMINAL_ISSUER_PATH] + args
@@ -205,7 +208,7 @@ def send_training_zdas():
     
     args = []
 
-    for i in range(7,11):
+    for i in [4,5,9,10]:
         container_img_name = 'attacker-'+str(i)
 
         curr_container = containers_dict[container_img_name]
@@ -230,7 +233,7 @@ def send_test_zdas():
 
     args = []
 
-    for i in range(11,14):
+    for i in [11,6,13]:
         container_img_name = 'attacker-'+str(i)
 
         curr_container = containers_dict[container_img_name]
