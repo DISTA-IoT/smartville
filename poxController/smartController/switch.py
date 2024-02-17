@@ -90,14 +90,16 @@ if MULTI_CLASS_CLASSIFICATION:
 
     ####################### Known attacks: 
 
-    # attacker-7
-    TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai"
+    # attacker-13
+    TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik"
+    
+    # attacker-11
+    TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime"
 
-    # attacker-8
-    TRAINING_LABELS_DICT["192.168.1.11"] = "Torii"
+    # attacker-9
+    TRAINING_LABELS_DICT["192.168.1.12"] = "Mirai"
 
-    # attacker-12
-    TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru"
+
     
     ####################### ZdAs group 1:
     
@@ -109,30 +111,30 @@ if MULTI_CLASS_CLASSIFICATION:
     TRAINING_LABELS_DICT["192.168.1.8"] = "Gen_DDoS (ZdA G1)"
     ZDA_DICT["192.168.1.8"] = True
 
-    # attacker-9
-    TRAINING_LABELS_DICT["192.168.1.12"] = "Mirai (ZdA G1)"
-    ZDA_DICT["192.168.1.12"] = True
-
-    # attacker-10
-    TRAINING_LABELS_DICT["192.168.1.13"] = "Gafgyt (ZdA G1)"
-    ZDA_DICT["192.168.1.13"] = True
-
-    ####################### ZdAs group 2:
-
-    # attacker-11
-    TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime (ZdA G2)"
-    ZDA_DICT["192.168.1.14"] = True
-    TEST_ZDA_DICT["192.168.1.14"] = True
+    # attacker-12
+    TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru(ZdA G1)"
+    ZDA_DICT["192.168.1.15"] = True
 
     # attacker-6
     TRAINING_LABELS_DICT["192.168.1.9"] = "H_Scan (ZdA G2)"
     ZDA_DICT["192.168.1.9"] = True
-    TEST_ZDA_DICT["192.168.1.9"] = True
 
-    # attacker-13
-    TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik (ZdA G2)"
-    ZDA_DICT["192.168.1.16"] = True
-    TEST_ZDA_DICT["192.168.1.16"] = True
+    ####################### ZdAs group 2:
+
+    # attacker-7
+    TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai"
+    ZDA_DICT["192.168.1.10"] = True
+    TEST_ZDA_DICT["192.168.1.10"] = True
+
+    # attacker-10
+    TRAINING_LABELS_DICT["192.168.1.13"] = "Gafgyt (ZdA G1)"
+    ZDA_DICT["192.168.1.13"] = True
+    TEST_ZDA_DICT["192.168.1.13"] = True
+
+    # attacker-8
+    TRAINING_LABELS_DICT["192.168.1.11"] = "Torii"
+    ZDA_DICT["192.168.1.11"] = True
+    TEST_ZDA_DICT["192.168.1.11"] = True
 
 
 else:

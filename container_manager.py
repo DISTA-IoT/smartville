@@ -182,9 +182,9 @@ def send_known_traffic():
         'victim-1',
         'victim-2',
         'victim-3',
-        'attacker-7',
-        'attacker-8',
-        'attacker-12',]:
+        'attacker-13',
+        'attacker-11',
+        'attacker-9',]:
         container = containers_dict[container_img_name]
 
         command_to_run = switch_case(container_img_name)
@@ -208,7 +208,7 @@ def send_training_zdas():
     
     args = []
 
-    for i in [4,5,9,10]:
+    for i in [4,5,12,6]:
         container_img_name = 'attacker-'+str(i)
 
         curr_container = containers_dict[container_img_name]
@@ -233,7 +233,7 @@ def send_test_zdas():
 
     args = []
 
-    for i in [11,6,13]:
+    for i in [7,10,8]:
         container_img_name = 'attacker-'+str(i)
 
         curr_container = containers_dict[container_img_name]
