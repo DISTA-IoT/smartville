@@ -616,7 +616,7 @@ class ControllerBrain():
     
         os_acc = get_balanced_accuracy(self.os_cm, negative_weight=0.5)
 
-        self.check_AD_progress(curr_ad_acc=os_acc.item())
+        self.check_AD_progress(curr_ad_acc=os_acc)
 
         zda_balance = zda_labels[query_mask].to(torch.float16).mean().item()
         if self.wbt:
@@ -647,7 +647,7 @@ class ControllerBrain():
             mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
             inverse_mae = 1 / (mae + 1e-10)
 
-            self.check_kr_progress(curr_kr_acc=inverse_mae.item())
+            self.check_kr_progress(curr_kr_acc=inverse_mae)
 
             if self.wbt:
                 self.wbl.log({TRAINING+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.inference_counter})
