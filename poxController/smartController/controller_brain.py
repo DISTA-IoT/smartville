@@ -71,7 +71,7 @@ REPULSIVE_WEIGHT = 1
 
 ATTRACTIVE_WEIGHT = 1
 
-KERNEL_REGRESSOR_HEADS = 8
+KERNEL_REGRESSOR_HEADS = 2
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -768,7 +768,7 @@ class ControllerBrain():
             (self.inference_counter > 0) and\
                   (self.best_KR_accuracy < curr_kr_acc.item()):
             self.best_KR_accuracy = curr_kr_acc
-            self.save_kr_model()
+            self.save_models() # kernel regression influences the generalization capacity of the whole pipeline!! 
 
 
 
