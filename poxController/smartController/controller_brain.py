@@ -67,6 +67,10 @@ LEARNING_RATE=1e-3
 
 REPORT_STEP_FREQUENCY = 3
 
+REPULSIVE_WEIGHT = 1
+
+ATTRACTIVE_WEIGHT = 1
+
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
 TRAINING = 'Training'
@@ -326,7 +330,8 @@ class ControllerBrain():
                     device=self.device)
                 self.cs_criterion = nn.BCELoss().to(self.device)
         
-        self.kr_criterion = KernelRegressionLoss().to(self.device)
+        self.kr_criterion = KernelRegressionLoss(repulsive_weigth=REPULSIVE_WEIGHT, 
+            attractive_weigth=ATTRACTIVE_WEIGHT).to(self.device)
 
         self.check_pretrained()
 
