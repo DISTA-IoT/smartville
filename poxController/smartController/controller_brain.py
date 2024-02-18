@@ -65,11 +65,13 @@ REPLAY_BUFFER_MAX_CAPACITY=1000
 
 LEARNING_RATE=1e-3
 
-REPORT_STEP_FREQUENCY = 3
+REPORT_STEP_FREQUENCY = 50
 
 REPULSIVE_WEIGHT = 1
 
 ATTRACTIVE_WEIGHT = 1
+
+KERNEL_REGRESSOR_HEADS = 8
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -229,6 +231,9 @@ class ControllerBrain():
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
             wb_config_dict['REPORT_STEP_FREQUENCY'] = REPORT_STEP_FREQUENCY
+            wb_config_dict['KERNEL_REGRESSOR_HEADS'] = KERNEL_REGRESSOR_HEADS
+            wb_config_dict['REPULSIVE_WEIGHT']  = REPULSIVE_WEIGHT
+            wb_config_dict['ATTRACTIVE_WEIGHT']  = ATTRACTIVE_WEIGHT
 
             self.wbl = WandBTracker(
                 wanb_project_name=wb_project_name,
@@ -296,7 +301,7 @@ class ControllerBrain():
                 self.kernel_regressor = KernelRegressor(
                     in_features=hidden_size*2,
                     out_features=2,
-                    n_heads=2,
+                    n_heads=KERNEL_REGRESSOR_HEADS,
                     
                     device=self.device)
 
@@ -321,7 +326,7 @@ class ControllerBrain():
                 self.kernel_regressor = KernelRegressor(
                     in_features=hidden_size,
                     out_features=2,
-                    n_heads=2,
+                    n_heads=KERNEL_REGRESSOR_HEADS,
                     device=self.device)
 
             else:
