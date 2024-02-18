@@ -204,7 +204,9 @@ class ControllerBrain():
         self.packet_feat_dim = packet_feat_dim
         self.multi_class = multi_class
         self.AI_DEBUG = debug
-        self.best_accuracy = 0
+        self.best_cs_accuracy = 0
+        self.best_AD_accuracy = 0
+        self.best_KR_accuracy = 0
         self.inference_counter = 0
         self.wbt = wb_track
         self.wbl = None
@@ -581,7 +583,7 @@ class ControllerBrain():
         return targets_onehot
     
 
-    def os_step(self, oh_labels, zda_labels, preds, query_mask):
+    def AD_step(self, oh_labels, zda_labels, preds, query_mask):
         # known class horizonal mask:
         known_oh_labels = oh_labels[~zda_labels.squeeze(1).bool()]
         known_class_h_mask = known_oh_labels.sum(0)>0
@@ -614,6 +616,8 @@ class ControllerBrain():
     
         os_acc = get_balanced_accuracy(self.os_cm, negative_weight=0.5)
 
+        self.check_AD_progress(curr_ad_acc=os_acc.item())
+
         zda_balance = zda_labels[query_mask].to(torch.float16).mean().item()
         if self.wbt:
             self.wbl.log({TRAINING+'_'+OS_ACC: os_acc.item(), STEP_LABEL:self.inference_counter})
@@ -642,6 +646,9 @@ class ControllerBrain():
 
             mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
             inverse_mae = 1 / (mae + 1e-10)
+
+            self.check_kr_progress(curr_kr_acc=inverse_mae.item())
+
             if self.wbt:
                 self.wbl.log({TRAINING+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.inference_counter})
                 self.wbl.log({TRAINING+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.inference_counter})
@@ -681,7 +688,7 @@ class ControllerBrain():
         prev_loss = self.kernel_regression_step(hidden_vectors, one_hot_labels)
 
         if self.multi_class:
-            prev_loss += self.os_step(
+            prev_loss += self.AD_step(
                 oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
                 preds=more_predictions, 
@@ -701,7 +708,7 @@ class ControllerBrain():
 
         self.inference_counter += 1
         if not self.eval: 
-            self.check_progress(curr_acc=accuracy)
+            self.check_cs_progress(curr_cs_acc=accuracy)
             
         if self.AI_DEBUG: 
             self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
@@ -735,31 +742,60 @@ class ControllerBrain():
             self.reset_cms()
 
 
-    def check_progress(self, curr_acc):
+    def check_cs_progress(self, curr_cs_acc):
         if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
             (self.inference_counter > 0) and\
-                  (self.best_accuracy < curr_acc.item()):
-            self.best_accuracy = curr_acc
-            self.save_models()
+                  (self.best_cs_accuracy < curr_cs_acc.item()):
+            self.best_cs_accuracy = curr_cs_acc
+            self.save_cs_model()
+
+    
+    def check_AD_progress(self, curr_ad_acc):
+        if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
+            (self.inference_counter > 0) and\
+                  (self.best_AD_accuracy < curr_ad_acc.item()):
+            self.best_AD_accuracy = curr_ad_acc
+            self.save_ad_model()
+
+    
+    def check_kr_progress(self, curr_kr_acc):
+        if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
+            (self.inference_counter > 0) and\
+                  (self.best_KR_accuracy < curr_kr_acc.item()):
+            self.best_KR_accuracy = curr_kr_acc
+            self.save_kr_model()
 
 
-    def save_models(self):
+
+    def save_cs_model(self):
         torch.save(
             self.flow_classifier.state_dict(), 
             self.flow_classifier_path)
         if self.AI_DEBUG: 
             self.logger_instance.info(f'New flow classifier model version saved to {self.flow_classifier_path}')
-        if self.multi_class:
-            torch.save(
+
+
+    def save_ad_model(self):
+        torch.save(
             self.confidence_decoder.state_dict(), 
             self.confidence_decoder_path)
-            if self.AI_DEBUG: 
-                self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
-            torch.save(
+        if self.AI_DEBUG: 
+            self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
+
+
+    def save_kr_model(self):
+        torch.save(
             self.kernel_regressor.state_dict(), 
             self.kernel_regressor_path)
-            if self.AI_DEBUG: 
-                self.logger_instance.info(f'New kernel regressor model version saved to {self.kernel_regressor_path}')
+        if self.AI_DEBUG: 
+            self.logger_instance.info(f'New kernel regressor model version saved to {self.kernel_regressor_path}')
+
+
+    def save_models(self):
+        self.save_cs_model()
+        if self.multi_class:
+            self.save_ad_model()
+            self.save_kr_model()
 
 
     def learning_step(self, labels, predictions, mode, query_mask, prev_loss=0):
