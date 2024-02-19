@@ -26,7 +26,11 @@ from smartController.flowlogger import FlowLogger
 from smartController.controller_brain import ControllerBrain
 from smartController.metricslogger import MetricsLogger
 from collections import defaultdict
-
+from smartController.curricula import \
+  AC0_TRAINING_LABELS_DICT, AC0_TEST_ZDA_DICT, AC0_ZDA_DICT, \
+  AC1_TRAINING_LABELS_DICT, AC1_TEST_ZDA_DICT, AC1_ZDA_DICT, \
+  AC2_TRAINING_LABELS_DICT, AC2_TEST_ZDA_DICT, AC2_ZDA_DICT
+  
 openflow_connection = None #openflow connection to switch is stored here
 
 log = core.getLogger()
@@ -76,68 +80,31 @@ KERNEL_REGRESSION = True  # learn relations between attacks.
 PACKET_FEATURES = True  # use packet features
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
 EVAL = True  # use models in eval mode
+CURRICULUM = 2
 
-WB_TRACKING = True
-WAND_RUN_NAME=f"HardEvalEndToEndMyDc|{MAX_PACKETS_PER_FEAT_TENSOR}PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
+WB_TRACKING = False
+WAND_RUN_NAME=f"HE_8heads-AC{CURRICULUM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
 ###################################################################
 
-# IpV4 attackers (for training purposes) Also victim response flows are considered infected
-TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
-ZDA_DICT = defaultdict(lambda: False) 
-TEST_ZDA_DICT = defaultdict(lambda: False) 
 
 if MULTI_CLASS_CLASSIFICATION:
 
-    ####################### Known attacks: 
-
-    # attacker-13
-    TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik"
-    
-    # attacker-11
-    TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime"
-
-    # attacker-9
-    TRAINING_LABELS_DICT["192.168.1.12"] = "Mirai"
-
-
-    
-    ####################### ZdAs group 1:
-    
-    # attacker-4
-    TRAINING_LABELS_DICT["192.168.1.7"] = "CC_HeartBeat (ZdA G1)"
-    ZDA_DICT["192.168.1.7"] = True
-
-    # attacker-5
-    TRAINING_LABELS_DICT["192.168.1.8"] = "Gen_DDoS (ZdA G1)"
-    ZDA_DICT["192.168.1.8"] = True
-
-    # attacker-12
-    TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru(ZdA G1)"
-    ZDA_DICT["192.168.1.15"] = True
-
-    # attacker-6
-    TRAINING_LABELS_DICT["192.168.1.9"] = "H_Scan (ZdA G2)"
-    ZDA_DICT["192.168.1.9"] = True
-
-    ####################### ZdAs group 2:
-
-    # attacker-7
-    TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai"
-    ZDA_DICT["192.168.1.10"] = True
-    TEST_ZDA_DICT["192.168.1.10"] = True
-
-    # attacker-10
-    TRAINING_LABELS_DICT["192.168.1.13"] = "Gafgyt (ZdA G1)"
-    ZDA_DICT["192.168.1.13"] = True
-    TEST_ZDA_DICT["192.168.1.13"] = True
-
-    # attacker-8
-    TRAINING_LABELS_DICT["192.168.1.11"] = "Torii"
-    ZDA_DICT["192.168.1.11"] = True
-    TEST_ZDA_DICT["192.168.1.11"] = True
-
+    if CURRICULUM == 0:
+          TRAINING_LABELS_DICT = AC0_TRAINING_LABELS_DICT
+          ZDA_DICT = AC0_ZDA_DICT
+          TEST_ZDA_DICT = AC0_TEST_ZDA_DICT
+    if CURRICULUM == 1:
+          TRAINING_LABELS_DICT = AC1_TRAINING_LABELS_DICT
+          ZDA_DICT = AC1_ZDA_DICT
+          TEST_ZDA_DICT = AC1_TEST_ZDA_DICT
+    if CURRICULUM == 2:
+      TRAINING_LABELS_DICT = AC2_TRAINING_LABELS_DICT
+      ZDA_DICT = AC2_ZDA_DICT
+      TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
 
 else:
+    
+    TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
     TRAINING_LABELS_DICT["192.168.1.7"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
     TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
