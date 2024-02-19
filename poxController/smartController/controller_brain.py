@@ -639,9 +639,7 @@ class ControllerBrain():
     def kernel_regression_step(self, hidden_vectors, one_hot_labels):
 
         if self.kernel_regression:
-            input_for_kr = hidden_vectors.detach()
-            input_for_kr.requires_grad = True
-            predicted_kernel = self.kernel_regressor(input_for_kr)
+            predicted_kernel = self.kernel_regressor(hidden_vectors)
             semantic_kernel = one_hot_labels @ one_hot_labels.T
 
             kernel_loss = self.kr_criterion(
@@ -705,7 +703,7 @@ class ControllerBrain():
         
         self.report(
             preds=more_predictions, 
-            hiddens=hidden_vectors, 
+            hiddens=hidden_vectors.detach(), 
             labels=balanced_labels, 
             query_mask=query_mask)
         

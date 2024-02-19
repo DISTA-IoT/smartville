@@ -132,7 +132,7 @@ class MultiClassFlowClassifier(nn.Module):
         # C is the number of features or channels, and L is the sequence length
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
         hiddens = self.rnn(x)
-        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens.detach()
+        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens
 
 
 class TwoStreamBinaryFlowClassifier(nn.Module):
@@ -178,7 +178,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
 
         hiddens = torch.cat([flows, packets], dim=1)
 
-        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens.detach()
+        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens
 
     
 

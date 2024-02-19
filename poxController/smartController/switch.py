@@ -82,8 +82,8 @@ MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires
 EVAL = True  # use models in eval mode
 CURRICULUM = 2
 
-WB_TRACKING = False
-WAND_RUN_NAME=f"HE_8heads-AC{CURRICULUM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
+WB_TRACKING = True
+WAND_RUN_NAME=f"HE-E2E-post-AC{CURRICULUM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
 ###################################################################
 
 
