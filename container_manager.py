@@ -10,6 +10,11 @@ CONTROLLER_IMG_NAME = 'pox-controller:latest'
 ATTACKER_IMG_NAME = 'attacker:latest'
 VICTIM_IMG_NAME = 'victim:latest'
 
+CURRICULUM=0
+KNWON_TRAFFIC_NODES = []
+TRAINING_ZDA_NODES = []
+TEST_ZDA_NODES = []  
+
 process_ids = {}
 containers_dict = {}
 
@@ -177,14 +182,7 @@ def switch_case(argument):
 def send_known_traffic():
     args = []
 
-    for container_img_name in [
-        'victim-0',
-        'victim-1',
-        'victim-2',
-        'victim-3',
-        'attacker-13',
-        'attacker-11',
-        'attacker-9',]:
+    for container_img_name in KNWON_TRAFFIC_NODES:
         container = containers_dict[container_img_name]
 
         command_to_run = switch_case(container_img_name)
@@ -208,8 +206,7 @@ def send_training_zdas():
     
     args = []
 
-    for i in [4,5,12,6]:
-        container_img_name = 'attacker-'+str(i)
+    for container_img_name in TRAINING_ZDA_NODES:
 
         curr_container = containers_dict[container_img_name]
         command_to_run = switch_case(container_img_name)
@@ -228,13 +225,11 @@ def send_training_zdas():
         print("Error:", e)
 
 
-
 def send_test_zdas():
 
     args = []
 
-    for i in [7,10,8]:
-        container_img_name = 'attacker-'+str(i)
+    for container_img_name in TEST_ZDA_NODES:
 
         curr_container = containers_dict[container_img_name]
         command_to_run = switch_case(container_img_name)
@@ -319,6 +314,76 @@ if __name__ == "__main__":
         containers_dict[container_img_name] = container
 
     
+    if CURRICULUM == 0:
+
+        KNWON_TRAFFIC_NODES = [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-4',
+        'attacker-5',
+        'attacker-6']  
+
+        TRAINING_ZDA_NODES = [
+        'attacker-7',
+        'attacker-8',
+        'attacker-9',
+        'attacker-10']  
+
+        TEST_ZDA_NODES = [
+        'attacker-11',
+        'attacker-12',
+        'attacker-13']  
+
+    elif CURRICULUM == 1:
+
+        KNWON_TRAFFIC_NODES = [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-7',
+        'attacker-8',
+        'attacker-12']  
+
+        TRAINING_ZDA_NODES = [
+        'attacker-4',
+        'attacker-5',
+        'attacker-9',
+        'attacker-10']  
+
+
+        TEST_ZDA_NODES = [
+        'attacker-11',
+        'attacker-6',
+        'attacker-13']  
+
+
+
+    elif CURRICULUM == 2:
+
+        KNWON_TRAFFIC_NODES = [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-13',
+        'attacker-11',
+        'attacker-9']  
+
+        TRAINING_ZDA_NODES = [
+        'attacker-4',
+        'attacker-5',
+        'attacker-12',
+        'attacker-6']  
+
+        TEST_ZDA_NODES = [
+        'attacker-7',
+        'attacker-10',
+        'attacker-8']  
+
+
     user_input = input("Press '1' to send known traffic, \n" +\
                        "'2' to send training zdas \n" +\
                        "'3' to send test zdas \n" +\
