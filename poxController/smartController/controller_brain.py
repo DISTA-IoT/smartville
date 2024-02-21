@@ -1,7 +1,7 @@
 from smartController.neural_modules import BinaryFlowClassifier, \
     TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
         TwoStreamMulticlassFlowClassifier, LinearConfidenceDecoder, \
-            KernelRegressor, KernelRegressionLoss, ConfidenceDecoder
+            KernelRegressor, KernelRegressionLoss, ConfidenceDecoder, SimpleKernelRegressor
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
@@ -302,7 +302,6 @@ class ControllerBrain():
                     in_features=hidden_size*2,
                     out_features=2,
                     n_heads=KERNEL_REGRESSOR_HEADS,
-                    
                     device=self.device)
 
             else:
