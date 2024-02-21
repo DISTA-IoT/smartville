@@ -428,4 +428,4 @@ class GraphAttentionV2Layer(nn.Module):
         a =  a.mean(dim=2)
         a = torch.sigmoid(a)
 
-        return a
+        return hiddens, a
