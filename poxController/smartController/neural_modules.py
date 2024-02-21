@@ -116,15 +116,21 @@ class BinaryFlowClassifier(nn.Module):
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
         x = self.rnn(x)
         preds, hiddens =  self.classifier(x)
-        return preds, hiddens
+        return preds, hiddens, None
     
 
 class MultiClassFlowClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, dropout_prob=0.2, device='cpu'):
+    def __init__(self, input_size, hidden_size, dropout_prob=0.2, kr_heads=8,device='cpu'):
         super(MultiClassFlowClassifier, self).__init__()
         self.device=device
         self.normalizer = nn.BatchNorm1d(input_size)
         self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
+        self.kernel_regressor = KernelRegressor(
+            in_features=hidden_size,
+            out_features=hidden_size,
+            n_heads=kr_heads,
+            dropout=dropout_prob,
+            device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
     def forward(self, x, labels, curr_known_attack_count, query_mask):
@@ -132,7 +138,9 @@ class MultiClassFlowClassifier(nn.Module):
         # C is the number of features or channels, and L is the sequence length
         x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
         hiddens = self.rnn(x)
-        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens
+        hiddens, predicted_kernel = self.kernel_regressor(hiddens)
+        logits  = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
+        return logits, hiddens, predicted_kernel
 
 
 class TwoStreamBinaryFlowClassifier(nn.Module):
@@ -155,17 +163,23 @@ class TwoStreamBinaryFlowClassifier(nn.Module):
 
         inferences, hiddens = self.classifier(torch.cat([flows, packets], dim=1))
 
-        return inferences, hiddens
+        return inferences, hiddens, None
     
 
 class TwoStreamMulticlassFlowClassifier(nn.Module):
-    def __init__(self, flow_input_size, packet_input_size, hidden_size, dropout_prob=0.2, device='cpu'):
+    def __init__(self, flow_input_size, packet_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
         super(TwoStreamMulticlassFlowClassifier, self).__init__()
         self.device = device
         self.flow_normalizer = nn.BatchNorm1d(flow_input_size)
         self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
         self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
         self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
+        self.kernel_regressor = KernelRegressor(
+            in_features=hidden_size*2,
+            out_features=hidden_size,
+            n_heads=kr_heads,
+            dropout=dropout_prob,
+            device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
     def forward(self, flows, packets, labels, curr_known_attack_count, query_mask):
@@ -178,7 +192,10 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
 
         hiddens = torch.cat([flows, packets], dim=1)
 
-        return self.classifier(hiddens, labels, curr_known_attack_count, query_mask), hiddens
+        hiddens, predicted_kernel = self.kernel_regressor(hiddens)
+        logits  = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
+
+        return logits, hiddens, predicted_kernel
 
     
 
@@ -391,29 +408,24 @@ class GraphAttentionV2Layer(nn.Module):
         e = e.masked_fill(adj_mat == 0, float('-inf'))
         """
 
-        # Adjacency regression!
-        #  a = self.softmax(e)
-        a = torch.sigmoid(e)
-        
+        # Normalization
+        a = self.softmax(e)
+
         a = self.dropout(a)
 
-        """
         # Calculate final output for each head
-        attn_res = torch.einsum('ijh,jhf->ihf', a, g_r)
+        hiddens = torch.einsum('ijh,jhf->ihf', a, g_r)
+
         
-        # Concatenate the heads
         if self.is_concat:
-            return attn_res.reshape(n_nodes, self.n_heads * self.n_hidden), a.mean(dim=2)
-        # Take the mean of the heads
+            # Concatenate the heads
+            hiddens = hiddens.reshape(n_nodes, self.n_heads * self.n_hidden)
         else:
-            return attn_res.mean(dim=1), a.mean(dim=2)
-        """
-
-
+            # Take the mean of the heads
+            hiddens = hiddens.mean(dim=1)
+        
+    
         a =  a.mean(dim=2)
-
-        # and adjacency matrix should be symmetric.
-        # upper_triag_of_a = torch.triu(a, diagonal=1)
-        # b = torch.eye(n=a.shape[0], device=a.device) + upper_triag_of_a + upper_triag_of_a.T
+        a = torch.sigmoid(a)
 
         return a

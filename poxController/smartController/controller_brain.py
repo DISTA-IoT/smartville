@@ -290,7 +290,6 @@ class ControllerBrain():
 
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
         
-        self.kernel_regressor = None
         hidden_size = 40
       
         if self.use_packet_feats:
@@ -300,15 +299,10 @@ class ControllerBrain():
                 flow_input_size=self.flow_feat_dim, 
                 packet_input_size=self.packet_feat_dim,
                 hidden_size=hidden_size,
+                kr_heads=KERNEL_REGRESSOR_HEADS,
                 dropout_prob=0.1,
                 device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
-
-                self.kernel_regressor = KernelRegressor(
-                    in_features=hidden_size*2,
-                    out_features=2,
-                    n_heads=KERNEL_REGRESSOR_HEADS,
-                    device=self.device)
 
             else:
                 self.flow_classifier = TwoStreamBinaryFlowClassifier(
@@ -325,14 +319,9 @@ class ControllerBrain():
                     input_size=self.flow_feat_dim, 
                     hidden_size=hidden_size,
                     dropout_prob=0.1,
+                    kr_heads=KERNEL_REGRESSOR_HEADS,
                     device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
-
-                self.kernel_regressor = KernelRegressor(
-                    in_features=hidden_size,
-                    out_features=2,
-                    n_heads=KERNEL_REGRESSOR_HEADS,
-                    device=self.device)
 
             else:
                 self.flow_classifier = BinaryFlowClassifier(
@@ -349,9 +338,7 @@ class ControllerBrain():
 
         params_for_optimizer = \
             list(self.confidence_decoder.parameters()) + \
-                list(self.flow_classifier.parameters()) + \
-                    list(self.kernel_regressor.parameters())
-
+                list(self.flow_classifier.parameters())
 
         self.flow_classifier.to(self.device)
         self.cs_optimizer = optim.Adam(
@@ -361,25 +348,21 @@ class ControllerBrain():
         if self.eval:
             self.flow_classifier.eval()
             self.confidence_decoder.eval()
-            self.kernel_regressor.eval()
             self.logger_instance.info(f"Using MODULES in EVAL mode!")                
 
 
     def check_pretrained(self):
         self.flow_classifier_path = ""
         self.confidence_decoder_path = ""
-        self.kernel_regressor_path = ""
         # Check if the file exists
         if os.path.exists(PRETRAINED_MODELS_DIR):
             if self.multi_class:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained.pt'
                     self.confidence_decoder_path = PRETRAINED_MODELS_DIR+CONFIDENCE_DECODER+'-twostream-confidence_decoder_pretrained.pt'
-                    self.kernel_regressor_path = PRETRAINED_MODELS_DIR+'twostream-kernel_regressor_pretrained.pt'
                 else:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained.pt'
                     self.confidence_decoder_path = PRETRAINED_MODELS_DIR+CONFIDENCE_DECODER+'-confidence_decoder_pretrained.pt'
-                    self.kernel_regressor_path = PRETRAINED_MODELS_DIR+'kernel_regressor_pretrained.pt'
             else:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained.pt'
@@ -398,13 +381,7 @@ class ControllerBrain():
                     self.confidence_decoder.load_state_dict(torch.load(self.confidence_decoder_path))
                     self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.confidence_decoder_path}.")
                 else:
-                    self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")   
-
-                if os.path.exists(self.kernel_regressor_path):
-                    self.kernel_regressor.load_state_dict(torch.load(self.kernel_regressor_path))
-                    self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.kernel_regressor_path}.")
-                else:
-                    self.logger_instance.info(f"Pre-trained weights not found at {self.kernel_regressor_path}.")                
+                    self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")             
              
 
         elif self.AI_DEBUG:
@@ -415,28 +392,28 @@ class ControllerBrain():
 
         if self.use_packet_feats:
             if self.multi_class:
-                predictions, hiddens = self.flow_classifier(
+                logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
             else:
-                predictions, hiddens = self.flow_classifier(
+                logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch)
         else:
             if self.multi_class:
-                predictions, hiddens = self.flow_classifier(
+                logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
             else:
-                predictions, hiddens = self.flow_classifier(
+                logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch)
 
-        return predictions, hiddens
+        return logits, hiddens, predicted_kernel
 
 
     def push_to_replay_buffers(
@@ -524,7 +501,7 @@ class ControllerBrain():
                         packet_input_batch = torch.vstack([support_packet_batch, packet_input_batch])
                     batch_labels = torch.cat([support_labels.squeeze(1), batch_labels]).unsqueeze(1)
 
-                    predictions, _ = self.infer(
+                    predictions, _, _ = self.infer(
                         flow_input_batch=flow_input_batch,
                         packet_input_batch=packet_input_batch,
                         batch_labels=batch_labels,
@@ -642,10 +619,10 @@ class ControllerBrain():
         return os_loss
     
 
-    def kernel_regression_step(self, hidden_vectors, one_hot_labels):
+    def kernel_regression_step(self, predicted_kernel, one_hot_labels):
 
         if self.kernel_regression:
-            predicted_kernel = self.kernel_regressor(hidden_vectors)
+            
             semantic_kernel = one_hot_labels @ one_hot_labels.T
 
             kernel_loss = self.kr_criterion(
@@ -684,7 +661,7 @@ class ControllerBrain():
 
         assert query_mask.shape[0] == balanced_labels.shape[0]
 
-        more_predictions, hidden_vectors = self.infer(
+        logits, hidden_vectors, predicted_kernel = self.infer(
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
@@ -693,37 +670,37 @@ class ControllerBrain():
 
         # one_hot_labels
         one_hot_labels = self.get_oh_labels(
-            curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
+            curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
             targets=balanced_labels)
         
-        prev_loss, predicted_clusters = self.kernel_regression_step(hidden_vectors, one_hot_labels)
+        prev_loss, predicted_clusters = self.kernel_regression_step(predicted_kernel, one_hot_labels)
 
         if self.multi_class:
             prev_loss += self.AD_step(
                 oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
-                preds=more_predictions, 
+                preds=logits, 
                 query_mask=query_mask)
 
         self.cs_cm += efficient_cm(
-        preds=more_predictions.detach(),
+        preds=logits.detach(),
         targets_onehot=one_hot_labels[query_mask]) 
         
         self.report(
-            preds=more_predictions, 
+            preds=logits, 
             hiddens=hidden_vectors.detach(), 
             labels=balanced_labels,
             predicted_clusters=predicted_clusters, 
             query_mask=query_mask)
         
-        accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, prev_loss)
+        accuracy = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
 
         if not self.eval: 
             self.check_cs_progress(curr_cs_acc=accuracy)
             
         if self.AI_DEBUG: 
             self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
-                                      f'batch prediction mean: {more_predictions.max(1)[1].to(torch.float32).mean()}')
+                                      f'batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
 
@@ -793,21 +770,10 @@ class ControllerBrain():
         if self.AI_DEBUG: 
             self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
 
-
-    def save_kr_model(self):
-        torch.save(
-            self.kernel_regressor.state_dict(), 
-            self.kernel_regressor_path)
-        if self.AI_DEBUG: 
-            self.logger_instance.info(f'New kernel regressor model version saved to {self.kernel_regressor_path}')
-
-
     def save_models(self):
         self.save_cs_model()
         if self.multi_class:
             self.save_ad_model()
-            self.save_kr_model()
-
 
     def learning_step(self, labels, predictions, mode, query_mask, prev_loss=0):
         
