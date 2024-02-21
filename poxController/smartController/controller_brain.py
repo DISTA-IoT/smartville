@@ -731,21 +731,21 @@ class ControllerBrain():
 
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
 
-            
-            self.plot_confusion_matrix(
-                mod=CLOSED_SET,
-                cm=self.cs_cm,
-                phase=TRAINING,
-                norm=False,
-                classes=self.encoder.get_labels())
-            self.plot_confusion_matrix(
-                mod=ANOMALY_DETECTION,
-                cm=self.os_cm,
-                phase=TRAINING,
-                norm=False,
-                classes=['Known', 'ZdA'])
-            self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters)
-            self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
+            if self.wbt:
+                self.plot_confusion_matrix(
+                    mod=CLOSED_SET,
+                    cm=self.cs_cm,
+                    phase=TRAINING,
+                    norm=False,
+                    classes=self.encoder.get_labels())
+                self.plot_confusion_matrix(
+                    mod=ANOMALY_DETECTION,
+                    cm=self.os_cm,
+                    phase=TRAINING,
+                    norm=False,
+                    classes=['Known', 'ZdA'])
+                self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters)
+                self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
 
             if self.AI_DEBUG:
                 self.logger_instance.info(f'CS Conf matrix: \n {self.cs_cm}')
