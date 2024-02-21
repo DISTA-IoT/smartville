@@ -127,20 +127,25 @@ def get_balanced_accuracy(os_cm, negative_weight):
     return (negative_weight * TNR) + ((1-negative_weight) * TPR)
 
 
-def get_kernel_kernel_loss(baseline_kernel, predicted_kernel, a_w=1, r_w=1):
-    # REPULSIVE force
-    repulsive_CE_term = -(1 - baseline_kernel) * torch.log(1-predicted_kernel + 1e-10)
-    repulsive_CE_term = repulsive_CE_term.sum(dim=1)
-    repulsive_CE_term = repulsive_CE_term.mean()
+def get_clusters(predicted_kernel):
 
-    # The following acts as an ATTRACTIVE force for the embedding learning:
-    attractive_CE_term = -(baseline_kernel * torch.log(predicted_kernel + 1e-10))
-    attractive_CE_term = attractive_CE_term.sum(dim=1)
-    attractive_CE_term = attractive_CE_term.mean()
+        symm_kernel = (predicted_kernel + predicted_kernel.T) / 2
+        discrete_predicted_kernel = (symm_kernel > 0.5).long()
+        
+        assigned_mask = torch.zeros_like(discrete_predicted_kernel.diag())
+        clusters = torch.zeros_like(discrete_predicted_kernel.diag())
+        curr_cluster = 1
 
-    return (r_w * repulsive_CE_term) + (a_w * attractive_CE_term)
+        for idx in range(discrete_predicted_kernel.shape[0]):
+            if assigned_mask[idx] == 1:
+                continue
+            new_cluster_mask = discrete_predicted_kernel[idx]
+            assigned_mask += new_cluster_mask
+            clusters += new_cluster_mask*curr_cluster
+            curr_cluster += 1
 
-
+        return clusters -1 
+    
 class DynamicLabelEncoder:
 
     def __init__(self):
@@ -634,6 +639,7 @@ class ControllerBrain():
             self.logger_instance.info(f'mean AD training accuracy: {os_acc}')
 
         return os_loss
+    
 
     def kernel_regression_step(self, hidden_vectors, one_hot_labels):
 
@@ -659,7 +665,9 @@ class ControllerBrain():
                 self.logger_instance.info(f'kernel regression precision: {inverse_mae.item()}')
                 self.logger_instance.info(f'kernel regression loss: {kernel_loss.item()}')
 
-            return kernel_loss
+            predicted_clusters = get_clusters(predicted_kernel)
+
+            return kernel_loss, predicted_clusters
 
 
     def experience_learning(self):
@@ -687,7 +695,7 @@ class ControllerBrain():
             curr_shape=(balanced_labels.shape[0],more_predictions.shape[1]), 
             targets=balanced_labels)
         
-        prev_loss = self.kernel_regression_step(hidden_vectors, one_hot_labels)
+        prev_loss, predicted_clusters = self.kernel_regression_step(hidden_vectors, one_hot_labels)
 
         if self.multi_class:
             prev_loss += self.AD_step(
@@ -703,12 +711,12 @@ class ControllerBrain():
         self.report(
             preds=more_predictions, 
             hiddens=hidden_vectors.detach(), 
-            labels=balanced_labels, 
+            labels=balanced_labels,
+            predicted_clusters=predicted_clusters, 
             query_mask=query_mask)
         
         accuracy = self.learning_step(balanced_labels, more_predictions, TRAINING, query_mask, prev_loss)
 
-        self.inference_counter += 1
         if not self.eval: 
             self.check_cs_progress(curr_cs_acc=accuracy)
             
@@ -718,7 +726,7 @@ class ControllerBrain():
             self.logger_instance.info(f'mean training accuracy: {accuracy}')
 
 
-    def report(self, preds, hiddens, labels, query_mask):
+    def report(self, preds, hiddens, labels, predicted_clusters, query_mask):
 
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
 
@@ -735,7 +743,7 @@ class ControllerBrain():
                     phase=TRAINING,
                     norm=False,
                     classes=['Known', 'ZdA'])
-                self.plot_hidden_space(hiddens=hiddens, labels=labels)
+                self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters)
                 self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
 
             if self.AI_DEBUG:
@@ -926,47 +934,50 @@ class ControllerBrain():
 
         plt.cla()
         plt.close()
-
-
-
+    
+    
     def plot_hidden_space(
         self,
         hiddens,
-        labels):
+        labels, 
+        predicted_labels):
 
-        # Create an iterator that cycles through the colors
         color_iterator = itertools.cycle(colors)
-
         # If dimensionality is > 2, reduce using PCA
         if hiddens.shape[1]>2:
             pca = PCA(n_components=2)
             hiddens = pca.fit_transform(hiddens)
 
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(16, 6))
 
-        # Two plots:
-        plt.subplot(1, 1, 1)
-        
+        # Real labels
+        plt.subplot(1, 2, 1)
         # List of attacks:
         unique_labels = torch.unique(labels)
-
-        # Print points for each attack
         for label in unique_labels:
             data = hiddens[labels.squeeze(1) == label]
             p_label = self.encoder.inverse_transform(label.unsqueeze(0))[0]
-
             color_for_scatter = next(color_iterator)
-
             plt.scatter(
                 data[:, 0],
                 data[:, 1],
                 label=p_label,
                 c=color_for_scatter)
-                
-        plt.title(f'Latent Space Representations')
-
+        plt.title(f'Ground-truth clusters')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
-
+        # Predicted labels
+        plt.subplot(1, 2, 2)
+        unique_labels = torch.unique(predicted_labels)
+        for label in unique_labels:
+            data = hiddens[labels.squeeze(1) == label]
+            color_for_scatter = next(color_iterator)
+            plt.scatter(
+                data[:, 0],
+                data[:, 1],
+                label=label.item(),
+                c=color_for_scatter)
+        plt.title(f'Predicted clusters')
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         plt.tight_layout()
 
         if self.wbl is not None:
