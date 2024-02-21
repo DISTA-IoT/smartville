@@ -129,17 +129,17 @@ def get_balanced_accuracy(os_cm, negative_weight):
 
 def get_clusters(predicted_kernel):
 
-        symm_kernel = (predicted_kernel + predicted_kernel.T) / 2
-        discrete_predicted_kernel = (symm_kernel > 0.5).long()
+        discrete_predicted_kernel = (predicted_kernel > 0.5).long()
         
         assigned_mask = torch.zeros_like(discrete_predicted_kernel.diag())
         clusters = torch.zeros_like(discrete_predicted_kernel.diag())
         curr_cluster = 1
 
         for idx in range(discrete_predicted_kernel.shape[0]):
-            if assigned_mask[idx] == 1:
+            if assigned_mask[idx] > 0:
                 continue
             new_cluster_mask = discrete_predicted_kernel[idx]
+            new_cluster_mask = new_cluster_mask - assigned_mask
             assigned_mask += new_cluster_mask
             clusters += new_cluster_mask*curr_cluster
             curr_cluster += 1
@@ -730,21 +730,21 @@ class ControllerBrain():
 
         if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
 
-            if self.wbt:
-                self.plot_confusion_matrix(
-                    mod=CLOSED_SET,
-                    cm=self.cs_cm,
-                    phase=TRAINING,
-                    norm=False,
-                    classes=self.encoder.get_labels())
-                self.plot_confusion_matrix(
-                    mod=ANOMALY_DETECTION,
-                    cm=self.os_cm,
-                    phase=TRAINING,
-                    norm=False,
-                    classes=['Known', 'ZdA'])
-                self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters)
-                self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
+            
+            self.plot_confusion_matrix(
+                mod=CLOSED_SET,
+                cm=self.cs_cm,
+                phase=TRAINING,
+                norm=False,
+                classes=self.encoder.get_labels())
+            self.plot_confusion_matrix(
+                mod=ANOMALY_DETECTION,
+                cm=self.os_cm,
+                phase=TRAINING,
+                norm=False,
+                classes=['Known', 'ZdA'])
+            self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters)
+            self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
 
             if self.AI_DEBUG:
                 self.logger_instance.info(f'CS Conf matrix: \n {self.cs_cm}')
