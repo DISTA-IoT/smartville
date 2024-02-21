@@ -139,13 +139,14 @@ def get_clusters(predicted_kernel):
             if assigned_mask[idx] > 0:
                 continue
             new_cluster_mask = discrete_predicted_kernel[idx]
-            new_cluster_mask = new_cluster_mask - assigned_mask
+            new_cluster_mask = torch.relu(new_cluster_mask - assigned_mask)
             assigned_mask += new_cluster_mask
             clusters += new_cluster_mask*curr_cluster
             curr_cluster += 1
 
         return clusters -1 
     
+
 class DynamicLabelEncoder:
 
     def __init__(self):
@@ -665,7 +666,7 @@ class ControllerBrain():
                 self.logger_instance.info(f'kernel regression precision: {inverse_mae.item()}')
                 self.logger_instance.info(f'kernel regression loss: {kernel_loss.item()}')
 
-            predicted_clusters = get_clusters(predicted_kernel)
+            predicted_clusters = get_clusters(predicted_kernel.detach())
 
             return kernel_loss, predicted_clusters
 
@@ -969,7 +970,7 @@ class ControllerBrain():
         plt.subplot(1, 2, 2)
         unique_labels = torch.unique(predicted_labels)
         for label in unique_labels:
-            data = hiddens[labels.squeeze(1) == label]
+            data = hiddens[predicted_labels == label]
             color_for_scatter = next(color_iterator)
             plt.scatter(
                 data[:, 0],
