@@ -250,7 +250,24 @@ class KernelRegressionLoss(nn.Module):
         attractive_CE_term = attractive_CE_term.mean()
 
         return (self.r_w * repulsive_CE_term) + (self.a_w * attractive_CE_term)
-    
+
+
+class SimpleKernelRegressor(nn.Module):
+
+    def __init__(
+            self,
+            device: str = "cpu"):
+
+        super(SimpleKernelRegressor, self).__init__()
+        self.device = device
+
+
+    def forward(
+            self,
+            hiddens):
+
+        simmilarities = hiddens @ hiddens.T  
+        return torch.sigmoid(simmilarities)
 
 
 class KernelRegressor(nn.Module):
@@ -392,9 +409,10 @@ class GraphAttentionV2Layer(nn.Module):
         e = e.masked_fill(adj_mat == 0, float('-inf'))
         """
 
-        # Normalization
-        a = self.softmax(e)
-
+        # Adjacency regression!
+        #  a = self.softmax(e)
+        a = torch.sigmoid(e)
+        
         a = self.dropout(a)
 
         """
@@ -409,10 +427,11 @@ class GraphAttentionV2Layer(nn.Module):
             return attn_res.mean(dim=1), a.mean(dim=2)
         """
 
+
         a =  a.mean(dim=2)
-        # we are making discrete kernel regression. 
-        # A node might have many neighbours:
-        a = a / (a.max(dim=1)[0] + 1e-10)
-        
-        a = a.clamp(min=0, max=1)
+
+        # and adjacency matrix should be symmetric.
+        # upper_triag_of_a = torch.triu(a, diagonal=1)
+        # b = torch.eye(n=a.shape[0], device=a.device) + upper_triag_of_a + upper_triag_of_a.T
+
         return a
