@@ -252,24 +252,6 @@ class KernelRegressionLoss(nn.Module):
         return (self.r_w * repulsive_CE_term) + (self.a_w * attractive_CE_term)
 
 
-class SimpleKernelRegressor(nn.Module):
-
-    def __init__(
-            self,
-            device: str = "cpu"):
-
-        super(SimpleKernelRegressor, self).__init__()
-        self.device = device
-
-
-    def forward(
-            self,
-            hiddens):
-
-        simmilarities = hiddens @ hiddens.T  
-        return torch.sigmoid(simmilarities)
-
-
 class KernelRegressor(nn.Module):
 
     def __init__(

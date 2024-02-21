@@ -1,7 +1,7 @@
 from smartController.neural_modules import BinaryFlowClassifier, \
     TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
         TwoStreamMulticlassFlowClassifier, LinearConfidenceDecoder, \
-            KernelRegressor, KernelRegressionLoss, ConfidenceDecoder, SimpleKernelRegressor
+            KernelRegressor, KernelRegressionLoss, ConfidenceDecoder
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
