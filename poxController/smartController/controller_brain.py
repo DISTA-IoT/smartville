@@ -1,7 +1,6 @@
 from smartController.neural_modules import BinaryFlowClassifier, \
     TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
-        TwoStreamMulticlassFlowClassifier, LinearConfidenceDecoder, \
-            KernelRegressionLoss, ConfidenceDecoder
+        TwoStreamMulticlassFlowClassifier, KernelRegressionLoss, ConfidenceDecoder
 from smartController.replay_buffer import ReplayBuffer
 import os
 import torch
@@ -54,8 +53,6 @@ colors = [
 'packet_count'
 #########################################
 """
-
-CONFIDENCE_DECODER = 'Recurrent'
 
 SAVING_MODULES_FREQ = 5
 
@@ -286,10 +283,7 @@ class ControllerBrain():
         
         torch.manual_seed(seed)
 
-        if CONFIDENCE_DECODER == 'Linear':
-            self.confidence_decoder = LinearConfidenceDecoder(device=self.device)
-        elif CONFIDENCE_DECODER == 'Recurrent':
-            self.confidence_decoder = ConfidenceDecoder(device=self.device)
+        self.confidence_decoder = ConfidenceDecoder(device=self.device)
 
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
         
@@ -362,10 +356,10 @@ class ControllerBrain():
             if self.multi_class:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained.pt'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+CONFIDENCE_DECODER+'-twostream-confidence_decoder_pretrained.pt'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained.pt'
                 else:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained.pt'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+CONFIDENCE_DECODER+'-confidence_decoder_pretrained.pt'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained.pt'
             else:
                 if self.use_packet_feats:
                     self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained.pt'
@@ -578,18 +572,7 @@ class ControllerBrain():
         known_oh_labels = oh_labels[~zda_labels.squeeze(1).bool()]
         known_class_h_mask = known_oh_labels.sum(0)>0
 
-        if CONFIDENCE_DECODER == 'Linear':
-            os_scores_input = torch.where(
-            condition=known_class_h_mask.unsqueeze(0).repeat((preds.shape[0],1)),
-            input=preds,
-            other=torch.zeros_like(preds))
-            placeholder= torch.zeros(size=(os_scores_input.shape[0],20))
-            placeholder[:,:os_scores_input.shape[1]] = os_scores_input
-            os_scores_input = placeholder
-            zda_predictions = self.confidence_decoder(scores=os_scores_input)
-
-        elif CONFIDENCE_DECODER == 'Recurrent':
-            zda_predictions = self.confidence_decoder(scores=preds[:, known_class_h_mask])
+        zda_predictions = self.confidence_decoder(scores=preds[:, known_class_h_mask])
 
         os_loss = self.os_criterion(
             input=zda_predictions,
