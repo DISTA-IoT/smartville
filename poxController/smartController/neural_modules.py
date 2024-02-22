@@ -220,29 +220,6 @@ class ConfidenceDecoder(nn.Module):
     
 
 
-class LinearConfidenceDecoder(nn.Module):
-    def __init__(
-            self,
-            in_dim=20,
-            device='cpu'):
-
-        super(LinearConfidenceDecoder, self).__init__()
-
-        self.score_transform = nn.Linear(
-            in_features=in_dim,
-            out_features=1)
-        self.device = device
-
-    def forward(
-            self,
-            scores):
-
-        scores = self.score_transform(scores)
-        unknown_indicators = torch.sigmoid(scores)
-        return unknown_indicators
-    
-
-
 class KernelRegressionLoss(nn.Module):
 
     def __init__(
