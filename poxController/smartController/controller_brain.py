@@ -226,6 +226,7 @@ class ControllerBrain():
         self.seed = seed
         random.seed(seed)
         self.current_known_classes_count = 0
+        self.current_training_known_classes_count = 0
         self.reset_train_cms()
         self.reset_test_cms()
         self.k_shot = k_shot
@@ -252,16 +253,18 @@ class ControllerBrain():
                 config_dict=wb_config_dict).wb_logger        
 
 
-    def add_replay_buffer(self):
+    def add_replay_buffer(self, class_name):
         self.inference_allowed = False
         self.experience_learning_allowed = False
         if self.AI_DEBUG:
             self.logger_instance.info(f'Adding a replay buffer with code {self.current_known_classes_count-1}')
             self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
-        self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
-            capacity=REPLAY_BUFFER_MAX_CAPACITY,
-            batch_size=self.replay_buff_batch_size,
-            seed=self.seed)
+        
+        if not 'G2' in class_name:
+            self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
+                capacity=REPLAY_BUFFER_MAX_CAPACITY,
+                batch_size=self.replay_buff_batch_size,
+                seed=self.seed)
         self.test_replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
                     capacity=REPLAY_BUFFER_MAX_CAPACITY,
                     batch_size=self.replay_buff_batch_size,
@@ -272,8 +275,14 @@ class ControllerBrain():
         if self.AI_DEBUG:
             self.logger_instance.info(f'New class found: {new_class}')
         self.current_known_classes_count += 1
-        self.add_replay_buffer()
+        if not 'G2' in new_class:
+            self.current_training_known_classes_count += 1 
+        self.add_replay_buffer(new_class)
         self.training_cs_cm = torch.zeros(
+            size=(self.current_training_known_classes_count, self.current_training_known_classes_count),
+            device=self.device
+            )
+        self.eval_cs_cm = torch.zeros(
             size=(self.current_known_classes_count, self.current_known_classes_count),
             device=self.device
             )
@@ -281,7 +290,7 @@ class ControllerBrain():
 
     def reset_train_cms(self):
         self.training_cs_cm = torch.zeros(
-            [self.current_known_classes_count, self.current_known_classes_count],
+            [self.current_training_known_classes_count, self.current_training_known_classes_count],
             device=self.device)
         self.training_os_cm = torch.zeros(
             size=(2, 2),
@@ -403,7 +412,12 @@ class ControllerBrain():
             self.logger_instance.info(f"Pre-trained folder not found at {PRETRAINED_MODELS_DIR}.")
 
 
-    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
+    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask, mode):
+
+        if mode == TRAINING:
+            class_count = self.current_training_known_classes_count
+        elif mode == INFERENCE:
+            class_count = self.current_known_classes_count
 
         if self.use_packet_feats:
             if self.multi_class:
@@ -411,7 +425,7 @@ class ControllerBrain():
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
-                    self.current_known_classes_count,
+                    class_count,
                     query_mask)
             else:
                 logits, hiddens, predicted_kernel = self.flow_classifier(
@@ -422,7 +436,7 @@ class ControllerBrain():
                 logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
-                    self.current_known_classes_count,
+                    class_count,
                     query_mask)
             else:
                 logits, hiddens, predicted_kernel = self.flow_classifier(
@@ -467,11 +481,15 @@ class ControllerBrain():
                         label=batch_labels[mask][sample_idx].unsqueeze(0),
                         zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
                         test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
-                
+        
         if not self.inference_allowed or not self.experience_learning_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
+            test_buff_lengths = [len(replay_buff) for replay_buff in self.test_replay_buffers.values()]
+
             if self.AI_DEBUG:
                 self.logger_instance.info(f'Buffer lengths: {buff_lengths}')
+                self.logger_instance.info(f'Test Buffer lengths: {test_buff_lengths}')
+
             self.inference_allowed = torch.all(
                 torch.Tensor([buff_len  > self.k_shot for buff_len in buff_lengths]))
             self.experience_learning_allowed = torch.all(
@@ -522,12 +540,13 @@ class ControllerBrain():
                 batch_labels, zda_labels, test_zda_labels = self.get_labels(flows)
 
                 if random.random() > 0.3:
+                    to_push_mask = ~test_zda_labels.bool()
                     self.push_to_replay_buffers(
-                        flow_input_batch[~test_zda_labels], 
-                        packet_input_batch[~test_zda_labels], 
-                        batch_labels=batch_labels[~test_zda_labels],
-                        zda_batch_labels=zda_labels[~test_zda_labels],
-                        test_zda_batch_labels=test_zda_labels[~test_zda_labels])
+                        flow_input_batch[to_push_mask], 
+                        packet_input_batch[to_push_mask], 
+                        batch_labels=batch_labels[to_push_mask],
+                        zda_batch_labels=zda_labels[to_push_mask],
+                        test_zda_batch_labels=test_zda_labels[to_push_mask])
                 else:
                     self.push_to_test_replay_buffers(
                         flow_input_batch, 
@@ -614,9 +633,14 @@ class ControllerBrain():
         return balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels, balanced_test_zda_labels
 
 
-    def get_canonical_query_mask(self):
+    def get_canonical_query_mask(self, phase):
+        if phase == TRAINING:
+            class_count = self.current_training_known_classes_count
+        elif phase == INFERENCE:
+            class_count = self.current_known_classes_count
+
         query_mask = torch.zeros(
-            size=(self.current_known_classes_count, self.replay_buff_batch_size),
+            size=(class_count, self.replay_buff_batch_size),
             device=self.device).to(torch.bool)
         query_mask[:, self.k_shot:] = True
         return query_mask.view(-1)
@@ -714,7 +738,7 @@ class ControllerBrain():
             samples_per_class=self.replay_buff_batch_size,
             mode=TRAINING)
         
-        query_mask = self.get_canonical_query_mask()
+        query_mask = self.get_canonical_query_mask(TRAINING)
 
         assert query_mask.shape[0] == balanced_labels.shape[0]
 
@@ -722,7 +746,8 @@ class ControllerBrain():
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
-            query_mask=query_mask
+            query_mask=query_mask,
+            mode=TRAINING
         )
 
         # one_hot_labels
@@ -786,7 +811,7 @@ class ControllerBrain():
                 samples_per_class=self.replay_buff_batch_size,
                 mode=INFERENCE)
             
-            query_mask = self.get_canonical_query_mask()
+            query_mask = self.get_canonical_query_mask(INFERENCE)
 
             assert query_mask.shape[0] == balanced_labels.shape[0]
 
@@ -794,7 +819,8 @@ class ControllerBrain():
                 flow_input_batch=balanced_flow_batch,
                 packet_input_batch=balanced_packet_batch,
                 batch_labels=balanced_labels,
-                query_mask=query_mask
+                query_mask=query_mask,
+                mode=INFERENCE
             )
 
             # one_hot_labels
