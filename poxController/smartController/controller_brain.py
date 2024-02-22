@@ -128,8 +128,10 @@ def get_balanced_accuracy(os_cm, negative_weight):
 
 
 def get_clusters(predicted_kernel):
+        
+        discrete_predicted_kernel = predicted_kernel / (predicted_kernel.max(1)[0].unsqueeze(-1) + 1e-10)
 
-        discrete_predicted_kernel = (predicted_kernel > 0.5).long()
+        discrete_predicted_kernel = (discrete_predicted_kernel > 0.5).long()
         
         assigned_mask = torch.zeros_like(discrete_predicted_kernel.diag())
         clusters = torch.zeros_like(discrete_predicted_kernel.diag())
@@ -142,7 +144,8 @@ def get_clusters(predicted_kernel):
             new_cluster_mask = torch.relu(new_cluster_mask - assigned_mask)
             assigned_mask += new_cluster_mask
             clusters += new_cluster_mask*curr_cluster
-            curr_cluster += 1
+            if new_cluster_mask.sum() > 0:
+                curr_cluster += 1
 
         return clusters -1 
     
