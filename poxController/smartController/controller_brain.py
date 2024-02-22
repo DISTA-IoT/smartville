@@ -932,7 +932,9 @@ class ControllerBrain():
                 data[:, 0],
                 data[:, 1],
                 label=p_label,
-                c=color_for_scatter)
+                c=color_for_scatter,
+                alpha=0.5,
+                s=200)
         plt.title(f'Ground-truth clusters')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         # Predicted labels
@@ -945,7 +947,9 @@ class ControllerBrain():
                 data[:, 0],
                 data[:, 1],
                 label=label.item(),
-                c=color_for_scatter)
+                c=color_for_scatter,
+                alpha=0.5,
+                s=200)
         plt.title(f'Predicted clusters')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         plt.tight_layout()
@@ -988,7 +992,9 @@ class ControllerBrain():
                 data[:, 0],
                 data[:, 1],
                 label=p_label,
-                c=color_for_scatter)
+                c=color_for_scatter,
+                alpha=0.5,
+                s=200)
                 
         plt.title(f'PCA reduction of association scores')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
