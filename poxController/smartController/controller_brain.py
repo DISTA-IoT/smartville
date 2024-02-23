@@ -227,6 +227,7 @@ class ControllerBrain():
         random.seed(seed)
         self.current_known_classes_count = 0
         self.current_training_known_classes_count = 0
+        self.current_test_known_classes_count = 0
         self.reset_train_cms()
         self.reset_test_cms()
         self.k_shot = k_shot
@@ -256,6 +257,7 @@ class ControllerBrain():
     def add_replay_buffer(self, class_name):
         self.inference_allowed = False
         self.experience_learning_allowed = False
+        self.eval_allowed = False
         if self.AI_DEBUG:
             self.logger_instance.info(f'Adding a replay buffer with code {self.current_known_classes_count-1}')
             self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
@@ -265,10 +267,11 @@ class ControllerBrain():
                 capacity=REPLAY_BUFFER_MAX_CAPACITY,
                 batch_size=self.replay_buff_batch_size,
                 seed=self.seed)
-        self.test_replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
-                    capacity=REPLAY_BUFFER_MAX_CAPACITY,
-                    batch_size=self.replay_buff_batch_size,
-                    seed=self.seed)
+        if not 'G1' in class_name:
+            self.test_replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
+                        capacity=REPLAY_BUFFER_MAX_CAPACITY,
+                        batch_size=self.replay_buff_batch_size,
+                        seed=self.seed)
 
 
     def add_class_to_knowledge_base(self, new_class):
@@ -277,20 +280,16 @@ class ControllerBrain():
         self.current_known_classes_count += 1
         if not 'G2' in new_class:
             self.current_training_known_classes_count += 1 
+        if not 'G1' in new_class:
+            self.current_test_known_classes_count += 1
         self.add_replay_buffer(new_class)
-        self.training_cs_cm = torch.zeros(
-            size=(self.current_training_known_classes_count, self.current_training_known_classes_count),
-            device=self.device
-            )
-        self.eval_cs_cm = torch.zeros(
-            size=(self.current_known_classes_count, self.current_known_classes_count),
-            device=self.device
-            )
+        self.reset_train_cms()
+        self.reset_test_cms()
 
 
     def reset_train_cms(self):
         self.training_cs_cm = torch.zeros(
-            [self.current_training_known_classes_count, self.current_training_known_classes_count],
+            [self.current_known_classes_count, self.current_known_classes_count],
             device=self.device)
         self.training_os_cm = torch.zeros(
             size=(2, 2),
@@ -307,15 +306,11 @@ class ControllerBrain():
         
 
     def init_neural_modules(self, lr, seed):
-        
         torch.manual_seed(seed)
-
         self.confidence_decoder = ConfidenceDecoder(device=self.device)
-
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
         
         hidden_size = 40
-      
         if self.use_packet_feats:
 
             if self.multi_class:
@@ -412,12 +407,7 @@ class ControllerBrain():
             self.logger_instance.info(f"Pre-trained folder not found at {PRETRAINED_MODELS_DIR}.")
 
 
-    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask, mode):
-
-        if mode == TRAINING:
-            class_count = self.current_training_known_classes_count
-        elif mode == INFERENCE:
-            class_count = self.current_known_classes_count
+    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
 
         if self.use_packet_feats:
             if self.multi_class:
@@ -425,7 +415,7 @@ class ControllerBrain():
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
-                    class_count,
+                    self.current_known_classes_count,
                     query_mask)
             else:
                 logits, hiddens, predicted_kernel = self.flow_classifier(
@@ -436,7 +426,7 @@ class ControllerBrain():
                 logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
-                    class_count,
+                    self.current_known_classes_count,
                     query_mask)
             else:
                 logits, hiddens, predicted_kernel = self.flow_classifier(
@@ -482,7 +472,7 @@ class ControllerBrain():
                         zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
                         test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
         
-        if not self.inference_allowed or not self.experience_learning_allowed:
+        if not self.inference_allowed or not self.experience_learning_allowed or not self.eval_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
             test_buff_lengths = [len(replay_buff) for replay_buff in self.test_replay_buffers.values()]
 
@@ -494,7 +484,8 @@ class ControllerBrain():
                 torch.Tensor([buff_len  > self.k_shot for buff_len in buff_lengths]))
             self.experience_learning_allowed = torch.all(
                 torch.Tensor([buff_len  > self.replay_buff_batch_size for buff_len in buff_lengths]))
-
+            self.eval_allowed = torch.all(
+                torch.Tensor([buff_len  > self.replay_buff_batch_size for buff_len in test_buff_lengths]))
 
     def push_to_test_replay_buffers(
             self,
@@ -548,12 +539,14 @@ class ControllerBrain():
                         zda_batch_labels=zda_labels[to_push_mask],
                         test_zda_batch_labels=test_zda_labels[to_push_mask])
                 else:
+                    known_mask = ~zda_labels.bool()
+                    to_push_mask = torch.logical_or(test_zda_labels.bool(), known_mask)
                     self.push_to_test_replay_buffers(
-                        flow_input_batch, 
-                        packet_input_batch, 
-                        batch_labels=batch_labels,
-                        zda_batch_labels=zda_labels,
-                        test_zda_batch_labels=test_zda_labels)
+                        flow_input_batch[to_push_mask], 
+                        packet_input_batch[to_push_mask], 
+                        batch_labels=batch_labels[to_push_mask],
+                        zda_batch_labels=zda_labels[to_push_mask],
+                        test_zda_batch_labels=test_zda_labels[to_push_mask])
 
                 """
                 if self.inference_allowed:
@@ -637,7 +630,7 @@ class ControllerBrain():
         if phase == TRAINING:
             class_count = self.current_training_known_classes_count
         elif phase == INFERENCE:
-            class_count = self.current_known_classes_count
+            class_count = self.current_test_known_classes_count
 
         query_mask = torch.zeros(
             size=(class_count, self.replay_buff_batch_size),
@@ -746,9 +739,7 @@ class ControllerBrain():
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
-            query_mask=query_mask,
-            mode=TRAINING
-        )
+            query_mask=query_mask)
 
         # one_hot_labels
         one_hot_labels = self.get_oh_labels(
@@ -780,8 +771,9 @@ class ControllerBrain():
                 predicted_clusters=predicted_clusters, 
                 query_mask=query_mask,
                 phase=TRAINING)
-        
-            self.evaluate_models()
+
+            if self.eval_allowed:
+                self.evaluate_models()
 
         accuracy = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
 
@@ -791,7 +783,7 @@ class ControllerBrain():
         if self.AI_DEBUG: 
             self.logger_instance.info(f'{TRAINING} batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
                                       f'{TRAINING} batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
-            self.logger_instance.info(f'{TRAINING} mean training accuracy: {accuracy}')
+            self.logger_instance.info(f'{TRAINING} mean multiclass classif accuracy: {accuracy}')
 
 
     def evaluate_models(self):
@@ -801,8 +793,6 @@ class ControllerBrain():
         
         for _ in range(EVALUATION_ROUNDS):
                 
-            
-
             balanced_flow_batch, \
                 balanced_packet_batch, \
                     balanced_labels, \
@@ -819,22 +809,20 @@ class ControllerBrain():
                 flow_input_batch=balanced_flow_batch,
                 packet_input_batch=balanced_packet_batch,
                 batch_labels=balanced_labels,
-                query_mask=query_mask,
-                mode=INFERENCE
-            )
+                query_mask=query_mask)
 
             # one_hot_labels
             one_hot_labels = self.get_oh_labels(
                 curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
                 targets=balanced_labels)
             
-            prev_loss, predicted_clusters = self.kernel_regression_step(
+            _, predicted_clusters = self.kernel_regression_step(
                 predicted_kernel, 
                 one_hot_labels,
                 INFERENCE)
 
             if self.multi_class:
-                prev_loss += self.AD_step(
+                self.AD_step(
                     oh_labels=one_hot_labels, 
                     zda_labels=balanced_zda_labels, 
                     preds=logits, 
@@ -845,22 +833,23 @@ class ControllerBrain():
             preds=logits.detach(),
             targets_onehot=one_hot_labels[query_mask])
             
-            accuracy = self.learning_step(balanced_labels, logits, INFERENCE, query_mask, prev_loss)
+            accuracy = self.learning_step(balanced_labels, logits, INFERENCE, query_mask)
 
             if not self.eval: 
                 self.check_cs_progress(curr_cs_acc=accuracy)
                 
-            if self.AI_DEBUG: 
-                self.logger_instance.info(f'{INFERENCE} batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
-                                        f'{INFERENCE} batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
-                self.logger_instance.info(f'{INFERENCE} mean training accuracy: {accuracy}')
+        if self.AI_DEBUG: 
+            self.logger_instance.info(f'{INFERENCE} last batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
+                                    f'{INFERENCE}  last batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
+            self.logger_instance.info(f'{INFERENCE} last mean multiclass classif accuracy: {accuracy}')
 
         self.report(
                 preds=logits, 
                 hiddens=hidden_vectors.detach(), 
                 labels=balanced_labels,
                 predicted_clusters=predicted_clusters, 
-                query_mask=query_mask)
+                query_mask=query_mask,
+                phase=INFERENCE)
 
         self.flow_classifier.train()
         self.confidence_decoder.train()
@@ -892,8 +881,8 @@ class ControllerBrain():
             self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask], phase=phase)
 
         if self.AI_DEBUG:
-            self.logger_instance.info(f'CS Conf matrix: \n {self.training_cs_cm}')
-            self.logger_instance.info(f'AD Conf matrix: \n {self.training_os_cm}')
+            self.logger_instance.info(f'{phase} CS Conf matrix: \n {cs_cm_to_plot}')
+            self.logger_instance.info(f'{phase} AD Conf matrix: \n {os_cm_to_plot}')
         
         if phase == TRAINING:
             self.reset_train_cms()
