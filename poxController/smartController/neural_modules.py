@@ -125,7 +125,7 @@ class MultiClassFlowClassifier(nn.Module):
         self.device=device
         self.normalizer = nn.BatchNorm1d(input_size)
         self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
-        self.kernel_regressor = KernelRegressor(
+        self.kernel_regressor = SimpleKernelRegressor(
             in_features=hidden_size,
             out_features=hidden_size,
             n_heads=kr_heads,
@@ -174,7 +174,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
         self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
         self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
-        self.kernel_regressor = KernelRegressor(
+        self.kernel_regressor = SimpleKernelRegressor(
             in_features=hidden_size*2,
             out_features=hidden_size,
             n_heads=kr_heads,
@@ -244,6 +244,41 @@ class KernelRegressionLoss(nn.Module):
         attractive_CE_term = attractive_CE_term.mean()
 
         return (self.r_w * repulsive_CE_term) + (self.a_w * attractive_CE_term)
+
+
+
+class SimpleKernelRegressor(nn.Module):
+
+    def __init__(
+            self,
+            in_features: int,
+            out_features: int,
+            n_heads: int,
+            is_concat: bool = False,
+            dropout: float = 0.0,
+            leaky_relu_negative_slope: float = 0.2,
+            share_weights: bool = True,
+            device: str = "cpu"):
+
+        super(SimpleKernelRegressor, self).__init__()
+
+        self.device = device
+        self.w = nn.Parameter(torch.tensor(1.0))
+        self.b = nn.Parameter(torch.tensor(-0.5))
+
+
+    def forward(
+            self,
+            hiddens):
+        
+        energies = 1 / (torch.cdist(hiddens,hiddens) + 1e-10)
+        
+        energies = energies * self.w + self.b
+
+        kernel = torch.sigmoid(energies)
+
+        return hiddens, kernel
+
 
 
 class KernelRegressor(nn.Module):
