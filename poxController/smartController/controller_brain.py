@@ -193,6 +193,8 @@ class ControllerBrain():
                  use_packet_feats,
                  flow_feat_dim,
                  packet_feat_dim,
+                 h_dim,
+                 dropout,
                  multi_class,
                  k_shot,
                  replay_buffer_batch_size,
@@ -209,6 +211,8 @@ class ControllerBrain():
         self.use_packet_feats = use_packet_feats
         self.flow_feat_dim = flow_feat_dim
         self.packet_feat_dim = packet_feat_dim
+        self.h_dim = h_dim
+        self.dropout = dropout
         self.multi_class = multi_class
         self.AI_DEBUG = debug
         self.best_cs_accuracy = 0
@@ -306,16 +310,15 @@ class ControllerBrain():
         self.confidence_decoder = ConfidenceDecoder(device=self.device)
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
         
-        hidden_size = 40
         if self.use_packet_feats:
 
             if self.multi_class:
                 self.flow_classifier = TwoStreamMulticlassFlowClassifier(
                 flow_input_size=self.flow_feat_dim, 
                 packet_input_size=self.packet_feat_dim,
-                hidden_size=hidden_size,
+                hidden_size=self.h_dim,
                 kr_heads=KERNEL_REGRESSOR_HEADS,
-                dropout_prob=0.1,
+                dropout_prob=self.dropout,
                 device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
 
@@ -323,8 +326,8 @@ class ControllerBrain():
                 self.flow_classifier = TwoStreamBinaryFlowClassifier(
                     flow_input_size=self.flow_feat_dim, 
                     packet_input_size=self.packet_feat_dim,
-                    hidden_size=hidden_size,
-                    dropout_prob=0.1,
+                    hidden_size=self.h_dim,
+                    dropout_prob=self.dropout,
                     device=self.device)
                 self.cs_criterion = nn.BCELoss().to(self.device)
         else:
@@ -332,8 +335,8 @@ class ControllerBrain():
             if self.multi_class:
                 self.flow_classifier = MultiClassFlowClassifier(
                     input_size=self.flow_feat_dim, 
-                    hidden_size=hidden_size,
-                    dropout_prob=0.1,
+                    hidden_size=self.h_dim,
+                    dropout_prob=self.dropout,
                     kr_heads=KERNEL_REGRESSOR_HEADS,
                     device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
@@ -341,8 +344,8 @@ class ControllerBrain():
             else:
                 self.flow_classifier = BinaryFlowClassifier(
                     input_size=self.flow_feat_dim, 
-                    hidden_size=hidden_size,
-                    dropout_prob=0.1,
+                    hidden_size=self.h_dim,
+                    dropout_prob=self.dropout,
                     device=self.device)
                 self.cs_criterion = nn.BCELoss().to(self.device)
         

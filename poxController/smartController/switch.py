@@ -69,6 +69,8 @@ INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passe
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
 FLOW_FEAT_DIM = 4
+HIDDEN_SIZE_DIM = 40
+DROPOUT=0.1
 
 MAX_PACKETS_PER_FEAT_TENSOR = 3  # Max number of packets in the packets feature vector for each flow.
 MAX_FLOWSTATS_PER_FEAT_TENSOR = 10  # Max number of flowstats in the feature vector for each flow.
@@ -79,11 +81,11 @@ REPLAY_BUFFER_BATCH_SIZE= 20  # MUST BE GREATER THAN K_SHOT!
 KERNEL_REGRESSION = True  # learn relations between attacks.
 PACKET_FEATURES = True  # use packet features
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
-EVAL = True  # use models in eval mode
-CURRICULUM = 2
+EVAL = False  # use models in eval mode
+CURRICULUM = 1
 
 WB_TRACKING = True
-WAND_RUN_NAME=f"HE-E2E-post-AC{CURRICULUM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
+WAND_RUN_NAME=f"AC{CURRICULUM}|DROP {DROPOUT}|H_DIM {HIDDEN_SIZE_DIM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
 ###################################################################
 
 
@@ -142,7 +144,9 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      "BRAIN_DEVICE": BRAIN_DEVICE,
                      "INFERENCE_FREQ_SECONDS": INFERENCE_FREQ_SECONDS,
                      "K_SHOT": K_SHOT,
-                     "REPLAY_BUFFER_BATCH_SIZE": REPLAY_BUFFER_BATCH_SIZE
+                     "REPLAY_BUFFER_BATCH_SIZE": REPLAY_BUFFER_BATCH_SIZE,
+                     "HIDDEN_SIZE_DIM": HIDDEN_SIZE_DIM,
+                     "DROPOUT": DROPOUT
                      }
 
 
@@ -178,6 +182,8 @@ class Smart_Switch(EventMixin):
       use_packet_feats=PACKET_FEATURES,
       flow_feat_dim=FLOW_FEAT_DIM,
       packet_feat_dim=PACKET_FEAT_DIM,
+      h_dim=HIDDEN_SIZE_DIM,
+      dropout=DROPOUT,
       multi_class=MULTI_CLASS_CLASSIFICATION, 
       k_shot=K_SHOT,
       replay_buffer_batch_size=REPLAY_BUFFER_BATCH_SIZE,
