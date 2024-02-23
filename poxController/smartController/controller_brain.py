@@ -125,9 +125,7 @@ def get_balanced_accuracy(os_cm, negative_weight):
 
 def get_clusters(predicted_kernel):
         
-        discrete_predicted_kernel = predicted_kernel / (predicted_kernel.max(1)[0].unsqueeze(-1) + 1e-10)
-
-        discrete_predicted_kernel = (discrete_predicted_kernel > 0.5).long()
+        discrete_predicted_kernel = (predicted_kernel > 0.5).long()
         
         assigned_mask = torch.zeros_like(discrete_predicted_kernel.diag())
         clusters = torch.zeros_like(discrete_predicted_kernel.diag())
@@ -376,30 +374,30 @@ class ControllerBrain():
         if os.path.exists(PRETRAINED_MODELS_DIR):
             if self.multi_class:
                 if self.use_packet_feats:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained.pt'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained.pt'
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained'
                 else:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained.pt'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained.pt'
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained'
+                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained'
             else:
                 if self.use_packet_feats:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained.pt'
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained'
                 else:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'binary-flow_classifier_pretrained.pt'
+                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'binary-flow_classifier_pretrained'
 
-            if os.path.exists(self.flow_classifier_path):
+            if os.path.exists(self.flow_classifier_path+'.pt'):
                 # Load the pre-trained weights
-                self.flow_classifier.load_state_dict(torch.load(self.flow_classifier_path))
-                self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.flow_classifier_path}.")
+                self.flow_classifier.load_state_dict(torch.load(self.flow_classifier_path+'.pt'))
+                self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.flow_classifier_path}.pt")
             else:
-                self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")
+                self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.pt")
                 
             if self.multi_class:
-                if os.path.exists(self.confidence_decoder_path):
-                    self.confidence_decoder.load_state_dict(torch.load(self.confidence_decoder_path))
-                    self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.confidence_decoder_path}.")
+                if os.path.exists(self.confidence_decoder_path+'.pt'):
+                    self.confidence_decoder.load_state_dict(torch.load(self.confidence_decoder_path+'.pt'))
+                    self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.confidence_decoder_path}.pt")
                 else:
-                    self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.")             
+                    self.logger_instance.info(f"Pre-trained weights not found at {self.confidence_decoder_path}.pt")             
              
 
         elif self.AI_DEBUG:
@@ -702,20 +700,19 @@ class ControllerBrain():
                 predicted_kernel=predicted_kernel
             )
 
-            mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
-            inverse_mae = 1 / (mae + 1e-10)
+            kr_prec = (semantic_kernel == (predicted_kernel>0.5)).float().mean()
 
             if self.wbt:
-                self.wbl.log({mode+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.backprop_counter})
+                self.wbl.log({mode+'_'+KR_PRECISION: kr_prec.item(), STEP_LABEL:self.backprop_counter})
                 self.wbl.log({mode+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.backprop_counter})
 
             if self.AI_DEBUG: 
-                self.logger_instance.info(f'{mode} kernel regression precision: {inverse_mae.item()}')
+                self.logger_instance.info(f'{mode} kernel regression precision: {kr_prec.item()}')
                 self.logger_instance.info(f'{mode} kernel regression loss: {kernel_loss.item()}')
 
             predicted_clusters = get_clusters(predicted_kernel.detach())
 
-            return kernel_loss, predicted_clusters, inverse_mae
+            return kernel_loss, predicted_clusters, kr_prec
 
 
     def experience_learning(self):
@@ -911,29 +908,30 @@ class ControllerBrain():
     
     def check_kr_progress(self, curr_kr_acc):
         self.best_KR_accuracy = curr_kr_acc
-        self.save_models() # kernel regression influences the generalization capacity of the whole pipeline!! 
+        self.save_models() 
 
 
-
-    def save_cs_model(self):
+    def save_cs_model(self, postfix='single'):
         torch.save(
             self.flow_classifier.state_dict(), 
-            self.flow_classifier_path)
+            self.flow_classifier_path+postfix+'.pt')
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'New flow classifier model version saved to {self.flow_classifier_path}')
+            self.logger_instance.info(f'New {postfix} flow classifier model version saved to {self.flow_classifier_path}{postfix}.pt')
 
 
-    def save_ad_model(self):
+    def save_ad_model(self, postfix='single'):
         torch.save(
             self.confidence_decoder.state_dict(), 
-            self.confidence_decoder_path)
+            self.confidence_decoder_path+postfix+'.pt')
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'New confidence decoder model version saved to {self.confidence_decoder_path}')
+            self.logger_instance.info(f'New {postfix} confidence decoder model version saved to {self.confidence_decoder_path}{postfix}.pt')
+
 
     def save_models(self):
-        self.save_cs_model()
+        self.save_cs_model(postfix='coupled')
         if self.multi_class:
-            self.save_ad_model()
+            self.save_ad_model(postfix='coupled')
+
 
     def learning_step(self, labels, predictions, mode, query_mask, prev_loss=0):
         
