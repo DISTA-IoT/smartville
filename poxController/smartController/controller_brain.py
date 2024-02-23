@@ -54,8 +54,6 @@ colors = [
 #########################################
 """
 
-SAVING_MODULES_FREQ = 5
-
 PRETRAINED_MODELS_DIR = 'models/'
 
 REPLAY_BUFFER_MAX_CAPACITY=1000
@@ -109,7 +107,6 @@ def efficient_os_cm(preds, targets_onehot):
     predictions_onehot.scatter_(1, preds.view(-1, 1), 1)
 
     return targets_onehot.T @ predictions_onehot.long()
-
 
 
 def get_balanced_accuracy(os_cm, negative_weight):
@@ -239,7 +236,6 @@ class ControllerBrain():
         
         if self.wbt:
 
-            wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
             wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODELS_DIR
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
@@ -487,6 +483,7 @@ class ControllerBrain():
             self.eval_allowed = torch.all(
                 torch.Tensor([buff_len  > self.replay_buff_batch_size for buff_len in test_buff_lengths]))
 
+
     def push_to_test_replay_buffers(
             self,
             flow_input_batch, 
@@ -676,7 +673,6 @@ class ControllerBrain():
                 targets_onehot=onehot_zda_labels[query_mask].long()
                 )
             os_acc = get_balanced_accuracy(self.eval_os_cm, negative_weight=0.5)
-            self.check_AD_progress(curr_ad_acc=os_acc)
 
         zda_balance = zda_labels[query_mask].to(torch.float16).mean().item()
         if self.wbt:
@@ -689,7 +685,7 @@ class ControllerBrain():
                                       f'{mode} batch AD prediction mean: {zda_predictions.to(torch.float32).mean()}')
             self.logger_instance.info(f'{mode} mean AD training accuracy: {os_acc}')
 
-        return os_loss
+        return os_loss, os_acc
     
 
     def kernel_regression_step(self, predicted_kernel, one_hot_labels, mode):
@@ -706,8 +702,6 @@ class ControllerBrain():
             mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
             inverse_mae = 1 / (mae + 1e-10)
 
-            self.check_kr_progress(curr_kr_acc=inverse_mae)
-
             if self.wbt:
                 self.wbl.log({mode+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.backprop_counter})
                 self.wbl.log({mode+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.backprop_counter})
@@ -718,7 +712,7 @@ class ControllerBrain():
 
             predicted_clusters = get_clusters(predicted_kernel.detach())
 
-            return kernel_loss, predicted_clusters
+            return kernel_loss, predicted_clusters, inverse_mae
 
 
     def experience_learning(self):
@@ -746,18 +740,19 @@ class ControllerBrain():
             curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
             targets=balanced_labels)
         
-        prev_loss, predicted_clusters = self.kernel_regression_step(
+        prev_loss, predicted_clusters, _ = self.kernel_regression_step(
             predicted_kernel, 
             one_hot_labels, 
             TRAINING)
 
         if self.multi_class:
-            prev_loss += self.AD_step(
+            ad_loss, _ = self.AD_step(
                 oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
                 preds=logits, 
                 query_mask=query_mask,
                 mode=TRAINING)
+            prev_loss += ad_loss
 
         self.training_cs_cm += efficient_cm(
         preds=logits.detach(),
@@ -775,15 +770,12 @@ class ControllerBrain():
             if self.eval_allowed:
                 self.evaluate_models()
 
-        accuracy = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
-
-        if not self.eval: 
-            self.check_cs_progress(curr_cs_acc=accuracy)
+        cs_acc = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
             
         if self.AI_DEBUG: 
             self.logger_instance.info(f'{TRAINING} batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
                                       f'{TRAINING} batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
-            self.logger_instance.info(f'{TRAINING} mean multiclass classif accuracy: {accuracy}')
+            self.logger_instance.info(f'{TRAINING} mean multiclass classif accuracy: {cs_acc}')
 
 
     def evaluate_models(self):
@@ -791,6 +783,10 @@ class ControllerBrain():
         self.flow_classifier.eval()
         self.confidence_decoder.eval()
         
+        mean_eval_ad_acc = 0
+        mean_eval_cs_acc = 0
+        mean_eval_kr_prec = 0
+
         for _ in range(EVALUATION_ROUNDS):
                 
             balanced_flow_batch, \
@@ -816,13 +812,13 @@ class ControllerBrain():
                 curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
                 targets=balanced_labels)
             
-            _, predicted_clusters = self.kernel_regression_step(
+            _, predicted_clusters, kr_precision = self.kernel_regression_step(
                 predicted_kernel, 
                 one_hot_labels,
                 INFERENCE)
 
             if self.multi_class:
-                self.AD_step(
+                _, ad_acc = self.AD_step(
                     oh_labels=one_hot_labels, 
                     zda_labels=balanced_zda_labels, 
                     preds=logits, 
@@ -833,15 +829,25 @@ class ControllerBrain():
             preds=logits.detach(),
             targets_onehot=one_hot_labels[query_mask])
             
-            accuracy = self.learning_step(balanced_labels, logits, INFERENCE, query_mask)
+            cs_acc = self.learning_step(balanced_labels, logits, INFERENCE, query_mask)
 
-            if not self.eval: 
-                self.check_cs_progress(curr_cs_acc=accuracy)
-                
+            mean_eval_ad_acc += (ad_acc / EVALUATION_ROUNDS)
+            mean_eval_cs_acc += (cs_acc / EVALUATION_ROUNDS)
+            mean_eval_kr_prec += (kr_precision / EVALUATION_ROUNDS)
+
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'{INFERENCE} last batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
-                                    f'{INFERENCE}  last batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
-            self.logger_instance.info(f'{INFERENCE} last mean multiclass classif accuracy: {accuracy}')
+            self.logger_instance.info(f'{INFERENCE} mean eval AD accuracy: {mean_eval_ad_acc.item()} '+\
+                                    f'{INFERENCE}  mean eval CS accuracy: {mean_eval_cs_acc.item()}')
+            self.logger_instance.info(f'{INFERENCE} mean eval KR accuracy: {mean_eval_kr_prec.item()}')
+        if self.wbt:
+            self.wbl.log({'Mean EVAL AD ACC': mean_eval_ad_acc.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({'Mean EVAL CS ACC': mean_eval_cs_acc.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({'Mean EVAL KR PREC': mean_eval_kr_prec.item(), STEP_LABEL:self.backprop_counter})
+
+        if not self.eval:
+            self.check_kr_progress(curr_kr_acc=mean_eval_kr_prec.item())
+            self.check_cs_progress(curr_cs_acc=mean_eval_cs_acc.item())
+            self.check_AD_progress(curr_ad_acc=mean_eval_ad_acc.item())
 
         self.report(
                 preds=logits, 
@@ -891,27 +897,18 @@ class ControllerBrain():
 
 
     def check_cs_progress(self, curr_cs_acc):
-        if (self.backprop_counter % SAVING_MODULES_FREQ == 0) and\
-            (self.backprop_counter > 0) and\
-                  (self.best_cs_accuracy < curr_cs_acc.item()):
-            self.best_cs_accuracy = curr_cs_acc
-            self.save_cs_model()
+        self.best_cs_accuracy = curr_cs_acc
+        self.save_cs_model()
 
     
     def check_AD_progress(self, curr_ad_acc):
-        if (self.backprop_counter % SAVING_MODULES_FREQ == 0) and\
-            (self.backprop_counter > 0) and\
-                  (self.best_AD_accuracy < curr_ad_acc.item()):
-            self.best_AD_accuracy = curr_ad_acc
-            self.save_ad_model()
+        self.best_AD_accuracy = curr_ad_acc
+        self.save_ad_model()
 
     
     def check_kr_progress(self, curr_kr_acc):
-        if (self.backprop_counter % SAVING_MODULES_FREQ == 0) and\
-            (self.backprop_counter > 0) and\
-                  (self.best_KR_accuracy < curr_kr_acc.item()):
-            self.best_KR_accuracy = curr_kr_acc
-            self.save_models() # kernel regression influences the generalization capacity of the whole pipeline!! 
+        self.best_KR_accuracy = curr_kr_acc
+        self.save_models() # kernel regression influences the generalization capacity of the whole pipeline!! 
 
 
 
