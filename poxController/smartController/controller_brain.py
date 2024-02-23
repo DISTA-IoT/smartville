@@ -14,7 +14,7 @@ import threading
 from wandb import Image as wandbImage
 import itertools
 from sklearn.decomposition import PCA
-
+import random
 
 # List of colors
 colors = [
@@ -54,8 +54,6 @@ colors = [
 #########################################
 """
 
-SAVING_MODULES_FREQ = 5
-
 PRETRAINED_MODELS_DIR = 'models/'
 
 REPLAY_BUFFER_MAX_CAPACITY=1000
@@ -69,6 +67,8 @@ REPULSIVE_WEIGHT = 1
 ATTRACTIVE_WEIGHT = 1
 
 KERNEL_REGRESSOR_HEADS = 2
+
+EVALUATION_ROUNDS = 50
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -107,7 +107,6 @@ def efficient_os_cm(preds, targets_onehot):
     predictions_onehot.scatter_(1, preds.view(-1, 1), 1)
 
     return targets_onehot.T @ predictions_onehot.long()
-
 
 
 def get_balanced_accuracy(os_cm, negative_weight):
@@ -215,24 +214,28 @@ class ControllerBrain():
         self.best_cs_accuracy = 0
         self.best_AD_accuracy = 0
         self.best_KR_accuracy = 0
-        self.inference_counter = 0
+        self.backprop_counter = 0
         self.wbt = wb_track
         self.wbl = None
         self.kernel_regression = kernel_regression
         self.logger_instance = core.getLogger()
         self.device=device
         self.seed = seed
+        random.seed(seed)
         self.current_known_classes_count = 0
-        self.reset_cms()
+        self.current_training_known_classes_count = 0
+        self.current_test_known_classes_count = 0
+        self.reset_train_cms()
+        self.reset_test_cms()
         self.k_shot = k_shot
         self.replay_buff_batch_size = replay_buffer_batch_size
         self.encoder = DynamicLabelEncoder()
         self.replay_buffers = {}
+        self.test_replay_buffers = {}
         self.init_neural_modules(LEARNING_RATE, seed)
         
         if self.wbt:
 
-            wb_config_dict['SAVING_MODULES_FREQ'] = SAVING_MODULES_FREQ
             wb_config_dict['PRETRAINED_MODEL_PATH'] = PRETRAINED_MODELS_DIR
             wb_config_dict['REPLAY_BUFFER_MAX_CAPACITY'] = REPLAY_BUFFER_MAX_CAPACITY
             wb_config_dict['LEARNING_RATE'] = LEARNING_RATE
@@ -247,48 +250,63 @@ class ControllerBrain():
                 config_dict=wb_config_dict).wb_logger        
 
 
-    def add_replay_buffer(self):
+    def add_replay_buffer(self, class_name):
         self.inference_allowed = False
         self.experience_learning_allowed = False
+        self.eval_allowed = False
         if self.AI_DEBUG:
             self.logger_instance.info(f'Adding a replay buffer with code {self.current_known_classes_count-1}')
             self.logger_instance.info(f'Encoder state mapping: {self.encoder.get_mapping()}')
-        self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
-            capacity=REPLAY_BUFFER_MAX_CAPACITY,
-            batch_size=self.replay_buff_batch_size,
-            seed=self.seed)
+        
+        if not 'G2' in class_name:
+            self.replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
+                capacity=REPLAY_BUFFER_MAX_CAPACITY,
+                batch_size=self.replay_buff_batch_size,
+                seed=self.seed)
+        if not 'G1' in class_name:
+            self.test_replay_buffers[self.current_known_classes_count-1] = ReplayBuffer(
+                        capacity=REPLAY_BUFFER_MAX_CAPACITY,
+                        batch_size=self.replay_buff_batch_size,
+                        seed=self.seed)
 
 
     def add_class_to_knowledge_base(self, new_class):
         if self.AI_DEBUG:
             self.logger_instance.info(f'New class found: {new_class}')
         self.current_known_classes_count += 1
-        self.add_replay_buffer()
-        self.cs_cm = torch.zeros(
-            size=(self.current_known_classes_count, self.current_known_classes_count),
-            device=self.device
-            )
+        if not 'G2' in new_class:
+            self.current_training_known_classes_count += 1 
+        if not 'G1' in new_class:
+            self.current_test_known_classes_count += 1
+        self.add_replay_buffer(new_class)
+        self.reset_train_cms()
+        self.reset_test_cms()
 
 
-    def reset_cms(self):
-        self.cs_cm = torch.zeros(
+    def reset_train_cms(self):
+        self.training_cs_cm = torch.zeros(
             [self.current_known_classes_count, self.current_known_classes_count],
             device=self.device)
-        self.os_cm = torch.zeros(
+        self.training_os_cm = torch.zeros(
+            size=(2, 2),
+            device=self.device)
+        
+    
+    def reset_test_cms(self):
+        self.eval_cs_cm = torch.zeros(
+            [self.current_known_classes_count, self.current_known_classes_count],
+            device=self.device)
+        self.eval_os_cm = torch.zeros(
             size=(2, 2),
             device=self.device)
         
 
     def init_neural_modules(self, lr, seed):
-        
         torch.manual_seed(seed)
-
         self.confidence_decoder = ConfidenceDecoder(device=self.device)
-
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
         
         hidden_size = 40
-      
         if self.use_packet_feats:
 
             if self.multi_class:
@@ -449,16 +467,53 @@ class ControllerBrain():
                         label=batch_labels[mask][sample_idx].unsqueeze(0),
                         zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
                         test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
-                
-        if not self.inference_allowed or not self.experience_learning_allowed:
+        
+        if not self.inference_allowed or not self.experience_learning_allowed or not self.eval_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
+            test_buff_lengths = [len(replay_buff) for replay_buff in self.test_replay_buffers.values()]
+
             if self.AI_DEBUG:
                 self.logger_instance.info(f'Buffer lengths: {buff_lengths}')
+                self.logger_instance.info(f'Test Buffer lengths: {test_buff_lengths}')
+
             self.inference_allowed = torch.all(
                 torch.Tensor([buff_len  > self.k_shot for buff_len in buff_lengths]))
             self.experience_learning_allowed = torch.all(
                 torch.Tensor([buff_len  > self.replay_buff_batch_size for buff_len in buff_lengths]))
+            self.eval_allowed = torch.all(
+                torch.Tensor([buff_len  > self.replay_buff_batch_size for buff_len in test_buff_lengths]))
 
+
+    def push_to_test_replay_buffers(
+            self,
+            flow_input_batch, 
+            packet_input_batch, 
+            batch_labels,
+            zda_batch_labels,
+            test_zda_batch_labels):
+
+        unique_labels = torch.unique(batch_labels)
+
+        for label in unique_labels:
+            mask = batch_labels == label
+
+            if self.use_packet_feats:
+                for sample_idx in range(flow_input_batch[mask].shape[0]):
+                    self.test_replay_buffers[label.item()].push(
+                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                        packet_input_batch[mask][sample_idx].unsqueeze(0), 
+                        label=batch_labels[mask][sample_idx].unsqueeze(0),
+                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+            else: 
+                for sample_idx in range(flow_input_batch[mask].shape[0]):
+                    self.test_replay_buffers[label.item()].push(
+                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                        None, 
+                        label=batch_labels[mask][sample_idx].unsqueeze(0),
+                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+            
 
     def classify_duet(self, flows):
         """
@@ -472,13 +527,25 @@ class ControllerBrain():
                 flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
                 batch_labels, zda_labels, test_zda_labels = self.get_labels(flows)
 
-                self.push_to_replay_buffers(
-                    flow_input_batch, 
-                    packet_input_batch, 
-                    batch_labels=batch_labels,
-                    zda_batch_labels=zda_labels,
-                    test_zda_batch_labels=test_zda_labels)
+                if random.random() > 0.3:
+                    to_push_mask = ~test_zda_labels.bool()
+                    self.push_to_replay_buffers(
+                        flow_input_batch[to_push_mask], 
+                        packet_input_batch[to_push_mask], 
+                        batch_labels=batch_labels[to_push_mask],
+                        zda_batch_labels=zda_labels[to_push_mask],
+                        test_zda_batch_labels=test_zda_labels[to_push_mask])
+                else:
+                    known_mask = ~zda_labels.bool()
+                    to_push_mask = torch.logical_or(test_zda_labels.bool(), known_mask)
+                    self.push_to_test_replay_buffers(
+                        flow_input_batch[to_push_mask], 
+                        packet_input_batch[to_push_mask], 
+                        batch_labels=batch_labels[to_push_mask],
+                        zda_batch_labels=zda_labels[to_push_mask],
+                        test_zda_batch_labels=test_zda_labels[to_push_mask])
 
+                """
                 if self.inference_allowed:
 
                     support_flow_batch, \
@@ -507,19 +574,26 @@ class ControllerBrain():
 
                     accuracy = self.learning_step(batch_labels, predictions, INFERENCE, query_mask)
 
-                    self.inference_counter += 1
+                    
 
                     if self.AI_DEBUG: 
                         self.logger_instance.info(f'inference accuracy: {accuracy}')
+                """
 
-                    if self.experience_learning_allowed:
-                        self.experience_learning()
-                            
+                if self.experience_learning_allowed:
+                    self.experience_learning()
+                    self.backprop_counter += 1
+
         
-    def sample_from_replay_buffers(self, samples_per_class):
+    def sample_from_replay_buffers(self, samples_per_class, mode):
         balanced_packet_batch = None
         init = True
-        for replay_buff in self.replay_buffers.values():
+        if mode == TRAINING:
+            buffers_dict = self.replay_buffers
+        elif mode == INFERENCE:
+            buffers_dict = self.test_replay_buffers
+
+        for replay_buff in buffers_dict.values():
             flow_batch, \
                 packet_batch, \
                     batch_labels, \
@@ -549,9 +623,14 @@ class ControllerBrain():
         return balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels, balanced_test_zda_labels
 
 
-    def get_canonical_query_mask(self):
+    def get_canonical_query_mask(self, phase):
+        if phase == TRAINING:
+            class_count = self.current_training_known_classes_count
+        elif phase == INFERENCE:
+            class_count = self.current_test_known_classes_count
+
         query_mask = torch.zeros(
-            size=(self.current_known_classes_count, self.replay_buff_batch_size),
+            size=(class_count, self.replay_buff_batch_size),
             device=self.device).to(torch.bool)
         query_mask[:, self.k_shot:] = True
         return query_mask.view(-1)
@@ -567,7 +646,7 @@ class ControllerBrain():
         return targets_onehot
     
 
-    def AD_step(self, oh_labels, zda_labels, preds, query_mask):
+    def AD_step(self, oh_labels, zda_labels, preds, query_mask, mode):
         # known class horizonal mask:
         known_oh_labels = oh_labels[~zda_labels.squeeze(1).bool()]
         known_class_h_mask = known_oh_labels.sum(0)>0
@@ -581,31 +660,35 @@ class ControllerBrain():
         onehot_zda_labels = torch.zeros(size=(zda_labels.shape[0],2)).long()
         onehot_zda_labels.scatter_(1, zda_labels.long().view(-1, 1), 1)
 
-        # Open set confusion matrix
-        self.os_cm += efficient_os_cm(
-            preds=(zda_predictions.detach() > 0.5).long(),
-            targets_onehot=onehot_zda_labels[query_mask].long()
-            )
-    
-        os_acc = get_balanced_accuracy(self.os_cm, negative_weight=0.5)
+        if mode == TRAINING:
+            self.training_os_cm += efficient_os_cm(
+                preds=(zda_predictions.detach() > 0.5).long(),
+                targets_onehot=onehot_zda_labels[query_mask].long()
+                )
+            os_acc = get_balanced_accuracy(self.training_os_cm, negative_weight=0.5)
 
-        self.check_AD_progress(curr_ad_acc=os_acc)
+        elif mode == INFERENCE:
+            self.eval_os_cm += efficient_os_cm(
+                preds=(zda_predictions.detach() > 0.5).long(),
+                targets_onehot=onehot_zda_labels[query_mask].long()
+                )
+            os_acc = get_balanced_accuracy(self.eval_os_cm, negative_weight=0.5)
 
         zda_balance = zda_labels[query_mask].to(torch.float16).mean().item()
         if self.wbt:
-            self.wbl.log({TRAINING+'_'+OS_ACC: os_acc.item(), STEP_LABEL:self.inference_counter})
-            self.wbl.log({TRAINING+'_'+OS_LOSS: os_loss.item(), STEP_LABEL:self.inference_counter})
-            self.wbl.log({TRAINING+'_'+ANOMALY_BALANCE: zda_balance, STEP_LABEL:self.inference_counter})
+            self.wbl.log({mode+'_'+OS_ACC: os_acc.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({mode+'_'+OS_LOSS: os_loss.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({mode+'_'+ANOMALY_BALANCE: zda_balance, STEP_LABEL:self.backprop_counter})
 
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'batch AD labels mean: {zda_balance} '+\
-                                      f'batch AD prediction mean: {zda_predictions.to(torch.float32).mean()}')
-            self.logger_instance.info(f'mean AD training accuracy: {os_acc}')
+            self.logger_instance.info(f'{mode} batch AD labels mean: {zda_balance} '+\
+                                      f'{mode} batch AD prediction mean: {zda_predictions.to(torch.float32).mean()}')
+            self.logger_instance.info(f'{mode} mean AD training accuracy: {os_acc}')
 
-        return os_loss
+        return os_loss, os_acc
     
 
-    def kernel_regression_step(self, predicted_kernel, one_hot_labels):
+    def kernel_regression_step(self, predicted_kernel, one_hot_labels, mode):
 
         if self.kernel_regression:
             
@@ -619,19 +702,17 @@ class ControllerBrain():
             mae = torch.mean(torch.abs(semantic_kernel - predicted_kernel))
             inverse_mae = 1 / (mae + 1e-10)
 
-            self.check_kr_progress(curr_kr_acc=inverse_mae)
-
             if self.wbt:
-                self.wbl.log({TRAINING+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.inference_counter})
-                self.wbl.log({TRAINING+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.inference_counter})
+                self.wbl.log({mode+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.backprop_counter})
+                self.wbl.log({mode+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.backprop_counter})
 
             if self.AI_DEBUG: 
-                self.logger_instance.info(f'kernel regression precision: {inverse_mae.item()}')
-                self.logger_instance.info(f'kernel regression loss: {kernel_loss.item()}')
+                self.logger_instance.info(f'{mode} kernel regression precision: {inverse_mae.item()}')
+                self.logger_instance.info(f'{mode} kernel regression loss: {kernel_loss.item()}')
 
             predicted_clusters = get_clusters(predicted_kernel.detach())
 
-            return kernel_loss, predicted_clusters
+            return kernel_loss, predicted_clusters, inverse_mae
 
 
     def experience_learning(self):
@@ -641,9 +722,10 @@ class ControllerBrain():
                 balanced_labels, \
                     balanced_zda_labels, \
                          balanced_test_zda_labels = self.sample_from_replay_buffers(
-            samples_per_class=self.replay_buff_batch_size)
+            samples_per_class=self.replay_buff_batch_size,
+            mode=TRAINING)
         
-        query_mask = self.get_canonical_query_mask()
+        query_mask = self.get_canonical_query_mask(TRAINING)
 
         assert query_mask.shape[0] == balanced_labels.shape[0]
 
@@ -651,93 +733,182 @@ class ControllerBrain():
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
-            query_mask=query_mask
-        )
+            query_mask=query_mask)
 
         # one_hot_labels
         one_hot_labels = self.get_oh_labels(
             curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
             targets=balanced_labels)
         
-        prev_loss, predicted_clusters = self.kernel_regression_step(predicted_kernel, one_hot_labels)
+        prev_loss, predicted_clusters, _ = self.kernel_regression_step(
+            predicted_kernel, 
+            one_hot_labels, 
+            TRAINING)
 
         if self.multi_class:
-            prev_loss += self.AD_step(
+            ad_loss, _ = self.AD_step(
                 oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
                 preds=logits, 
-                query_mask=query_mask)
+                query_mask=query_mask,
+                mode=TRAINING)
+            prev_loss += ad_loss
 
-        self.cs_cm += efficient_cm(
+        self.training_cs_cm += efficient_cm(
         preds=logits.detach(),
         targets_onehot=one_hot_labels[query_mask]) 
         
-        self.report(
-            preds=logits, 
-            hiddens=hidden_vectors.detach(), 
-            labels=balanced_labels,
-            predicted_clusters=predicted_clusters, 
-            query_mask=query_mask)
-        
-        accuracy = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
+        if self.backprop_counter % REPORT_STEP_FREQUENCY == 0:
+            self.report(
+                preds=logits, 
+                hiddens=hidden_vectors.detach(), 
+                labels=balanced_labels,
+                predicted_clusters=predicted_clusters, 
+                query_mask=query_mask,
+                phase=TRAINING)
 
-        if not self.eval: 
-            self.check_cs_progress(curr_cs_acc=accuracy)
+            if self.eval_allowed:
+                self.evaluate_models()
+
+        cs_acc = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
             
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
-                                      f'batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
-            self.logger_instance.info(f'mean training accuracy: {accuracy}')
+            self.logger_instance.info(f'{TRAINING} batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
+                                      f'{TRAINING} batch prediction mean: {logits.max(1)[1].to(torch.float32).mean()}')
+            self.logger_instance.info(f'{TRAINING} mean multiclass classif accuracy: {cs_acc}')
 
 
-    def report(self, preds, hiddens, labels, predicted_clusters, query_mask):
+    def evaluate_models(self):
 
-        if self.inference_counter % REPORT_STEP_FREQUENCY == 0:
+        self.flow_classifier.eval()
+        self.confidence_decoder.eval()
+        
+        mean_eval_ad_acc = 0
+        mean_eval_cs_acc = 0
+        mean_eval_kr_prec = 0
 
-            if self.wbt:
-                self.plot_confusion_matrix(
-                    mod=CLOSED_SET,
-                    cm=self.cs_cm,
-                    phase=TRAINING,
-                    norm=False,
-                    classes=self.encoder.get_labels())
-                self.plot_confusion_matrix(
-                    mod=ANOMALY_DETECTION,
-                    cm=self.os_cm,
-                    phase=TRAINING,
-                    norm=False,
-                    classes=['Known', 'ZdA'])
-                self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters)
-                self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask])
+        for _ in range(EVALUATION_ROUNDS):
+                
+            balanced_flow_batch, \
+                balanced_packet_batch, \
+                    balanced_labels, \
+                        balanced_zda_labels, \
+                            balanced_test_zda_labels = self.sample_from_replay_buffers(
+                samples_per_class=self.replay_buff_batch_size,
+                mode=INFERENCE)
+            
+            query_mask = self.get_canonical_query_mask(INFERENCE)
 
-            if self.AI_DEBUG:
-                self.logger_instance.info(f'CS Conf matrix: \n {self.cs_cm}')
-                self.logger_instance.info(f'AD Conf matrix: \n {self.os_cm}')
-            self.reset_cms()
+            assert query_mask.shape[0] == balanced_labels.shape[0]
+
+            logits, hidden_vectors, predicted_kernel = self.infer(
+                flow_input_batch=balanced_flow_batch,
+                packet_input_batch=balanced_packet_batch,
+                batch_labels=balanced_labels,
+                query_mask=query_mask)
+
+            # one_hot_labels
+            one_hot_labels = self.get_oh_labels(
+                curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
+                targets=balanced_labels)
+            
+            _, predicted_clusters, kr_precision = self.kernel_regression_step(
+                predicted_kernel, 
+                one_hot_labels,
+                INFERENCE)
+
+            if self.multi_class:
+                _, ad_acc = self.AD_step(
+                    oh_labels=one_hot_labels, 
+                    zda_labels=balanced_zda_labels, 
+                    preds=logits, 
+                    query_mask=query_mask,
+                    mode=INFERENCE)
+
+            self.eval_cs_cm += efficient_cm(
+            preds=logits.detach(),
+            targets_onehot=one_hot_labels[query_mask])
+            
+            cs_acc = self.learning_step(balanced_labels, logits, INFERENCE, query_mask)
+
+            mean_eval_ad_acc += (ad_acc / EVALUATION_ROUNDS)
+            mean_eval_cs_acc += (cs_acc / EVALUATION_ROUNDS)
+            mean_eval_kr_prec += (kr_precision / EVALUATION_ROUNDS)
+
+        if self.AI_DEBUG: 
+            self.logger_instance.info(f'{INFERENCE} mean eval AD accuracy: {mean_eval_ad_acc.item()} '+\
+                                    f'{INFERENCE}  mean eval CS accuracy: {mean_eval_cs_acc.item()}')
+            self.logger_instance.info(f'{INFERENCE} mean eval KR accuracy: {mean_eval_kr_prec.item()}')
+        if self.wbt:
+            self.wbl.log({'Mean EVAL AD ACC': mean_eval_ad_acc.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({'Mean EVAL CS ACC': mean_eval_cs_acc.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({'Mean EVAL KR PREC': mean_eval_kr_prec.item(), STEP_LABEL:self.backprop_counter})
+
+        if not self.eval:
+            self.check_kr_progress(curr_kr_acc=mean_eval_kr_prec.item())
+            self.check_cs_progress(curr_cs_acc=mean_eval_cs_acc.item())
+            self.check_AD_progress(curr_ad_acc=mean_eval_ad_acc.item())
+
+        self.report(
+                preds=logits, 
+                hiddens=hidden_vectors.detach(), 
+                labels=balanced_labels,
+                predicted_clusters=predicted_clusters, 
+                query_mask=query_mask,
+                phase=INFERENCE)
+
+        self.flow_classifier.train()
+        self.confidence_decoder.train()
+
+
+    def report(self, preds, hiddens, labels, predicted_clusters, query_mask, phase):
+
+        if phase == TRAINING:
+            cs_cm_to_plot = self.training_cs_cm
+            os_cm_to_plot = self.training_os_cm
+        elif phase == INFERENCE:
+            cs_cm_to_plot = self.eval_cs_cm
+            os_cm_to_plot = self.eval_os_cm
+
+        if self.wbt:
+            self.plot_confusion_matrix(
+                mod=CLOSED_SET,
+                cm=cs_cm_to_plot,
+                phase=phase,
+                norm=False,
+                classes=self.encoder.get_labels())
+            self.plot_confusion_matrix(
+                mod=ANOMALY_DETECTION,
+                cm=os_cm_to_plot,
+                phase=phase,
+                norm=False,
+                classes=['Known', 'ZdA'])
+            self.plot_hidden_space(hiddens=hiddens, labels=labels, predicted_labels=predicted_clusters, phase=phase)
+            self.plot_scores_vectors(score_vectors=preds, labels=labels[query_mask], phase=phase)
+
+        if self.AI_DEBUG:
+            self.logger_instance.info(f'{phase} CS Conf matrix: \n {cs_cm_to_plot}')
+            self.logger_instance.info(f'{phase} AD Conf matrix: \n {os_cm_to_plot}')
+        
+        if phase == TRAINING:
+            self.reset_train_cms()
+        elif phase == INFERENCE:
+            self.reset_test_cms()
 
 
     def check_cs_progress(self, curr_cs_acc):
-        if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
-            (self.inference_counter > 0) and\
-                  (self.best_cs_accuracy < curr_cs_acc.item()):
-            self.best_cs_accuracy = curr_cs_acc
-            self.save_cs_model()
+        self.best_cs_accuracy = curr_cs_acc
+        self.save_cs_model()
 
     
     def check_AD_progress(self, curr_ad_acc):
-        if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
-            (self.inference_counter > 0) and\
-                  (self.best_AD_accuracy < curr_ad_acc.item()):
-            self.best_AD_accuracy = curr_ad_acc
-            self.save_ad_model()
+        self.best_AD_accuracy = curr_ad_acc
+        self.save_ad_model()
 
     
     def check_kr_progress(self, curr_kr_acc):
-        if (self.inference_counter % SAVING_MODULES_FREQ == 0) and\
-            (self.inference_counter > 0) and\
-                  (self.best_KR_accuracy < curr_kr_acc.item()):
-            self.best_KR_accuracy = curr_kr_acc
-            self.save_models() # kernel regression influences the generalization capacity of the whole pipeline!! 
+        self.best_KR_accuracy = curr_kr_acc
+        self.save_models() # kernel regression influences the generalization capacity of the whole pipeline!! 
 
 
 
@@ -770,7 +941,7 @@ class ControllerBrain():
             cs_loss = self.cs_criterion(input=predictions,
                                         target=labels.to(torch.float32))
 
-        if not self.eval:
+        if mode == TRAINING:
             loss = prev_loss + cs_loss
             # backward pass
             self.cs_optimizer.zero_grad()
@@ -783,8 +954,8 @@ class ControllerBrain():
 
         # report progress
         if self.wbt:
-            self.wbl.log({mode+'_'+CS_ACC: acc.item(), STEP_LABEL:self.inference_counter})
-            self.wbl.log({mode+'_'+CS_LOSS: cs_loss.item(), STEP_LABEL:self.inference_counter})
+            self.wbl.log({mode+'_'+CS_ACC: acc.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({mode+'_'+CS_LOSS: cs_loss.item(), STEP_LABEL:self.backprop_counter})
 
         return acc
     
@@ -883,7 +1054,7 @@ class ControllerBrain():
         plt.title(f'{phase} Confusion Matrix')
         
         if self.wbl is not None:
-            self.wbl.log({f'{phase} {mod} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.inference_counter})
+            self.wbl.log({f'{phase} {mod} Confusion Matrix': wandbImage(plt), STEP_LABEL:self.backprop_counter})
 
         plt.cla()
         plt.close()
@@ -893,7 +1064,8 @@ class ControllerBrain():
         self,
         hiddens,
         labels, 
-        predicted_labels):
+        predicted_labels,
+        phase):
 
         color_iterator = itertools.cycle(colors)
         # If dimensionality is > 2, reduce using PCA
@@ -918,7 +1090,7 @@ class ControllerBrain():
                 c=color_for_scatter,
                 alpha=0.5,
                 s=200)
-        plt.title(f'Ground-truth clusters')
+        plt.title(f'{phase} Ground-truth clusters')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         # Predicted labels
         plt.subplot(1, 2, 2)
@@ -933,12 +1105,12 @@ class ControllerBrain():
                 c=color_for_scatter,
                 alpha=0.5,
                 s=200)
-        plt.title(f'Predicted clusters')
+        plt.title(f'{phase} Predicted clusters')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         plt.tight_layout()
 
         if self.wbl is not None:
-            self.wbl.log({f"Latent Space Representations": wandbImage(plt)})
+            self.wbl.log({f"{phase} Latent Space Representations": wandbImage(plt)})
 
         plt.cla()
         plt.close()
@@ -947,7 +1119,8 @@ class ControllerBrain():
     def plot_scores_vectors(
         self,
         score_vectors,
-        labels):
+        labels,
+        phase):
 
         # Create an iterator that cycles through the colors
         color_iterator = itertools.cycle(colors)
@@ -979,14 +1152,14 @@ class ControllerBrain():
                 alpha=0.5,
                 s=200)
                 
-        plt.title(f'PCA reduction of association scores')
+        plt.title(f'{phase} PCA reduction of association scores')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
 
         plt.tight_layout()
         
         if self.wbl is not None:
-            self.wbl.log({f"PCA of ass. scores": wandbImage(plt)})
+            self.wbl.log({f"{phase} PCA of ass. scores": wandbImage(plt)})
 
         plt.cla()
         plt.close()
