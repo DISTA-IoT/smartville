@@ -62,7 +62,7 @@ REPLAY_BUFFER_MAX_CAPACITY=1000
 
 LEARNING_RATE=1e-3
 
-REPORT_STEP_FREQUENCY = 50
+REPORT_STEP_FREQUENCY = 2
 
 REPULSIVE_WEIGHT = 1
 
@@ -70,7 +70,7 @@ ATTRACTIVE_WEIGHT = 1
 
 KERNEL_REGRESSOR_HEADS = 2
 
-EVALUATION_ROUNDS = 50
+EVALUATION_ROUNDS = 2
 
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
@@ -709,8 +709,8 @@ class ControllerBrain():
             self.check_kr_progress(curr_kr_acc=inverse_mae)
 
             if self.wbt:
-                self.wbl.log({TRAINING+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.backprop_counter})
-                self.wbl.log({TRAINING+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.backprop_counter})
+                self.wbl.log({mode+'_'+KR_PRECISION: inverse_mae.item(), STEP_LABEL:self.backprop_counter})
+                self.wbl.log({mode+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.backprop_counter})
 
             if self.AI_DEBUG: 
                 self.logger_instance.info(f'{mode} kernel regression precision: {inverse_mae.item()}')
