@@ -125,7 +125,7 @@ class MultiClassFlowClassifier(nn.Module):
         self.device=device
         self.normalizer = nn.BatchNorm1d(input_size)
         self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
-        self.kernel_regressor = SimpleKernelRegressor(
+        self.kernel_regressor = HighDimKernelRegressor(
             in_features=hidden_size,
             out_features=hidden_size,
             n_heads=kr_heads,
@@ -174,7 +174,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
         self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
         self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
-        self.kernel_regressor = SimpleKernelRegressor(
+        self.kernel_regressor = HighDimKernelRegressor(
             in_features=hidden_size*2,
             out_features=hidden_size,
             n_heads=kr_heads,
@@ -246,8 +246,25 @@ class KernelRegressionLoss(nn.Module):
         return (self.r_w * repulsive_CE_term) + (self.a_w * attractive_CE_term)
 
 
+class SimmilarityNet(nn.Module):
+    def __init__(
+            self,
+            h_dim):
+        super(SimmilarityNet, self).__init__()
 
-class SimpleKernelRegressor(nn.Module):
+        self.act = nn.LeakyReLU(0.2)
+        self.fc1 = nn.Linear(h_dim, h_dim // 2)
+        self.fc2 = nn.Linear(h_dim // 2, 1)
+
+    def forward(self, x1, x2):
+        input_to_symm = torch.abs(x1 - x2)
+        symm = self.fc1(input_to_symm)
+        symm = self.act(symm)
+        symm = self.fc2(symm)
+        return symm
+
+
+class HighDimKernelRegressor(nn.Module):
 
     def __init__(
             self,
@@ -260,22 +277,32 @@ class SimpleKernelRegressor(nn.Module):
             share_weights: bool = True,
             device: str = "cpu"):
 
-        super(SimpleKernelRegressor, self).__init__()
+        super(HighDimKernelRegressor, self).__init__()
 
         self.device = device
         self.w = nn.Parameter(torch.tensor(1.0))
         self.b = nn.Parameter(torch.tensor(-0.5))
-
+        self.similarity_network = SimmilarityNet(h_dim=in_features)
 
     def forward(
             self,
             hiddens):
         
-        energies = 1 / (torch.cdist(hiddens,hiddens) + 1e-10)
+        n_nodes = hiddens.shape[0]
+
+        h_pivot = hiddens.repeat(
+            n_nodes,
+            1)
+
+        h_interleave = hiddens.repeat_interleave(
+            n_nodes,
+            dim=0)
         
-        energies = energies * self.w + self.b
+        energies = self.similarity_network(h_pivot, h_interleave)
 
         kernel = torch.sigmoid(energies)
+
+        kernel = kernel.reshape(n_nodes,n_nodes)
 
         return hiddens, kernel
 
