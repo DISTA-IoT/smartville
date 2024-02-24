@@ -10,7 +10,8 @@ CONTROLLER_IMG_NAME = 'pox-controller:latest'
 ATTACKER_IMG_NAME = 'attacker:latest'
 VICTIM_IMG_NAME = 'victim:latest'
 
-CURRICULUM=0
+CURRICULUM=2
+print(f'CURRICULUM is {CURRICULUM}')
 KNWON_TRAFFIC_NODES = []
 TRAINING_ZDA_NODES = []
 TEST_ZDA_NODES = []  

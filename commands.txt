@@ -17,6 +17,8 @@ kafka-server-start.sh pox/smartController/kafka_server.properties
 
 # 5. lanch pox controller:
 ./pox.py --verbose samples.pretty_log smartController.switch
+# or can also do it less verbose:
+./pox.py samples.pretty_log smartController.switch
 
 # optional -> remove kafka logs
 rm -rf /opt/kafka/logs

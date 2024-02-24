@@ -69,8 +69,8 @@ INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passe
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
 FLOW_FEAT_DIM = 4
-HIDDEN_SIZE_DIM = 40
-DROPOUT=0.1
+HIDDEN_SIZE_DIM = 400
+DROPOUT=0.3
 
 MAX_PACKETS_PER_FEAT_TENSOR = 3  # Max number of packets in the packets feature vector for each flow.
 MAX_FLOWSTATS_PER_FEAT_TENSOR = 10  # Max number of flowstats in the feature vector for each flow.
@@ -82,7 +82,8 @@ KERNEL_REGRESSION = True  # learn relations between attacks.
 PACKET_FEATURES = True  # use packet features
 MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
 EVAL = False  # use models in eval mode
-CURRICULUM = 1
+CURRICULUM = 2
+print(f'CURRICULUM is {CURRICULUM}')
 
 WB_TRACKING = True
 WAND_RUN_NAME=f"AC{CURRICULUM}|DROP {DROPOUT}|H_DIM {HIDDEN_SIZE_DIM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
