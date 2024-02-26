@@ -15,6 +15,7 @@ from wandb import Image as wandbImage
 import itertools
 from sklearn.decomposition import PCA
 import random
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 
 # List of colors
 colors = [
@@ -78,7 +79,8 @@ CS_LOSS = 'Loss'
 OS_ACC = 'AD Acc'
 OS_LOSS = 'AD Loss'
 KR_LOSS = 'KR_LOSS'
-KR_PRECISION = 'KR_PRECISION'
+KR_ARI = 'KR_ARI'
+KR_NMI = 'KR_NMI'
 STEP_LABEL = 'step'
 ANOMALY_BALANCE = 'ANOMALY_BALANCE'
 CLOSED_SET = 'CS'
@@ -647,12 +649,10 @@ class ControllerBrain():
         return targets_onehot
     
 
-    def AD_step(self, oh_labels, zda_labels, preds, query_mask, mode):
-        # known class horizonal mask:
-        known_oh_labels = oh_labels[~zda_labels.squeeze(1).bool()]
-        known_class_h_mask = known_oh_labels.sum(0)>0
+    def AD_step(self, zda_labels, preds, query_mask, mode):
+        
 
-        zda_predictions = self.confidence_decoder(scores=preds[:, known_class_h_mask])
+        zda_predictions = self.confidence_decoder(scores=preds)
 
         os_loss = self.os_criterion(
             input=zda_predictions,
@@ -700,19 +700,29 @@ class ControllerBrain():
                 predicted_kernel=predicted_kernel
             )
 
-            kr_prec = (semantic_kernel == (predicted_kernel>0.5)).float().mean()
+            decimal_sematic_kernel = one_hot_labels.max(1)[1].detach().numpy()
+            decimal_predicted_kernel = get_clusters(predicted_kernel.detach())
+            np_dec_pred_kernel = decimal_predicted_kernel.numpy()
+
+            # Compute clustering metrics
+            kr_ari = adjusted_rand_score(
+                decimal_sematic_kernel, 
+                np_dec_pred_kernel)
+            kr_nmi = normalized_mutual_info_score(
+                decimal_sematic_kernel,
+                np_dec_pred_kernel)
 
             if self.wbt:
-                self.wbl.log({mode+'_'+KR_PRECISION: kr_prec.item(), STEP_LABEL:self.backprop_counter})
+                self.wbl.log({mode+'_'+KR_ARI: kr_ari, STEP_LABEL:self.backprop_counter})
+                self.wbl.log({mode+'_'+KR_NMI: kr_nmi, STEP_LABEL:self.backprop_counter})
+
                 self.wbl.log({mode+'_'+KR_LOSS: kernel_loss.item(), STEP_LABEL:self.backprop_counter})
 
             if self.AI_DEBUG: 
-                self.logger_instance.info(f'{mode} kernel regression precision: {kr_prec.item()}')
+                self.logger_instance.info(f'{mode} kernel regression ARI: {kr_ari} NMI:{kr_nmi}')
                 self.logger_instance.info(f'{mode} kernel regression loss: {kernel_loss.item()}')
 
-            predicted_clusters = get_clusters(predicted_kernel.detach())
-
-            return kernel_loss, predicted_clusters, kr_prec
+            return kernel_loss, decimal_predicted_kernel, kr_ari
 
 
     def experience_learning(self):
@@ -745,11 +755,14 @@ class ControllerBrain():
             one_hot_labels, 
             TRAINING)
 
+        # known class horizonal mask:
+        known_oh_labels = one_hot_labels[~balanced_zda_labels.squeeze(1).bool()]
+        known_class_h_mask = known_oh_labels.sum(0)>0
+
         if self.multi_class:
             ad_loss, _ = self.AD_step(
-                oh_labels=one_hot_labels, 
                 zda_labels=balanced_zda_labels, 
-                preds=logits, 
+                preds=logits[:, known_class_h_mask], 
                 query_mask=query_mask,
                 mode=TRAINING)
             prev_loss += ad_loss
@@ -760,7 +773,7 @@ class ControllerBrain():
         
         if self.backprop_counter % REPORT_STEP_FREQUENCY == 0:
             self.report(
-                preds=logits, 
+                preds=logits[:,known_class_h_mask],  
                 hiddens=hidden_vectors.detach(), 
                 labels=balanced_labels,
                 predicted_clusters=predicted_clusters, 
@@ -785,7 +798,7 @@ class ControllerBrain():
         
         mean_eval_ad_acc = 0
         mean_eval_cs_acc = 0
-        mean_eval_kr_prec = 0
+        mean_eval_kr_ari = 0
 
         for _ in range(EVALUATION_ROUNDS):
                 
@@ -816,12 +829,15 @@ class ControllerBrain():
                 predicted_kernel, 
                 one_hot_labels,
                 INFERENCE)
+            
+            # known class horizonal mask:
+            known_oh_labels = one_hot_labels[~balanced_zda_labels.squeeze(1).bool()]
+            known_class_h_mask = known_oh_labels.sum(0)>0
 
             if self.multi_class:
                 _, ad_acc = self.AD_step(
-                    oh_labels=one_hot_labels, 
                     zda_labels=balanced_zda_labels, 
-                    preds=logits, 
+                    preds=logits[:, known_class_h_mask], 
                     query_mask=query_mask,
                     mode=INFERENCE)
 
@@ -833,24 +849,24 @@ class ControllerBrain():
 
             mean_eval_ad_acc += (ad_acc / EVALUATION_ROUNDS)
             mean_eval_cs_acc += (cs_acc / EVALUATION_ROUNDS)
-            mean_eval_kr_prec += (kr_precision / EVALUATION_ROUNDS)
+            mean_eval_kr_ari += (kr_precision / EVALUATION_ROUNDS)
 
         if self.AI_DEBUG: 
             self.logger_instance.info(f'{INFERENCE} mean eval AD accuracy: {mean_eval_ad_acc.item()} '+\
                                     f'{INFERENCE}  mean eval CS accuracy: {mean_eval_cs_acc.item()}')
-            self.logger_instance.info(f'{INFERENCE} mean eval KR accuracy: {mean_eval_kr_prec.item()}')
+            self.logger_instance.info(f'{INFERENCE} mean eval KR accuracy: {mean_eval_kr_ari}')
         if self.wbt:
             self.wbl.log({'Mean EVAL AD ACC': mean_eval_ad_acc.item(), STEP_LABEL:self.backprop_counter})
             self.wbl.log({'Mean EVAL CS ACC': mean_eval_cs_acc.item(), STEP_LABEL:self.backprop_counter})
-            self.wbl.log({'Mean EVAL KR PREC': mean_eval_kr_prec.item(), STEP_LABEL:self.backprop_counter})
+            self.wbl.log({'Mean EVAL KR PREC': mean_eval_kr_ari, STEP_LABEL:self.backprop_counter})
 
         if not self.eval:
-            self.check_kr_progress(curr_kr_acc=mean_eval_kr_prec.item())
+            self.check_kr_progress(curr_kr_acc=mean_eval_kr_ari)
             self.check_cs_progress(curr_cs_acc=mean_eval_cs_acc.item())
             self.check_AD_progress(curr_ad_acc=mean_eval_ad_acc.item())
 
         self.report(
-                preds=logits, 
+                preds=logits[:,known_class_h_mask], 
                 hiddens=hidden_vectors.detach(), 
                 labels=balanced_labels,
                 predicted_clusters=predicted_clusters, 
