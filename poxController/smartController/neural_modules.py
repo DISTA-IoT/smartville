@@ -307,6 +307,39 @@ class HighDimKernelRegressor(nn.Module):
         return hiddens, kernel
 
 
+class SimpleKernelRegressor(nn.Module):
+
+    def __init__(
+            self,
+            in_features: int,
+            out_features: int,
+            n_heads: int,
+            is_concat: bool = False,
+            dropout: float = 0.0,
+            leaky_relu_negative_slope: float = 0.2,
+            share_weights: bool = True,
+            device: str = "cpu"):
+
+        super(SimpleKernelRegressor, self).__init__()
+
+        self.device = device
+        self.w = nn.Parameter(torch.tensor(1.0))
+        self.b = nn.Parameter(torch.tensor(-0.5))
+
+    def forward(
+            self,
+            hiddens):
+        
+        n_nodes = hiddens.shape[0]
+        
+        energies = 1/ (torch.cdist(hiddens, hiddens)+1e-10)
+
+        kernel = torch.sigmoid(energies)
+
+        kernel = kernel.reshape(n_nodes,n_nodes)
+
+        return hiddens, kernel
+
 
 class KernelRegressor(nn.Module):
 
