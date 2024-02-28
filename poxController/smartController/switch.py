@@ -18,6 +18,7 @@ from pox.lib.recoco import Timer
 import pox.openflow.libopenflow_01 as of
 from pox.lib.revent import *
 import time
+import argparse
 from pox.lib.recoco import Timer
 from pox.openflow.of_json import *
 from pox.lib.addresses import EthAddr
@@ -626,6 +627,48 @@ def requests_stats():
 
 
 def launch():
+  # Create an argument parser
+  parser = argparse.ArgumentParser()
+
+  # Define command-line arguments with default values for brain
+  # variables can be modified at runtime:
+  # python switch.py --eval custom_value --use_packet_feats custom_value
+  parser.add_argument('--eval', default=EVAL)
+  parser.add_argument('--use_packet_feats', default=PACKET_FEATURES)
+  parser.add_argument('--flow_feat_dim', default=FLOW_FEAT_DIM)
+  parser.add_argument('--packet_feat_dim', default=PACKET_FEAT_DIM)
+  parser.add_argument('--dropout', default=DROPOUT)
+  parser.add_argument('--multi_class', default=MULTI_CLASS_CLASSIFICATION)
+  parser.add_argument('--k_shot', default=K_SHOT)
+  parser.add_argument('--replay_buffer_batch_size', default=REPLAY_BUFFER_BATCH_SIZE)
+  parser.add_argument('--kernel_regression', default=KERNEL_REGRESSION)
+  parser.add_argument('--device', default=BRAIN_DEVICE)
+  parser.add_argument('--seed', default=SEED)
+  parser.add_argument('--debug', default=AI_DEBUG)
+  parser.add_argument('--wb_track', default=WB_TRACKING)
+  parser.add_argument('--wb_project_name', default=WANDB_PROJECT_NAME)
+  parser.add_argument('--wb_run_name', default=WAND_RUN_NAME)
+  parser.add_argument('--wb_config_dict', default=WANDB_CONFIG_DICT)
+  # Parse the command-line arguments
+  args = parser.parse_args()
+
+  # Set the default values of the script variables to the argparse default values
+  EVAL = args.eval
+  PACKET_FEATURES = args.use_packet_feats
+  FLOW_FEAT_DIM = args.flow_feat_dim
+  PACKET_FEAT_DIM = args.packet_feat_dim
+  DROPOUT = args.dropout
+  MULTI_CLASS_CLASSIFICATION = args.multi_class
+  K_SHOT = args.k_shot
+  REPLAY_BUFFER_BATCH_SIZE = args.replay_buffer_batch_size
+  KERNEL_REGRESSION = args.kernel_regression
+  BRAIN_DEVICE = args.device
+  SEED = args.seed
+  AI_DEBUG = args.debug
+  WB_TRACKING = args.wb_track
+  WANDB_PROJECT_NAME = args.wb_project_name
+  WAND_RUN_NAME = args.wb_run_name
+  WANDB_CONFIG_DICT = args.wb_config_dict
   
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
