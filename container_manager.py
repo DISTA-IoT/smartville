@@ -10,7 +10,7 @@ CONTROLLER_IMG_NAME = 'pox-controller:latest'
 ATTACKER_IMG_NAME = 'attacker:latest'
 VICTIM_IMG_NAME = 'victim:latest'
 
-CURRICULUM=2
+CURRICULUM=1
 print(f'CURRICULUM is {CURRICULUM}')
 KNWON_TRAFFIC_NODES = []
 TRAINING_ZDA_NODES = []
@@ -298,6 +298,17 @@ def start_nodes():
             container.start()
 
 
+
+def send_all_traffic():
+    send_known_traffic()
+    send_training_zdas()
+    send_test_zdas()
+    
+
+def restart_nodes():
+    stop_nodes()
+    start_nodes()
+
 if __name__ == "__main__":
 
     # Connect to the Docker daemon
@@ -385,16 +396,22 @@ if __name__ == "__main__":
         'attacker-8']  
 
 
-    user_input = input("Press '1' to send known traffic, \n" +\
+    user_input = input("Press '0' to send all traffic, \n" +\
+                       "'r' to restart nodes, \n" +\
+                       "'1' to send known traffic, \n" +\
                        "'2' to send training zdas \n" +\
                        "'3' to send test zdas \n" +\
                         "'4' to send metrics, \n" +\
                         "'5' to launch controller services, \n"+\
                         "or 'q' to quit: ")
     
-    if user_input == '1':
+    if user_input == '0':
+        send_all_traffic()
+    elif user_input == 'r':
+        restart_nodes()
+    elif user_input == '1':
         send_known_traffic()
-    if user_input == '2':
+    elif user_input == '2':
         send_training_zdas()
     if user_input == '3':
         send_test_zdas()
