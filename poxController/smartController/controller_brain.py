@@ -71,6 +71,8 @@ KERNEL_REGRESSOR_HEADS = 2
 
 EVALUATION_ROUNDS = 50
 
+REGULARIZATION = True
+
 # Constants for wandb monitoring:
 INFERENCE = 'Inference'
 TRAINING = 'Training'
@@ -247,6 +249,7 @@ class ControllerBrain():
             wb_config_dict['KERNEL_REGRESSOR_HEADS'] = KERNEL_REGRESSOR_HEADS
             wb_config_dict['REPULSIVE_WEIGHT']  = REPULSIVE_WEIGHT
             wb_config_dict['ATTRACTIVE_WEIGHT']  = ATTRACTIVE_WEIGHT
+            wb_config_dict['REGULARIZATION']  = REGULARIZATION
 
             self.wbl = WandBTracker(
                 wanb_project_name=wb_project_name,
@@ -754,7 +757,10 @@ class ControllerBrain():
             predicted_kernel, 
             one_hot_labels, 
             TRAINING)
-
+        
+        if not REGULARIZATION:
+            prev_loss = 0
+            
         # known class horizonal mask:
         known_oh_labels = one_hot_labels[~balanced_zda_labels.squeeze(1).bool()]
         known_class_h_mask = known_oh_labels.sum(0)>0
