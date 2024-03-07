@@ -55,102 +55,20 @@ ARP_REQUEST_EXPIRATION_SECONDS = 4
 ######### MONITORING ###########################################
 # Interval in which the stats request is triggered
 REQUEST_STATS_PERIOD_SECONDS = 5
-NODE_FEATURES = False  # Requires Prometheus, Grafana, Zookeeper and Kafka...
-GRAFANA_USER='admin'
-GRAFANA_PASSWORD='admin'
+
 ################################################################
 
 
 ######## AI #####################################################
 
-AI_DEBUG = True
-BRAIN_DEVICE = 'cpu' # eventually, the neural networks could be on a GPU.
-
-SEED = 777  # For reproducibility purposes
 INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passes
-# Dimention of the feature tensors
-PACKET_FEAT_DIM = 64
-FLOW_FEAT_DIM = 4
-HIDDEN_SIZE_DIM = 800
-DROPOUT=0.6
-
-MAX_PACKETS_PER_FEAT_TENSOR = 1  # Max number of packets in the packets feature vector for each flow.
-MAX_FLOWSTATS_PER_FEAT_TENSOR = 10  # Max number of flowstats in the feature vector for each flow.
-ANONYMIZE_TRANSPORT_PORTS = True  # Mask port info in packets for AI? (IP adresses are masked by default!)
-K_SHOT = 5  # FOR EPISODIC LEARNING:
-REPLAY_BUFFER_BATCH_SIZE= 20  # MUST BE GREATER THAN K_SHOT!
-
-KERNEL_REGRESSION = True  # learn relations between attacks.
-PACKET_FEATURES = True  # use packet features
-MULTI_CLASS_CLASSIFICATION = True  # Otherwise binary (attack / normal) Requires multiclass labels!
-EVAL = False  # use models in eval mode
 CURRICULUM = 2
-print(f'CURRICULUM is {CURRICULUM}')
 
-WB_TRACKING = True
-WAND_RUN_NAME=f"AC{CURRICULUM}|DROP {DROPOUT}|H_DIM {HIDDEN_SIZE_DIM}|{MAX_PACKETS_PER_FEAT_TENSOR}-PKT|{MAX_FLOWSTATS_PER_FEAT_TENSOR}TS"
 ###################################################################
 
 
-if MULTI_CLASS_CLASSIFICATION:
-
-    if CURRICULUM == 0:
-          TRAINING_LABELS_DICT = AC0_TRAINING_LABELS_DICT
-          ZDA_DICT = AC0_ZDA_DICT
-          TEST_ZDA_DICT = AC0_TEST_ZDA_DICT
-    if CURRICULUM == 1:
-          TRAINING_LABELS_DICT = AC1_TRAINING_LABELS_DICT
-          ZDA_DICT = AC1_ZDA_DICT
-          TEST_ZDA_DICT = AC1_TEST_ZDA_DICT
-    if CURRICULUM == 2:
-      TRAINING_LABELS_DICT = AC2_TRAINING_LABELS_DICT
-      ZDA_DICT = AC2_ZDA_DICT
-      TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
-
-else:
-    
-    TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
-    TRAINING_LABELS_DICT["192.168.1.7"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
-
-    TRAINING_LABELS_DICT["192.168.1.10"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.11"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.12"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.13"] = "Attack"
-
-    TRAINING_LABELS_DICT["192.168.1.14"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.15"] = "Attack"
-    TRAINING_LABELS_DICT["192.168.1.16"] = "Attack"
 
 
-
-WANDB_PROJECT_NAME = "StarWars"
-
-WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
-                     "ARP_TIMEOUT": ARP_TIMEOUT,
-                     "MAX_BUFFERED_PER_IP": MAX_BUFFERED_PER_IP,
-                     "MAX_PACKETS_PER_FEAT_TENSOR": MAX_PACKETS_PER_FEAT_TENSOR,
-                     "MAX_FLOWSTATS_PER_FEAT_TENSOR": MAX_FLOWSTATS_PER_FEAT_TENSOR,
-                     "MAX_BUFFER_TIME": MAX_BUFFER_TIME,
-                     "REQUEST_STATS_PERIOD_SECONDS": REQUEST_STATS_PERIOD_SECONDS,
-                     "ARP_REQUEST_EXPIRATION_SECONDS": ARP_REQUEST_EXPIRATION_SECONDS,
-                     "ANONYMIZE_TRANSPORT_PORTS": ANONYMIZE_TRANSPORT_PORTS,
-                     "TRAINING_LABELS_DICT": TRAINING_LABELS_DICT,
-                     "AI_DEBUG": AI_DEBUG,
-                     "SEED": SEED,
-                     "PACKET_FEAT_DIM": PACKET_FEAT_DIM,
-                     "FLOW_FEAT_DIM": FLOW_FEAT_DIM,
-                     "PACKET_FEATURES": PACKET_FEATURES,
-                     "NODE_FEATURES": NODE_FEATURES,
-                     "MULTI_CLASS_CLASSIFICATION": MULTI_CLASS_CLASSIFICATION,
-                     "BRAIN_DEVICE": BRAIN_DEVICE,
-                     "INFERENCE_FREQ_SECONDS": INFERENCE_FREQ_SECONDS,
-                     "K_SHOT": K_SHOT,
-                     "REPLAY_BUFFER_BATCH_SIZE": REPLAY_BUFFER_BATCH_SIZE,
-                     "HIDDEN_SIZE_DIM": HIDDEN_SIZE_DIM,
-                     "DROPOUT": DROPOUT
-                     }
 
 
 class SmartSwitch(EventMixin):
@@ -617,9 +535,6 @@ def launch(**kwargs):
     seed = int(kwargs.get('seed', 777))
     ai_debug = str_to_bool(kwargs.get('ai_debug', False))
 
-    wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
-    wb_project_name = kwargs.get('wb_project_name', False)
-    wb_run_name = kwargs.get('wb_run_name', False)
 
     multi_class = str_to_bool(kwargs.get('multi_class', True))
     use_packet_feats = str_to_bool(kwargs.get('use_packet_feats', True))
@@ -636,6 +551,51 @@ def launch(**kwargs):
     grafana_user = kwargs.get('grafana_user', 'admin'),
     grafana_password = kwargs.get('grafana_password', 'admin'),
     max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5)),
+
+    wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
+    wb_project_name = kwargs.get('wb_project_name', 'StarWars')
+    wb_run_name = kwargs.get('wb_run_name', f"AC{CURRICULUM}|DROP {dropout}|H_DIM {h_dim}|{packet_buffer_len}-PKT|{flow_buff_len}TS")
+
+
+    ########################### LABELING:
+
+    if multi_class:
+
+        if CURRICULUM == 0:
+              TRAINING_LABELS_DICT = AC0_TRAINING_LABELS_DICT
+              ZDA_DICT = AC0_ZDA_DICT
+              TEST_ZDA_DICT = AC0_TEST_ZDA_DICT
+        if CURRICULUM == 1:
+              TRAINING_LABELS_DICT = AC1_TRAINING_LABELS_DICT
+              ZDA_DICT = AC1_ZDA_DICT
+              TEST_ZDA_DICT = AC1_TEST_ZDA_DICT
+        if CURRICULUM == 2:
+          TRAINING_LABELS_DICT = AC2_TRAINING_LABELS_DICT
+          ZDA_DICT = AC2_ZDA_DICT
+          TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
+
+    else:
+        
+        TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+        TRAINING_LABELS_DICT["192.168.1.7"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
+
+        TRAINING_LABELS_DICT["192.168.1.10"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.11"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.12"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.13"] = "Attack"
+
+        TRAINING_LABELS_DICT["192.168.1.14"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.15"] = "Attack"
+        TRAINING_LABELS_DICT["192.168.1.16"] = "Attack"
+    
+    
+    
+    ########################### END OF LABELING
+
+
+
 
     # Registering PacketLogger component:
     flow_logger = FlowLogger(
@@ -678,7 +638,7 @@ def launch(**kwargs):
         wb_track=wb_tracking,
         wb_project_name=wb_project_name,
         wb_run_name=wb_run_name,
-        wb_config_dict=WANDB_CONFIG_DICT)
+        wb_config_dict=kwargs)
       
     # Registering Switch component:
     smart_switch = SmartSwitch(
