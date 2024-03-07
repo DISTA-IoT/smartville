@@ -15,6 +15,7 @@ from pox.lib.packet.ethernet import ethernet, ETHER_BROADCAST
 from pox.lib.packet.ipv4 import ipv4
 from pox.lib.packet.arp import arp
 from pox.lib.recoco import Timer
+from pox.lib.util import str_to_bool
 import pox.openflow.libopenflow_01 as of
 from pox.lib.revent import *
 import time
@@ -70,10 +71,10 @@ INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passe
 # Dimention of the feature tensors
 PACKET_FEAT_DIM = 64
 FLOW_FEAT_DIM = 4
-HIDDEN_SIZE_DIM = 400
-DROPOUT=0.3
+HIDDEN_SIZE_DIM = 800
+DROPOUT=0.6
 
-MAX_PACKETS_PER_FEAT_TENSOR = 3  # Max number of packets in the packets feature vector for each flow.
+MAX_PACKETS_PER_FEAT_TENSOR = 1  # Max number of packets in the packets feature vector for each flow.
 MAX_FLOWSTATS_PER_FEAT_TENSOR = 10  # Max number of flowstats in the feature vector for each flow.
 ANONYMIZE_TRANSPORT_PORTS = True  # Mask port info in packets for AI? (IP adresses are masked by default!)
 K_SHOT = 5  # FOR EPISODIC LEARNING:
@@ -626,70 +627,45 @@ def requests_stats():
   log.debug("Sent %i flow/port stats request(s)", len(core.openflow._connections))
 
 
-def launch():
-  # Create an argument parser
-  parser = argparse.ArgumentParser()
+def launch(
+      eval: bool = False,
+      multi_class: bool = True,
+      packet_buffer_len: int = 1,
+      packet_feat_dim: int = 64,
+      anonymize_transport_ports: bool = True,
+      flow_buff_len: int = 10,
+      node_features:bool = False,
+      metric_buffer_len: int = 10,
+      grafana_user : str = 'admin',
+      grafana_password: str = 'admin',
+      max_kafka_conn_retries = 5,
+      ):
+  
+  eval = str_to_bool(eval)
+  multi_class = str_to_bool(multi_class)
 
-  # Define command-line arguments with default values for brain
-  # variables can be modified at runtime:
-  # python switch.py --eval custom_value --use_packet_feats custom_value
-  parser.add_argument('--eval', default=EVAL)
-  parser.add_argument('--use_packet_feats', default=PACKET_FEATURES)
-  parser.add_argument('--flow_feat_dim', default=FLOW_FEAT_DIM)
-  parser.add_argument('--packet_feat_dim', default=PACKET_FEAT_DIM)
-  parser.add_argument('--dropout', default=DROPOUT)
-  parser.add_argument('--multi_class', default=MULTI_CLASS_CLASSIFICATION)
-  parser.add_argument('--k_shot', default=K_SHOT)
-  parser.add_argument('--replay_buffer_batch_size', default=REPLAY_BUFFER_BATCH_SIZE)
-  parser.add_argument('--kernel_regression', default=KERNEL_REGRESSION)
-  parser.add_argument('--device', default=BRAIN_DEVICE)
-  parser.add_argument('--seed', default=SEED)
-  parser.add_argument('--debug', default=AI_DEBUG)
-  parser.add_argument('--wb_track', default=WB_TRACKING)
-  parser.add_argument('--wb_project_name', default=WANDB_PROJECT_NAME)
-  parser.add_argument('--wb_run_name', default=WAND_RUN_NAME)
-  parser.add_argument('--wb_config_dict', default=WANDB_CONFIG_DICT)
-  # Parse the command-line arguments
-  args = parser.parse_args()
-
-  # Set the default values of the script variables to the argparse default values
-  EVAL = args.eval
-  PACKET_FEATURES = args.use_packet_feats
-  FLOW_FEAT_DIM = args.flow_feat_dim
-  PACKET_FEAT_DIM = args.packet_feat_dim
-  DROPOUT = args.dropout
-  MULTI_CLASS_CLASSIFICATION = args.multi_class
-  K_SHOT = args.k_shot
-  REPLAY_BUFFER_BATCH_SIZE = args.replay_buffer_batch_size
-  KERNEL_REGRESSION = args.kernel_regression
-  BRAIN_DEVICE = args.device
-  SEED = args.seed
-  AI_DEBUG = args.debug
-  WB_TRACKING = args.wb_track
-  WANDB_PROJECT_NAME = args.wb_project_name
-  WAND_RUN_NAME = args.wb_run_name
-  WANDB_CONFIG_DICT = args.wb_config_dict
   
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
     training_labels_dict=TRAINING_LABELS_DICT,
     zda_dict=ZDA_DICT,
     test_zda_dict=TEST_ZDA_DICT,
-    multi_class=MULTI_CLASS_CLASSIFICATION,
-    packet_buffer_len=MAX_PACKETS_PER_FEAT_TENSOR,
-    packet_feat_dim=PACKET_FEAT_DIM,
-    anonymize_transport_ports=ANONYMIZE_TRANSPORT_PORTS,
-    flow_feat_dim=FLOW_FEAT_DIM,
-    flow_buff_len=MAX_FLOWSTATS_PER_FEAT_TENSOR)
+    multi_class=multi_class,
+    packet_buffer_len=packet_buffer_len,
+    packet_feat_dim=packet_feat_dim,
+    anonymize_transport_ports=anonymize_transport_ports,
+    flow_feat_dim=4,
+    flow_buff_len=flow_buff_len)
 
   metrics_logger=None
-  if NODE_FEATURES:
+
+  if node_features:
     metrics_logger = MetricsLogger(
       server_addr = "192.168.1.1:9092",
-      max_conn_retries = 5,
-      metric_buffer_len = 40,
-      grafana_user=GRAFANA_USER, 
-      grafana_pass=GRAFANA_PASSWORD,
+      max_conn_retries = max_kafka_conn_retries,
+      metric_buffer_len = metric_buffer_len,
+      grafana_user=grafana_user, 
+      grafana_pass=grafana_password,
       )
  
      
