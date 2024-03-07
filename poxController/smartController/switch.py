@@ -153,7 +153,7 @@ WANDB_CONFIG_DICT = {"FLOW_IDLE_TIMEOUT": FLOW_IDLE_TIMEOUT,
                      }
 
 
-class Smart_Switch(EventMixin):
+class SmartSwitch(EventMixin):
   """
   For each switch:
   1) Keep a table that maps IP addresses to MAC addresses and switch ports.
@@ -164,7 +164,7 @@ class Smart_Switch(EventMixin):
   4) When you see an IP packet, if you know the destination port (because it's
     in the table from step 1), install a flow for it.
    """
-  def __init__ (self, flow_logger, metrics_logger):
+  def __init__ (self, flow_logger, metrics_logger, brain):
     
     # We use this to prevent ARP flooding
     # Key: (switch_id, ARPed_IP) Values: ARP request expire time
@@ -180,24 +180,7 @@ class Smart_Switch(EventMixin):
     # (Entries are pairs of switch output ports and MAC addresses)
     self.arpTables = {}
 
-    self.brain = ControllerBrain(
-      eval=EVAL,
-      use_packet_feats=PACKET_FEATURES,
-      flow_feat_dim=FLOW_FEAT_DIM,
-      packet_feat_dim=PACKET_FEAT_DIM,
-      h_dim=HIDDEN_SIZE_DIM,
-      dropout=DROPOUT,
-      multi_class=MULTI_CLASS_CLASSIFICATION, 
-      k_shot=K_SHOT,
-      replay_buffer_batch_size=REPLAY_BUFFER_BATCH_SIZE,
-      kernel_regression=KERNEL_REGRESSION,
-      device=BRAIN_DEVICE,
-      seed=SEED,
-      debug=AI_DEBUG,
-      wb_track=WB_TRACKING,
-      wb_project_name=WANDB_PROJECT_NAME,
-      wb_run_name=WAND_RUN_NAME,
-      wb_config_dict=WANDB_CONFIG_DICT)
+    self.brain = brain
 
     # This timer handles expiring stuff 
     # Doesnt seems having to do with time to live stuff
@@ -627,72 +610,97 @@ def requests_stats():
   log.debug("Sent %i flow/port stats request(s)", len(core.openflow._connections))
 
 
-def launch(
-      eval: bool = False,
-      multi_class: bool = True,
-      packet_buffer_len: int = 1,
-      packet_feat_dim: int = 64,
-      anonymize_transport_ports: bool = True,
-      flow_buff_len: int = 10,
-      node_features:bool = False,
-      metric_buffer_len: int = 10,
-      grafana_user : str = 'admin',
-      grafana_password: str = 'admin',
-      max_kafka_conn_retries = 5,
-      ):
+def launch(**kwargs):
+
+    eval = str_to_bool(kwargs.get('eval', False))
+    device = kwargs.get('device', 'cpu')
+    seed = int(kwargs.get('seed', 777))
+    ai_debug = str_to_bool(kwargs.get('ai_debug', False))
+
+    wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
+    wb_project_name = kwargs.get('wb_project_name', False)
+    wb_run_name = kwargs.get('wb_run_name', False)
+
+    multi_class = str_to_bool(kwargs.get('multi_class', True))
+    use_packet_feats = str_to_bool(kwargs.get('use_packet_feats', True))
+    packet_buffer_len = int(kwargs.get('packet_buffer_len', 1))
+    packet_feat_dim = int(kwargs.get('packet_feat_dim', 64))
+    h_dim = int(kwargs.get('h_dim', 800))
+    dropout = float(kwargs.get('dropout', 0.6))
+    k_shot = int(kwargs.get('k_shot', 5))
+    batch_size = int(kwargs.get('batch_size', 20))
+    anonymize_transport_ports = str_to_bool(kwargs.get('anonym_ports', True))
+    flow_buff_len = int(kwargs.get('flow_buff_len', 10)),
+    node_features = str_to_bool(kwargs.get('node_features', False))
+    metric_buffer_len = str_to_bool(kwargs.get('metric_buffer_len', False))
+    grafana_user = kwargs.get('grafana_user', 'admin'),
+    grafana_password = kwargs.get('grafana_password', 'admin'),
+    max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5)),
+
+    # Registering PacketLogger component:
+    flow_logger = FlowLogger(
+      training_labels_dict=TRAINING_LABELS_DICT,
+      zda_dict=ZDA_DICT,
+      test_zda_dict=TEST_ZDA_DICT,
+      multi_class=multi_class,
+      packet_buffer_len=packet_buffer_len,
+      packet_feat_dim=packet_feat_dim,
+      anonymize_transport_ports=anonymize_transport_ports,
+      flow_feat_dim=4,
+      flow_buff_len=flow_buff_len)
+
+    metrics_logger=None
+
+    if node_features:
+      metrics_logger = MetricsLogger(
+        server_addr = "192.168.1.1:9092",
+        max_conn_retries = max_kafka_conn_retries,
+        metric_buffer_len = metric_buffer_len,
+        grafana_user=grafana_user, 
+        grafana_pass=grafana_password,
+        )
   
-  eval = str_to_bool(eval)
-  multi_class = str_to_bool(multi_class)
-  packet_buffer_len = int(packet_buffer_len)
-  packet_feat_dim = int(packet_feat_dim)
-  flow_buff_len = int(flow_buff_len)
-  metric_buffer_len = int(metric_buffer_len)
-  max_kafka_conn_retries = int(max_kafka_conn_retries)
-
-  # Registering PacketLogger component:
-  flow_logger = FlowLogger(
-    training_labels_dict=TRAINING_LABELS_DICT,
-    zda_dict=ZDA_DICT,
-    test_zda_dict=TEST_ZDA_DICT,
-    multi_class=multi_class,
-    packet_buffer_len=packet_buffer_len,
-    packet_feat_dim=packet_feat_dim,
-    anonymize_transport_ports=anonymize_transport_ports,
-    flow_feat_dim=4,
-    flow_buff_len=flow_buff_len)
-
-  metrics_logger=None
-
-  if node_features:
-    metrics_logger = MetricsLogger(
-      server_addr = "192.168.1.1:9092",
-      max_conn_retries = max_kafka_conn_retries,
-      metric_buffer_len = metric_buffer_len,
-      grafana_user=grafana_user, 
-      grafana_pass=grafana_password,
+    # The controllerBrain holds the ML functionalities.
+    controller_brain = ControllerBrain(
+        eval=eval,
+        use_packet_feats=use_packet_feats,
+        flow_feat_dim=4,
+        packet_feat_dim=packet_feat_dim,
+        h_dim=h_dim,
+        dropout=dropout,
+        multi_class=multi_class, 
+        k_shot=k_shot,
+        replay_buffer_batch_size=batch_size,
+        kernel_regression=True,
+        device=device,
+        seed=seed,
+        debug=ai_debug,
+        wb_track=wb_tracking,
+        wb_project_name=wb_project_name,
+        wb_run_name=wb_run_name,
+        wb_config_dict=WANDB_CONFIG_DICT)
+      
+    # Registering Switch component:
+    smart_switch = SmartSwitch(
+      flow_logger=flow_logger,
+      metrics_logger=metrics_logger,
+      brain=controller_brain
       )
- 
-     
-  # Registering Switch component:
-  smart_switch = Smart_Switch(
-     flow_logger=flow_logger,
-     metrics_logger=metrics_logger
-     )
-  
-  core.register("smart_switch", smart_switch)  
-  
-  # attach handlers to listeners
-  core.openflow.addListenerByName(
-    "ConnectionUp", 
-    _handle_ConnectionUp)
+    
+    core.register("smart_switch", smart_switch)  
+    
+    # attach handlers to listeners
+    core.openflow.addListenerByName(
+      "ConnectionUp", 
+      _handle_ConnectionUp)
 
-  core.openflow.addListenerByName(
-    "FlowStatsReceived", 
-    flow_logger._handle_flowstats_received) 
-  
-  """
-  core.openflow.addListenerByName(
-    "PortStatsReceived", 
-    flow_logger._handle_portstats_received) 
-  """
+    core.openflow.addListenerByName(
+      "FlowStatsReceived", 
+      flow_logger._handle_flowstats_received) 
+    
+    """
+    core.openflow.addListenerByName(
+      "PortStatsReceived", 
+      flow_logger._handle_portstats_received) 
+    """
 
