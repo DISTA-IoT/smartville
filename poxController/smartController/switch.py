@@ -643,8 +643,12 @@ def launch(
   
   eval = str_to_bool(eval)
   multi_class = str_to_bool(multi_class)
+  packet_buffer_len = int(packet_buffer_len)
+  packet_feat_dim = int(packet_feat_dim)
+  flow_buff_len = int(flow_buff_len)
+  metric_buffer_len = int(metric_buffer_len)
+  max_kafka_conn_retries = int(max_kafka_conn_retries)
 
-  
   # Registering PacketLogger component:
   flow_logger = FlowLogger(
     training_labels_dict=TRAINING_LABELS_DICT,
