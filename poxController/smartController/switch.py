@@ -1,3 +1,20 @@
+# Copyright 2011,2012 James McCauley
+#
+# This file is part of POX.
+#
+# POX is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# POX is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with POX.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 A Smart L3 switch
 
@@ -32,44 +49,13 @@ from smartController.curricula import \
   AC0_TRAINING_LABELS_DICT, AC0_TEST_ZDA_DICT, AC0_ZDA_DICT, \
   AC1_TRAINING_LABELS_DICT, AC1_TEST_ZDA_DICT, AC1_ZDA_DICT, \
   AC2_TRAINING_LABELS_DICT, AC2_TEST_ZDA_DICT, AC2_ZDA_DICT
-  
-openflow_connection = None #openflow connection to switch is stored here
+
 
 log = core.getLogger()
 
-
-############ SWITCH CONF #######################################
-# Timeout for flows
-FLOW_IDLE_TIMEOUT = 10
-# Timeout for ARP entries
-ARP_TIMEOUT = 60 * 2
-# Maximum number of packet to buffer on a switch for an unknown IP
-MAX_BUFFERED_PER_IP = 5
-# Maximum time to hang on to a buffer for an unknown IP in seconds
-MAX_BUFFER_TIME = 5
-# Don't re-send ARPs before expiring this interval:
-ARP_REQUEST_EXPIRATION_SECONDS = 4
-# print(f"HARD TIMEOUT IS SET TO {of.OFP_FLOW_PERMANENT} WHICH IS DEFAULT")
-#################################################################
-
-######### MONITORING ###########################################
-# Interval in which the stats request is triggered
-REQUEST_STATS_PERIOD_SECONDS = 5
-
-################################################################
-
-
-######## AI #####################################################
-
-INFERENCE_FREQ_SECONDS = 5  # Seconds between consecutive calls to forward passes
-CURRICULUM = 2
-
-###################################################################
-
-
-
-
-
+openflow_connection = None  # openflow connection to switch is stored here
+FLOWSTATS_FREQ_SECS = None  # Interval in which the FLOW stats request is triggered
+PORTSTATS_FREQ_SECS = None  # Interval in which the PORT stats request is triggered
 
 class SmartSwitch(EventMixin):
   """
@@ -82,8 +68,25 @@ class SmartSwitch(EventMixin):
   4) When you see an IP packet, if you know the destination port (because it's
     in the table from step 1), install a flow for it.
    """
-  def __init__ (self, flow_logger, metrics_logger, brain):
-    
+  def __init__ (
+        self, 
+        flow_logger, 
+        metrics_logger, 
+        brain,
+        flow_idle_timeout: int = 10,
+        arp_timeout: int = 120,
+        max_buffered_packets:int = 5,
+        max_buffering_secs:int = 5,
+        arp_req_exp_secs:int = 4,
+        inference_freq_secs:int = 5
+        ):
+
+    self.flow_idle_timeout = flow_idle_timeout
+    self.arp_timeout = arp_timeout
+    self.max_buffered_packets = max_buffered_packets
+    self.max_buffering_secs = max_buffering_secs
+    self.arp_req_exp_secs = arp_req_exp_secs
+
     # We use this to prevent ARP flooding
     # Key: (switch_id, ARPed_IP) Values: ARP request expire time
     self.recently_sent_ARPs = {}
@@ -105,7 +108,7 @@ class SmartSwitch(EventMixin):
     self._expire_timer = Timer(5, self._handle_expiration, recurring=True)
 
     # Call the smart check function repeatedly:
-    self.smart_check_timer = Timer(INFERENCE_FREQ_SECONDS, self.smart_check, recurring=True)
+    self.smart_check_timer = Timer(inference_freq_secs, self.smart_check, recurring=True)
 
     # Our flow logger instance:
     self.flow_logger = flow_logger
@@ -199,7 +202,7 @@ class SmartSwitch(EventMixin):
       self.arpTables[switch_id][ip_addr] = Entry(
                                             port=port, 
                                             mac=mac_addr, 
-                                            ARP_TIMEOUT=ARP_TIMEOUT)
+                                            ARP_TIMEOUT=self.arp_timeout)
       
       log.debug(f"Entry added/updated to switch {switch_id}'s internal arp table: "+\
                 f"(port:{port} ip:{ip_addr})")
@@ -225,7 +228,7 @@ class SmartSwitch(EventMixin):
         nw_dst = dest_ip_addr)
 
       msg = of.ofp_flow_mod(command=of.OFPFC_ADD,
-                            idle_timeout=FLOW_IDLE_TIMEOUT,
+                            idle_timeout=self.flow_idle_timeout,
                             hard_timeout=of.OFP_FLOW_PERMANENT,
                             buffer_id=packet_id,
                             actions=actions,
@@ -275,12 +278,12 @@ class SmartSwitch(EventMixin):
     if tuple_key not in self.unprocessed_flows: 
       self.unprocessed_flows[tuple_key] = []
     packet_metadata_list = self.unprocessed_flows[tuple_key]
-    packet_metadata = (time.time() + MAX_BUFFER_TIME, 
+    packet_metadata = (time.time() + self.max_buffering_secs, 
                        buffer_id, 
                        port,
                        src_ip)
     packet_metadata_list.append(packet_metadata)
-    while len(packet_metadata_list) > MAX_BUFFERED_PER_IP: 
+    while len(packet_metadata_list) > self.max_buffered_packets: 
        del packet_metadata_list[0]
 
 
@@ -310,7 +313,7 @@ class SmartSwitch(EventMixin):
       return
 
     # Otherwise, ARP...
-    self.recently_sent_ARPs[(switch_id, dest_ip_addr)] = time.time() + ARP_REQUEST_EXPIRATION_SECONDS
+    self.recently_sent_ARPs[(switch_id, dest_ip_addr)] = time.time() + self.arp_req_exp_secs
 
     self.build_and_send_ARP_request(
         switch_id, 
@@ -518,7 +521,7 @@ def _handle_ConnectionUp (event):
   openflow_connection=event.connection
   log.info("Connection is UP")
   # Request stats periodically
-  Timer(REQUEST_STATS_PERIOD_SECONDS, requests_stats, recurring=True)
+  Timer(FLOWSTATS_FREQ_SECS, requests_stats, recurring=True)
 
 
 def requests_stats():
@@ -529,6 +532,7 @@ def requests_stats():
 
 
 def launch(**kwargs):
+    global FLOWSTATS_FREQ_SECS
 
     eval = str_to_bool(kwargs.get('eval', False))
     device = kwargs.get('device', 'cpu')
@@ -551,25 +555,38 @@ def launch(**kwargs):
     grafana_user = kwargs.get('grafana_user', 'admin'),
     grafana_password = kwargs.get('grafana_password', 'admin'),
     max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5)),
+    curriculum = int(kwargs.get('curriculum', 1))
 
     wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
     wb_project_name = kwargs.get('wb_project_name', 'StarWars')
-    wb_run_name = kwargs.get('wb_run_name', f"AC{CURRICULUM}|DROP {dropout}|H_DIM {h_dim}|{packet_buffer_len}-PKT|{flow_buff_len}TS")
+    wb_run_name = kwargs.get('wb_run_name', f"AC{curriculum}|DROP {dropout}|H_DIM {h_dim}|{packet_buffer_len}-PKT|{flow_buff_len}TS")
+    FLOWSTATS_FREQ_SECS = int(kwargs.get('flowstats_freq_secs', 5))
+    PORTSTATS_FREQ_SECS = int(kwargs.get('portstats_freq_secs', 5))
+
+
+    # Switching arguments:
+    switching_args = {}
+    switching_args['flow_idle_timeout'] = int(kwargs.get('flow_idle_timeout', 10))
+    switching_args['arp_timeout'] = int(kwargs.get('arp_timeout', 120))
+    switching_args['max_buffered_packets'] = int(kwargs.get('max_buffered_packets', 5))
+    switching_args['max_buffering_secs'] = int(kwargs.get('max_buffering_secs', 5))
+    switching_args['arp_req_exp_secs'] = int(kwargs.get('arp_req_exp_secs', 4))
+    switching_args['inference_freq_secs'] = int(kwargs.get('inference_freq_secs', 5))
 
 
     ########################### LABELING:
 
     if multi_class:
 
-        if CURRICULUM == 0:
+        if curriculum == 0:
               TRAINING_LABELS_DICT = AC0_TRAINING_LABELS_DICT
               ZDA_DICT = AC0_ZDA_DICT
               TEST_ZDA_DICT = AC0_TEST_ZDA_DICT
-        if CURRICULUM == 1:
+        if curriculum == 1:
               TRAINING_LABELS_DICT = AC1_TRAINING_LABELS_DICT
               ZDA_DICT = AC1_ZDA_DICT
               TEST_ZDA_DICT = AC1_TEST_ZDA_DICT
-        if CURRICULUM == 2:
+        if curriculum == 2:
           TRAINING_LABELS_DICT = AC2_TRAINING_LABELS_DICT
           ZDA_DICT = AC2_ZDA_DICT
           TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
@@ -590,10 +607,7 @@ def launch(**kwargs):
         TRAINING_LABELS_DICT["192.168.1.15"] = "Attack"
         TRAINING_LABELS_DICT["192.168.1.16"] = "Attack"
     
-    
-    
     ########################### END OF LABELING
-
 
 
 
@@ -644,7 +658,8 @@ def launch(**kwargs):
     smart_switch = SmartSwitch(
       flow_logger=flow_logger,
       metrics_logger=metrics_logger,
-      brain=controller_brain
+      brain=controller_brain,
+      **switching_args
       )
     
     core.register("smart_switch", smart_switch)  
@@ -654,13 +669,14 @@ def launch(**kwargs):
       "ConnectionUp", 
       _handle_ConnectionUp)
 
-    core.openflow.addListenerByName(
-      "FlowStatsReceived", 
-      flow_logger._handle_flowstats_received) 
-    
-    """
-    core.openflow.addListenerByName(
-      "PortStatsReceived", 
-      flow_logger._handle_portstats_received) 
-    """
 
+    if FLOWSTATS_FREQ_SECS > 0:
+      core.openflow.addListenerByName(
+        "FlowStatsReceived", 
+        flow_logger._handle_flowstats_received) 
+    """
+    if PORTSTATS_FREQ_SECS > 0:
+      core.openflow.addListenerByName(
+        "PortStatsReceived", 
+        flow_logger._handle_portstats_received) 
+    """
