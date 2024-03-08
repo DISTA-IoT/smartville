@@ -532,6 +532,49 @@ def requests_stats():
 
 
 def launch(**kwargs):
+    """
+    Launches the SmartController Component. This method is automatically invoked when 
+    the smartController component is run from pox using the following command:
+    
+    ```
+    $ pox.py smartComponent 
+    ```
+    
+    You can also add parameters for this component using the longparam syntax (i.e., double hyphens).
+    The available parameters are:
+
+    Parameters:
+    ----------
+    **kwargs : dict, optional
+        Keyword arguments to customize the behavior of the function.
+        
+        - 'eval' (bool, optional): Use neural modules in evaluation mode, no training. Default is false.
+        - 'device' (str, optional): Device for the neural modules, can be 'cpu' or 'cuda:0', 'cuda:1', etc. Depending on hw availability. Default is 'cpu'.
+        - 'seed' (int, optional): A fixed initial seed for random sampling and storing in the experience buffer. Defatul is 777.
+        - 'ai_debug' (bool, optional): A boolean flag for a verbose version of ML related code. Default is False.
+        - 'multi_class' (bool, optional): A boolean flag indicating if the ML classfier should perform multi-class classificaion, otherwise binary (attack, bening). Default is True.
+        - 'use_packet_feats' (bool, optional):  Use first bytes of first packets of each flow alonside flowstats to build feature vectors. Default is True.
+        - 'packet_buffer_len' (int, optional):  If 'use_packet_feats'=True, indicates how many packets are retained from each flow to build feature vectors. Default is 1.
+        - 'flow_buff_len' (int, optional): Indicates the flowstats time-window size to build feature vectors. Default is 10.
+        - 'node_features' (bool, optional): Use node features to build the feature vectors. Default is False.
+        - 'metric_buffer_len' (int, optional): If 'node_features'=True, node features time-window size to build feat. vectors. Default is 10. 
+        - 'inference_freq_secs' (int, optional): Time in secs. between two consecutive calls to an inference. (And a batch training from experience buffer).
+        - 'grafana_user' (str, optional): username for the grafana dashboard. Default is 'admin'
+        - 'grafana_password' (str, optional): password for the grafana dashboard. Default is 'admin'
+        - 'max_kafka_conn_retries' (int, optional): max. num. of connections attempts to the kafka broker. Default is 5.
+        - 'curriculum' (int, optional): labelling scheme for known attacks, train ZdAs and test ZdAs. (can be 0,1, or 2). Default is 1. 
+        - 'wb_tracking' (bool, optional): Track this run with WeightsAndBiases. (default is False)
+        - 'wb_project_name' (str, optional): if 'wb_tracking'=True, The name of the W&B project to associate the run with. Default is 'SmartVille'
+        - 'wb_run_name' (str, optional): if 'wb_tracking'=True, the name of the W&B run to track training metrics. Default is AC{curriculum}|DROP {dropout}|H_DIM {h_dim}|{packet_buffer_len}-PKT|{flow_buff_len}TS
+        - 'FLOWSTATS_FREQ_SECS' (int, optional): Num. of seconds between two consecutive flowstats request from this controller to its assigned switch. Default is 5.
+        - 'PORTSTATS_FREQ_SECS' (int, optional): Num. of seconds between two consecutive portstats request from this controller to its assigned switch. Default is 5.
+        - 'flow_idle_timeout' (int, optional): Number of no-activity seconds  for a flow that triggers the switch to delete the corresponding entry in the flow table. Default is 10.
+        - 'arp_timeout' (int, optional): Number of seconds to delete and ARP entry in the switch. Default is 120-
+        - 'max_buffered_packets' (int, optional): Max num. of packets the switch buffers while waiting to solve the dest MAC address and forward. Default is 5. 
+        - 'max_buffering_secs' (int, optional): Max time in seconds the switch buffers a packet while waiting to solve the dest MAC address and forward. Default is 5. 
+        - 'arp_req_exp_secs' (int, optional): Max time in secs. that the switch waits for an ARP response before issuing another requets. (prevents ARP flooding). Default is 4. 
+
+    """
     global FLOWSTATS_FREQ_SECS
 
     eval = str_to_bool(kwargs.get('eval', False))
@@ -551,14 +594,14 @@ def launch(**kwargs):
     anonymize_transport_ports = str_to_bool(kwargs.get('anonym_ports', True))
     flow_buff_len = int(kwargs.get('flow_buff_len', 10)),
     node_features = str_to_bool(kwargs.get('node_features', False))
-    metric_buffer_len = str_to_bool(kwargs.get('metric_buffer_len', False))
+    metric_buffer_len = int(kwargs.get('metric_buffer_len', 10))
     grafana_user = kwargs.get('grafana_user', 'admin'),
     grafana_password = kwargs.get('grafana_password', 'admin'),
     max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5)),
     curriculum = int(kwargs.get('curriculum', 1))
 
     wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
-    wb_project_name = kwargs.get('wb_project_name', 'StarWars')
+    wb_project_name = kwargs.get('wb_project_name', 'SmartVille')
     wb_run_name = kwargs.get('wb_run_name', f"AC{curriculum}|DROP {dropout}|H_DIM {h_dim}|{packet_buffer_len}-PKT|{flow_buff_len}TS")
     FLOWSTATS_FREQ_SECS = int(kwargs.get('flowstats_freq_secs', 5))
     PORTSTATS_FREQ_SECS = int(kwargs.get('portstats_freq_secs', 5))
@@ -673,7 +716,8 @@ def launch(**kwargs):
     if FLOWSTATS_FREQ_SECS > 0:
       core.openflow.addListenerByName(
         "FlowStatsReceived", 
-        flow_logger._handle_flowstats_received) 
+        flow_logger._handle_flowstats_received)
+      
     """
     if PORTSTATS_FREQ_SECS > 0:
       core.openflow.addListenerByName(

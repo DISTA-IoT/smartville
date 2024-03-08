@@ -51,7 +51,7 @@ class MetricsLogger:
             self, 
             server_addr = "192.168.1.1:9092",
             max_conn_retries = 5,
-            metric_buffer_len = 40,
+            metric_buffer_len = 10,
             grafana_user="admin", 
             grafana_pass="admin"):
 

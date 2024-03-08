@@ -12,7 +12,7 @@
             "args": [
 //                "--verbose",
                 "samples.pretty_log",
-                "smartController.switch"
+                "smartController.smartController"
             ],
             "justMyCode": true
         },

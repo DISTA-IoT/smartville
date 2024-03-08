@@ -16,9 +16,9 @@ zookeeper-server-start.sh pox/smartController/zookeeper.properties
 kafka-server-start.sh pox/smartController/kafka_server.properties
 
 # 5. lanch pox controller:
-./pox.py --verbose samples.pretty_log smartController.switch
+./pox.py --verbose samples.pretty_log smartController.smartController
 # or can also do it less verbose:
-./pox.py samples.pretty_log smartController.switch
+./pox.py samples.pretty_log smartController.smartController
 
 # optional -> remove kafka logs
 rm -rf /opt/kafka/logs
