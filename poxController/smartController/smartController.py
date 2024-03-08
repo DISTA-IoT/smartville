@@ -537,10 +537,21 @@ def launch(**kwargs):
     the smartController component is run from pox using the following command:
     
     ```
-    $ pox.py smartComponent 
+    $ pox.py smartController.smartController 
+    ```
+
+    It migth be useful to launch some PoX logging components alonside the smartController:
+
+    ```
+    $ /pox/pox.py samples.pretty_log smartController.smartController 
     ```
     
-    You can also add parameters for this component using the longparam syntax (i.e., double hyphens).
+    You can also add parameters for this component using the longparam syntax (i.e., double hyphens):
+
+      ```
+    $ /pox/pox.py samples.pretty_log smartController.smartController --use_packet_feats=false --multi_class=false --flow_idle_timeout=3
+    ```
+
     The available parameters are:
 
     Parameters:
