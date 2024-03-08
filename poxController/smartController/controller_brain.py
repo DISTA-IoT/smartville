@@ -1,5 +1,4 @@
-from smartController.neural_modules import BinaryFlowClassifier, \
-    TwoStreamBinaryFlowClassifier, MultiClassFlowClassifier, \
+from smartController.neural_modules import  MultiClassFlowClassifier, \
         TwoStreamMulticlassFlowClassifier, KernelRegressionLoss, ConfidenceDecoder
 from smartController.replay_buffer import ReplayBuffer
 import os
@@ -315,7 +314,6 @@ class ControllerBrain():
         
         if self.use_packet_feats:
 
-            if self.multi_class:
                 self.flow_classifier = TwoStreamMulticlassFlowClassifier(
                 flow_input_size=self.flow_feat_dim, 
                 packet_input_size=self.packet_feat_dim,
@@ -325,17 +323,9 @@ class ControllerBrain():
                 device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
 
-            else:
-                self.flow_classifier = TwoStreamBinaryFlowClassifier(
-                    flow_input_size=self.flow_feat_dim, 
-                    packet_input_size=self.packet_feat_dim,
-                    hidden_size=self.h_dim,
-                    dropout_prob=self.dropout,
-                    device=self.device)
-                self.cs_criterion = nn.BCELoss().to(self.device)
+
         else:
 
-            if self.multi_class:
                 self.flow_classifier = MultiClassFlowClassifier(
                     input_size=self.flow_feat_dim, 
                     hidden_size=self.h_dim,
@@ -344,13 +334,6 @@ class ControllerBrain():
                     device=self.device)
                 self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
 
-            else:
-                self.flow_classifier = BinaryFlowClassifier(
-                    input_size=self.flow_feat_dim, 
-                    hidden_size=self.h_dim,
-                    dropout_prob=self.dropout,
-                    device=self.device)
-                self.cs_criterion = nn.BCELoss().to(self.device)
         
         self.kr_criterion = KernelRegressionLoss(repulsive_weigth=REPULSIVE_WEIGHT, 
             attractive_weigth=ATTRACTIVE_WEIGHT).to(self.device)
@@ -412,27 +395,20 @@ class ControllerBrain():
     def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
 
         if self.use_packet_feats:
-            if self.multi_class:
                 logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
-            else:
-                logits, hiddens, predicted_kernel = self.flow_classifier(
-                    flow_input_batch, 
-                    packet_input_batch)
+
         else:
-            if self.multi_class:
                 logits, hiddens, predicted_kernel = self.flow_classifier(
                     flow_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
-            else:
-                logits, hiddens, predicted_kernel = self.flow_classifier(
-                    flow_input_batch)
+
 
         return logits, hiddens, predicted_kernel
 
@@ -747,36 +723,39 @@ class ControllerBrain():
             packet_input_batch=balanced_packet_batch,
             batch_labels=balanced_labels,
             query_mask=query_mask)
+        
+        loss = 0
 
         # one_hot_labels
         one_hot_labels = self.get_oh_labels(
             curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
             targets=balanced_labels)
         
-        prev_loss, predicted_clusters, _ = self.kernel_regression_step(
-            predicted_kernel, 
-            one_hot_labels, 
-            TRAINING)
-        
-        if not REGULARIZATION:
-            prev_loss = 0
-            
         # known class horizonal mask:
         known_oh_labels = one_hot_labels[~balanced_zda_labels.squeeze(1).bool()]
         known_class_h_mask = known_oh_labels.sum(0)>0
 
+        kr_loss, predicted_clusters, _ = self.kernel_regression_step(
+            predicted_kernel, 
+            one_hot_labels, 
+            TRAINING)
+    
+        if REGULARIZATION:
+            loss += kr_loss
+        
         if self.multi_class:
             ad_loss, _ = self.AD_step(
                 zda_labels=balanced_zda_labels, 
                 preds=logits[:, known_class_h_mask], 
                 query_mask=query_mask,
                 mode=TRAINING)
-            prev_loss += ad_loss
+            loss += ad_loss
 
         self.training_cs_cm += efficient_cm(
         preds=logits.detach(),
-        targets_onehot=one_hot_labels[query_mask]) 
+        targets_onehot=one_hot_labels[query_mask])
         
+
         if self.backprop_counter % REPORT_STEP_FREQUENCY == 0:
             self.report(
                 preds=logits[:,known_class_h_mask],  
@@ -789,7 +768,7 @@ class ControllerBrain():
             if self.eval_allowed:
                 self.evaluate_models()
 
-        cs_acc = self.learning_step(balanced_labels, logits, TRAINING, query_mask, prev_loss)
+        cs_acc = self.learning_step(balanced_labels, logits, TRAINING, query_mask, loss)
             
         if self.AI_DEBUG: 
             self.logger_instance.info(f'{TRAINING} batch labels mean: {balanced_labels.to(torch.float16).mean().item()} '+\
@@ -831,21 +810,20 @@ class ControllerBrain():
                 curr_shape=(balanced_labels.shape[0],logits.shape[1]), 
                 targets=balanced_labels)
             
-            _, predicted_clusters, kr_precision = self.kernel_regression_step(
-                predicted_kernel, 
-                one_hot_labels,
-                INFERENCE)
-            
             # known class horizonal mask:
             known_oh_labels = one_hot_labels[~balanced_zda_labels.squeeze(1).bool()]
             known_class_h_mask = known_oh_labels.sum(0)>0
 
-            if self.multi_class:
-                _, ad_acc = self.AD_step(
-                    zda_labels=balanced_zda_labels, 
-                    preds=logits[:, known_class_h_mask], 
-                    query_mask=query_mask,
-                    mode=INFERENCE)
+            _, predicted_clusters, kr_precision = self.kernel_regression_step(
+            predicted_kernel, 
+            one_hot_labels,
+            INFERENCE)
+
+            _, ad_acc = self.AD_step(
+                zda_labels=balanced_zda_labels, 
+                preds=logits[:, known_class_h_mask], 
+                query_mask=query_mask,
+                mode=INFERENCE)
 
             self.eval_cs_cm += efficient_cm(
             preds=logits.detach(),
@@ -957,12 +935,8 @@ class ControllerBrain():
 
     def learning_step(self, labels, predictions, mode, query_mask, prev_loss=0):
         
-        if self.multi_class:
-            cs_loss = self.cs_criterion(input=predictions,
-                                        target=labels[query_mask].squeeze(1))
-        else: 
-            cs_loss = self.cs_criterion(input=predictions,
-                                        target=labels.to(torch.float32))
+        cs_loss = self.cs_criterion(input=predictions,
+                                    target=labels[query_mask].squeeze(1))
 
         if mode == TRAINING:
             loss = prev_loss + cs_loss
@@ -987,11 +961,9 @@ class ControllerBrain():
         """
         labels must not be one hot!
         """
-        if self.multi_class:
-            match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0][query_mask]
-            return match_mask.sum() / match_mask.shape[0]
-        else:
-            return (logits_preds.round() == decimal_labels).float().mean()
+        match_mask = logits_preds.max(1)[1] == decimal_labels.max(1)[0][query_mask]
+        return match_mask.sum() / match_mask.shape[0]
+
 
 
     def get_labels(self, flows):

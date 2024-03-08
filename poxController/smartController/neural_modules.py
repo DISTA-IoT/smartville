@@ -21,27 +21,6 @@ class RecurrentModel(nn.Module):
         return F.relu(out[:, -1, :])
 
 
-class BinaryMLPClassifier(nn.Module):
-
-    def __init__(self, input_size, hidden_size, dropout_prob=0.3, device='cpu'):
-        super(BinaryMLPClassifier, self).__init__()
-        self.device = device
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.dropout = nn.Dropout(dropout_prob)  # Dropout layer with dropout probability
-        self.fc2 = nn.Linear(hidden_size, 1)  # Output size is 1 for binary classification
-
-    def forward(self, x):
-        # Apply first fully connected layer with ReLU activation
-        x = F.relu(self.fc1(x))
-        # Apply dropout layer
-        x = self.dropout(x)
-        # Apply second fully connected layer without activation
-        hiddens = self.fc2(x)
-        # Apply sigmoid activation to obtain probabilities
-        preds = torch.sigmoid(hiddens)
-        return preds, hiddens
-
-
 class MulticlassPrototypicalClassifier(nn.Module):
 
     def __init__(self, device='cpu'):
@@ -102,23 +81,6 @@ class MulticlassPrototypicalClassifier(nn.Module):
         return scores
 
 
-class BinaryFlowClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, dropout_prob=0.2, device='cpu'):
-        super(BinaryFlowClassifier, self).__init__()
-        self.device = device
-        self.normalizer = nn.BatchNorm1d(input_size)
-        self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
-        self.classifier = BinaryMLPClassifier(hidden_size, hidden_size, dropout_prob, device=self.device)
-
-    def forward(self, x):
-        # nn.BatchNorm1d ingests (N,C,L), where N is the batch size, 
-        # C is the number of features or channels, and L is the sequence length
-        x = self.normalizer(x.permute((0,2,1))).permute((0,2,1))
-        x = self.rnn(x)
-        preds, hiddens =  self.classifier(x)
-        return preds, hiddens, None
-    
-
 class MultiClassFlowClassifier(nn.Module):
     def __init__(self, input_size, hidden_size, dropout_prob=0.2, kr_heads=8,device='cpu'):
         super(MultiClassFlowClassifier, self).__init__()
@@ -142,29 +104,6 @@ class MultiClassFlowClassifier(nn.Module):
         logits  = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
         return logits, hiddens, predicted_kernel
 
-
-class TwoStreamBinaryFlowClassifier(nn.Module):
-    def __init__(self, flow_input_size, packet_input_size, hidden_size, dropout_prob=0.2, device='cpu'):
-        super(TwoStreamBinaryFlowClassifier, self).__init__()
-        self.device = device
-        self.flow_normalizer = nn.BatchNorm1d(flow_input_size, device=self.device)
-        self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
-        self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
-        self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
-        self.classifier = BinaryMLPClassifier(hidden_size*2, hidden_size, dropout_prob, device=self.device)
-
-    def forward(self, flows, packets):
-        
-        flows = self.flow_normalizer(flows.permute((0,2,1))).permute((0,2,1))
-        packets = self.packet_normalizer(packets.permute((0,2,1))).permute((0,2,1))
-
-        flows = self.flow_rnn(flows)
-        packets = self.packet_rnn(packets)
-
-        inferences, hiddens = self.classifier(torch.cat([flows, packets], dim=1))
-
-        return inferences, hiddens, None
-    
 
 class TwoStreamMulticlassFlowClassifier(nn.Module):
     def __init__(self, flow_input_size, packet_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
@@ -196,8 +135,7 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
         logits  = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
 
         return logits, hiddens, predicted_kernel
-
-    
+ 
 
 class ConfidenceDecoder(nn.Module):
 
@@ -218,7 +156,6 @@ class ConfidenceDecoder(nn.Module):
         unknown_indicators = torch.sigmoid(scores)
         return unknown_indicators
     
-
 
 class KernelRegressionLoss(nn.Module):
 
