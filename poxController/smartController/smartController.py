@@ -628,8 +628,13 @@ def launch(**kwargs):
     switching_args['inference_freq_secs'] = int(kwargs.get('inference_freq_secs', 5))
 
 
-    ########################### LABELING:
+    """
+    LABELLING Strategy:
 
+    SmartVille implements a labeling strategy by assuming that each node performs one attack. 
+    By doing so, IP addresses are labelled using the name of the attack (in the multi-class classification setting)
+    Or simply "attack" in the binary classification setting.
+    """
     if multi_class:
 
         if curriculum == 0:
@@ -646,8 +651,9 @@ def launch(**kwargs):
           TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
 
     else:
-        
-        TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+        ZDA_DICT = defaultdict(lambda: False)            # No ZdA detection experiments in binary classification 
+        TEST_ZDA_DICT = defaultdict(lambda: False)       # No ZdA detection experiments in binary classification
+        TRAINING_LABELS_DICT= defaultdict(lambda: "Bening")  # class "bening" is default and is reserved for leggittimate traffic. 
         TRAINING_LABELS_DICT["192.168.1.7"] = "Attack"
         TRAINING_LABELS_DICT["192.168.1.8"] = "Attack"
         TRAINING_LABELS_DICT["192.168.1.9"] = "Attack"
