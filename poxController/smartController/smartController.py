@@ -606,9 +606,9 @@ def launch(**kwargs):
     flow_buff_len = int(kwargs.get('flow_buff_len', 10)),
     node_features = str_to_bool(kwargs.get('node_features', False))
     metric_buffer_len = int(kwargs.get('metric_buffer_len', 10))
-    grafana_user = kwargs.get('grafana_user', 'admin'),
-    grafana_password = kwargs.get('grafana_password', 'admin'),
-    max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5)),
+    grafana_user = kwargs.get('grafana_user', 'admin')
+    grafana_password = kwargs.get('grafana_password', 'admin')
+    max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5))
     curriculum = int(kwargs.get('curriculum', 1))
 
     wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
