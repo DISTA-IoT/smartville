@@ -10,9 +10,13 @@
             "request": "launch",
             "program": "/pox/pox.py",
             "args": [
-//                "--verbose",
                 "samples.pretty_log",
-                "smartController.smartController"
+                "smartController.smartController",
+                "--wb_tracking=False",
+                "--ai_debug=True",
+                "--multi_class=True",
+                "--k_shot=5",
+                "--batch_size=20"
             ],
             "justMyCode": true
         },
