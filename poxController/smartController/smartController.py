@@ -603,7 +603,7 @@ def launch(**kwargs):
     k_shot = int(kwargs.get('k_shot', 5))
     batch_size = int(kwargs.get('batch_size', 20))
     anonymize_transport_ports = str_to_bool(kwargs.get('anonym_ports', True))
-    flow_buff_len = int(kwargs.get('flow_buff_len', 10)),
+    flow_buff_len = int(kwargs.get('flow_buff_len', 10))
     node_features = str_to_bool(kwargs.get('node_features', False))
     metric_buffer_len = int(kwargs.get('metric_buffer_len', 10))
     grafana_user = kwargs.get('grafana_user', 'admin')
