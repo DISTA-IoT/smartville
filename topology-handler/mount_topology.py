@@ -1,19 +1,23 @@
 from gns3util import *
 import gns3fy as gfy
+import argparse
 
 
-PROJECT_NAME = "sdn_project"
+PROJECT_NAME = None
 
-####################### DOCKER IMAGE NAMES:
-CONTROLLER_IMG_NAME = "pox-controller"
-SWITCH_IMG_NAME = "openvswitch"
-VICTIM_IMG_NAME = "victim"
-ATTACKER_IMG_NAME = "attacker"
-NAT_IMG_NAME = "NAT"  # This is not a docker image, though...
+GNS3_HOST = None
+GNS3_PORT = None
 
-########################### START COMMANDS:
-# CONTROLLER_START_COMMAND="./pox.py samples.pretty_log smartController.switch"
-CONTROLLER_START_COMMAND="sh" # DEV debugging controller...
+ATTACKER_NODE_COUNT = None
+VICTIM_NODE_COUNT = None
+
+CONTROLLER_IMG_NAME = None
+SWITCH_IMG_NAME = None
+VICTIM_IMG_NAME = None
+ATTACKER_IMG_NAME = None
+NAT_IMG_NAME = "NAT"
+
+CONTROLLER_START_COMMAND=None
 
 
 node_ids = {}
@@ -144,7 +148,7 @@ def mount_all_hosts(switch_node_name):
     network = "192.168.1.0"
     netmask = "/24"
     #generate pool of ip addresses for specified network (es. 192.168.1.0)
-    ip_pool = generateIPList(14, network, netmask)
+    ip_pool = generateIPList(ATTACKER_NODE_COUNT + VICTIM_NODE_COUNT, network, netmask)
     x = 300
     y = -200
     i = 1
@@ -160,7 +164,7 @@ def mount_all_hosts(switch_node_name):
             x = -300
             y = -200
         
-        if idx > 3:
+        if idx > VICTIM_NODE_COUNT-1:
             img_name = ATTACKER_IMG_NAME
             curr_node_name = ATTACKER_IMG_NAME+"-"+str(idx)+"("+ip+")"
         
@@ -224,7 +228,8 @@ def update_switch_template():
         delete_template(server,project,switch_template_id)
         print((f"{SWITCH_IMG_NAME}: old switch template deleted"))
     print((f"{SWITCH_IMG_NAME}: creating a new template using local image"))
-    create_docker_template_switch(server, SWITCH_IMG_NAME, str(SWITCH_IMG_NAME+":latest"),)
+    network_adapters_count = 3 + VICTIM_NODE_COUNT + ATTACKER_NODE_COUNT
+    create_docker_template_switch(server, SWITCH_IMG_NAME, str(SWITCH_IMG_NAME+":latest"), adapter_count=network_adapters_count)
 
 
 def update_controller_template():
@@ -247,8 +252,63 @@ def update_templates():
 
 if __name__ == "__main__":
 
-    server = Server(*read_local_gns3_config())
-    gns3_server_connector = gfy.Gns3Connector("http://localhost:3080", user=server.user, cred=server.password)
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Topology creation script")
+    parser.add_argument("--project", help="GNS3 Project Name (Default is \"SmartVille\")", default="SmartVille")
+    parser.add_argument("--controller_docker", help="Controller's Docker image Name (Default is \"pox-controller\")", default="pox-controller")
+    parser.add_argument("--switch_docker", help="SDN Switch's Docker image Name (Default is \"openvswitch\")", default="openvswitch")
+    parser.add_argument("--victim_docker", help="Victim's Docker image Name (Default is \"victim\")", default="victim")
+    parser.add_argument("--attacker_docker", help="Attacker's Docker image Name (Default is \"attacker\")", default="attacker")
+
+    parser.add_argument("--contr_start", help="Controller's Start Command.  (Default is \"sh\")\n "+ \
+                        "Could also be:  \"./pox.py samples.pretty_log smartController.smartController\"", default="sh")
+    parser.add_argument("--n_attackers", type=int, default=10, help="Number of attacker nodes in the topology. Default: 10")
+    parser.add_argument("--n_victims", type=int, default=4, help="Number of victim nodes in the topology. Default: 4")
+
+
+    parser.add_argument("--use_gns3_config_file", type=bool, default=True, help="Grab GNS3 Server configurations from file. Default: True")
+    parser.add_argument("--gns3_config_path", type=str, default="~/.config/GNS3/2.2/gns3_server.conf", help="GNS3 Server config file, "+\
+                        "Default: \"~/.config/GNS3/2.2/gns3_server.conf\"")
+
+    parser.add_argument("--gns3_host", type=str, default="localhost", help="When not using config file. GNS3 server's hostname (Default is \"localhost\")")
+    parser.add_argument("--gns3_port", type=int, default=3080, help="When not using config file. GNS3 server's port. Default: 3080")
+    parser.add_argument("--gns3_auth", type=bool, default=True, help=" When not using config file. GNS3 server requires auth (Default True)")
+    parser.add_argument("--gns3_username", type=str, default="admin", help="When not using config file. GNS3 server's admin username (Default is \"admin\")")
+    parser.add_argument("--gns3_password", type=str, default="12345", help="When not using config file. GNS3 server's password (Default is \"12345\")")
+
+    args = parser.parse_args()
+
+    PROJECT_NAME = args.project
+    
+    USE_GNS3_FILE = args.use_gns3_config_file
+    GNS3_CONFIG_PATH = args.gns3_config_path
+
+    CONTROLLER_IMG_NAME = args.controller_docker
+    SWITCH_IMG_NAME = args.switch_docker
+    VICTIM_IMG_NAME = args.victim_docker
+    ATTACKER_IMG_NAME = args.attacker_docker
+    CONTROLLER_START_COMMAND = args.contr_start
+
+    ATTACKER_NODE_COUNT = args.n_attackers
+    VICTIM_NODE_COUNT = args.n_victims
+
+    if USE_GNS3_FILE:
+        server = Server(*read_local_gns3_config(GNS3_CONFIG_PATH))
+        GNS3_HOST = server.addr
+        GNS3_PORT = server.port
+        GNS3_AUTH = server.auth
+        GNS3_USERNAME = server.user
+        GNS3_PASSWORD = server.password
+    else:
+        GNS3_HOST = args.gns3_host
+        GNS3_PORT = args.gns3_port
+        GNS3_AUTH = args.gns3_auth
+        GNS3_USERNAME = args.gns3_username
+        GNS3_PASSWORD = args.gns3_password    
+
+
+    gns3_server_connector = gfy.Gns3Connector(f"http://{GNS3_HOST}:{GNS3_PORT}", user=GNS3_USERNAME, cred=GNS3_PASSWORD)
 
     resetProject(PROJECT_NAME)
 

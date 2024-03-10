@@ -33,7 +33,13 @@
             "name": "Mount Topology",
             "type": "python",
             "request": "launch",
-            "program": "topology-handler/GNS3_mount_topology.py",
+            "program": "topology-handler/mount_topology.py",
+            "args": [
+                "--n_attackers",
+                "4",
+                "--n_victims",
+                "4",
+            ],
             "justMyCode": true
         },
         {

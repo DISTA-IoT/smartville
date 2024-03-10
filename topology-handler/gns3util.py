@@ -104,10 +104,10 @@ def check_local_gns3_config() -> bool:
     return True
 
 
-def read_local_gns3_config():
+def read_local_gns3_config(config_file_path: str = "~/.config/GNS3/2.2/gns3_server.conf"):
     """Return some GNS3 configuration values."""
     config = configparser.ConfigParser()
-    with open(os.path.expanduser("~/.config/GNS3/2.2/gns3_server.conf")) as f:
+    with open(os.path.expanduser(config_file_path)) as f:
         config.read_file(f)
     return config["Server"].get("host"), config["Server"].getint("port"), config["Server"].getboolean("auth"), config["Server"].get("user"), config["Server"].get("password")
 
@@ -171,13 +171,18 @@ def create_docker_template(server: Server, name: str,  start_command: str, image
     req.raise_for_status()
     return req.json()
 
-def create_docker_template_switch(server: Server, name: str, image: str, environment: str = '') -> Optional[Dict[str, Any]]:
+def create_docker_template_switch(
+        server: Server, 
+        name: str, 
+        image: str, 
+        environment: str = '',
+        adapter_count: int =18) -> Optional[Dict[str, Any]]:
     """Create a new GNS3 docker template.
 
     'environment' should be the empty string '' or a string with newline separated key=value pairs,
     e.g. environment = 'VAR_ONE=value1\nVAR2=2\nBLABLABLA=something'
     """
-    defaults = {'adapters': 18,
+    defaults = {'adapters': adapter_count,
                 'builtin': False,
                 'category': 'guest',
                 'compute_id': 'local',
