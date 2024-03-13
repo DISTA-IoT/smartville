@@ -29,9 +29,38 @@ def replace_string_in_file(file_name, old_string, new_string):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
+
+def generate_prometheus_config(ip):
+    config = f"""\
+global:
+  scrape_interval:     5s
+  evaluation_interval: 5s
+
+  external_labels:
+    monitor: 'example'
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: ['{ip}:9093']
+
+rule_files:
+
+scrape_configs:
+  - job_name: 'system_metrics'
+
+    static_configs:
+      - targets: ['{ip}:8000']"""
+
+    with open('prometheus.yml', 'w') as f:
+        f.write(config)
+
+
+
 if __name__ == "__main__":
-    file_name = "pox/smartController/prometheus.yml"
-    old_string = "localhost"
-    new_string = get_source_ip_address()
-    
-    replace_string_in_file(file_name, old_string, new_string)
+    # file_name = "pox/smartController/prometheus.yml"
+    # old_string = "localhost"
+    dynamic_IP = get_source_ip_address()
+    # replace_string_in_file(file_name, old_string, dynamic_IP)
+    generate_prometheus_config(dynamic_IP)

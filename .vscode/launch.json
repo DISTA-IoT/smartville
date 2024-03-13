@@ -35,8 +35,10 @@
             "request": "launch",
             "program": "topology-handler/mount_topology.py",
             "args": [
-                "--project",
-                "gns3"  
+                "--project=gns3",
+                "--n_attackers=2",
+                "--n_victims=2"
+                
             ],
             "justMyCode": true
         },
