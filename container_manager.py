@@ -73,7 +73,10 @@ def launch_grafana_detached(controller_container):
     # Build the command to execute your Bash script with its arguments
     command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:GRAFANA:{start_grafana_command}"]
     launch_detached_command(command)
-
+    time.sleep(1)
+    print('Linking Grafana to Prometheus...')
+    print(run_command_in_container(controller_container, "python3 pox/smartController/link_grafana_to_prometheus.py"))
+    time.sleep(1)
 
 def launch_zookeeper(controller_container):
     output_thread = threading.Thread(
@@ -133,6 +136,7 @@ def launch_controller_processes(controller_container):
     launch_grafana_detached(controller_container)
     print('Grafana launched on controller! please wait...')
     time.sleep(1)
+
     launch_kafka_detached(controller_container)
     print('Kafka launched on controller! please wait...')
     time.sleep(1)
