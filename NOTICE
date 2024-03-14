@@ -1,0 +1,150 @@
+1. POX Library
+   - Description: The POX network software platform.
+   - Version: gar-experimental
+   - License: Apache License 2.0
+   - Copyright 2011-2013 James McCauley
+
+   This product includes software developed by
+   James McCauley (https://github.com/noxrepo/pox).
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+
+2. Gotham Testbed
+   - Description: IoT Gotham Testbed.
+
+   This product includes software developed by
+   xsaga (https://github.com/xsaga/gotham-iot-testbed/tree/master).
+
+    This repository contains the source code and implementation of the emulated testbed described in the following paper (open access):
+
+    X. Sáez-de-Cámara, J. L. Flores, C. Arellano, A. Urbieta and U. Zurutuza, "Gotham Testbed: A Reproducible IoT Testbed for Security Experiments and Dataset Generation," in IEEE Transactions on Dependable and Secure Computing, doi: 10.1109/TDSC.2023.3247166.
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+3. GNS3fy
+   - Description: GNS3 wrapper.
+
+   This product includes software developed by
+   davidban77 (https://github.com/davidban77/gns3fy/).
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+   POX Library
+   - Description: The POX network software platform.
+   - Version: gar-experimental
+   - License: Apache License 2.0
+   - Copyright 2011-2013 James McCauley
+
+   This product includes software developed by
+   James McCauley (https://github.com/noxrepo/pox).
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+4. Grafana
+   - Description: Grafana is an open-source platform for monitoring and observability.
+   - License: Apache License 2.0
+   - Copyright 2014-2024 Grafana Labs
+
+   This product includes software developed by Grafana Labs (https://grafana.com).
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+5. Prometheus
+   - Description: Prometheus is an open-source monitoring and alerting toolkit.
+   - License: Apache License 2.0
+   - Copyright 2012-2024 Prometheus Authors
+
+   This product includes software developed by Prometheus Authors (https://prometheus.io).
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+5. Kafka
+   - Description: Apache Kafka is a distributed streaming platform.
+   - License: Apache License 2.0
+   - Copyright 2011-2024 Apache Software Foundation
+
+   This product includes software developed by the Apache Software Foundation (https://kafka.apache.org).
+
+   Portions of this library were used as a base and modified by University of Insubria for integration into this project.
+
+6. Docker
+   - Description: A platform for developing, shipping, and running applications in containers.
+   - Version: 7.0.0
+   - License: Apache License 2.0
+   - Copyright [2024] Docker, Inc.
+
+   This product includes software developed by Docker, Inc. (https://www.docker.com/).
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+7. Certifi
+   - Description: A collection of Mozilla's CA certificates.
+   - Version: 2023.11.17
+   - License: Mozilla Public License Version 2.0
+   - Copyright [2024] Certifi Contributors
+
+   This product includes software developed by Certifi Contributors.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+8. Charset-normalizer
+   - Description: A Python library for encoding detection and normalization.
+   - Version: 3.3.2
+   - License: MIT License
+   - Copyright [2024] Python Charset-normalizer Contributors
+
+   This product includes software developed by Python Charset-normalizer Contributors.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+9. Idna
+   - Description: A Python library for handling Internationalized Domain Names in Applications (IDNA).
+   - Version: 3.6
+   - License: BSD-3-Clause License
+   - Copyright [2024] Python Software Foundation
+
+   This product includes software developed by Python Software Foundation.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+10. Pydantic
+   - Description: A data validation and settings management library.
+   - Version: 1.9.1
+   - License: MIT License
+   - Copyright [year] Samuel Colvin
+
+   This product includes software developed by Samuel Colvin.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+11. Requests
+   - Description: A Python library for making HTTP requests.
+   - Version: 2.31.0
+   - License: Apache License 2.0
+   - Copyright [year] Kenneth Reitz
+
+   This product includes software developed by Kenneth Reitz.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+12. Typing-extensions
+   - Description: Type hints for Python.
+   - Version: 4.9.0
+   - License: Python Software Foundation License
+   - Copyright [year] Python Software Foundation
+
+   This product includes software developed by Python Software Foundation.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
+13. Urllib3
+   - Description: A powerful HTTP client for Python.
+   - Version: 2.1.0
+   - License: MIT License
+   - Copyright [year] Urllib3 Contributors
+
+   This product includes software developed by Urllib3 Contributors.
+
+   Portions of this library were used as a base and modified for integration into this project.
+
