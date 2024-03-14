@@ -16,7 +16,10 @@
 # along with POX.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-A Smart L3 switch
+A Smart L3 switch.
+
+THIS CODE IS AN EXTENSION OF  https://github.com/CPqD/RouteFlow/blob/master/pox/pox/forwarding/l3_learning.py
+
 
 For each switch:
 1) Keep a table that maps IP addresses to MAC addresses and switch ports.
