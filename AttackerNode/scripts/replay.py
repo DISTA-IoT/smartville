@@ -48,21 +48,6 @@ def get_source_mac(interface=IFACE_NAME):
         return "Interface not found"
     
 
-def modify_and_send(packet):
-
-    # focus on level 3
-    ip_packet = packet[IP]
-
-    # Modify source IP
-    ip_packet.src = SOURCE_IP
-
-    # Modify destination IP
-    ip_packet.dst = TARGET_IP
-
-    # Send the modified packet
-    send(ip_packet, iface=IFACE_NAME)
-   
-
 def modify_and_save_pcap(input_pcap_file, output_pcap_file):
     # Read the PCAP file
     print(f'Opening {input_pcap_file} file, please wait...')
@@ -80,45 +65,23 @@ def modify_and_save_pcap(input_pcap_file, output_pcap_file):
     print(f'File saved! ready to go!!')
 
 
-def resend_pcap_with_modification():
-    # Iterate over files in the directory
-    for filename in os.listdir(PATTERN_TO_REPLAY):
-        if filename.endswith(".pcap"):
-            pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
-            # print("Processing file:", pcap_file)
-
-            # Read the PCAP file
-            packets = rdpcap(pcap_file)
-            timestamps = [packet.time for packet in packets]
-            time_diffs = [timestamps[i + 1] - timestamps[i] for i in range(len(timestamps) - 1)]
-
-            for packet, time_diff in zip(packets, time_diffs):
-                if IP in packet:
-                    modify_and_send(packet)
-                time.sleep(time_diff)
-
-
 def resend_pcap_with_modification_tcpreplay():
 
-    # Iterate over files in the directory
-    for filename in os.listdir(PATTERN_TO_REPLAY):
-        if filename.endswith(".pcap"):
-            # print("Processing file:", filename)
-            original_pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
-            file_to_replay = f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
+    original_pcap_file = os.path.join(f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}.pcap")
+    file_to_replay = f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
+            
+    if not os.path.exists(file_to_replay):
+        print(f'FILE NOT FOUND: {file_to_replay}')
+        print("Rewriting pattern with new addressses...")
+        # Modify and send packets using tcpreplay
+        modify_and_save_pcap(original_pcap_file, file_to_replay)
+    else:
+        print(f'REWRITEN {PATTERN_TO_REPLAY} PATTERN FOUND from {SOURCE_IP} to {TARGET_IP}')
 
-            if not os.path.exists(file_to_replay):
-                print(f'FILE NOT FOUND: {file_to_replay}')
-                print("Rewriting pattern with new addressses...")
-                # Modify and send packets using tcpreplay
-                modify_and_save_pcap(original_pcap_file, file_to_replay)
-            else:
-                print(f'REWRITED {PATTERN_TO_REPLAY} PATTERN FOUND from {SOURCE_IP} to {TARGET_IP}')
-
-            print('sending...')
-            # Use tcpreplay command to send the modified packets
-            cmd = f"tcpreplay -i {IFACE_NAME}  --stats 3 {file_to_replay}"
-            subprocess.run(cmd, shell=True)
+    print('sending...')
+    # Tcpreplay command to send the modified packets
+    cmd = f"tcpreplay -i {IFACE_NAME}  --stats 3 {file_to_replay}"
+    subprocess.run(cmd, shell=True)
 
 
 def repeat_function():

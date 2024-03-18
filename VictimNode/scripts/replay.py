@@ -21,6 +21,7 @@ import netifaces as ni
 from scapy.all import IP
 import threading
 import argparse
+from tqdm import tqdm
 
 
 SOURCE_IP = None
@@ -31,7 +32,7 @@ PATTERN_TO_REPLAY = None
 REPEAT_PATTERN_SECS = None
 PREPROCESSED = None
 
-def get_source_ip_address(interface=IFACE_NAME):
+def get_static_source_ip_address(interface=IFACE_NAME):
     try:
         ip = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
         return ip
@@ -47,83 +48,51 @@ def get_source_mac(interface=IFACE_NAME):
         return "Interface not found"
     
 
-def modify_and_send(packet):
-
-    # focus on level 3
-    ip_packet = packet[IP]
-
-    # Modify source IP
-    ip_packet.src = SOURCE_IP
-
-    # Modify destination IP
-    ip_packet.dst = TARGET_IP
-
-    # Send the modified packet
-    send(ip_packet, iface=IFACE_NAME)
-   
-
 def modify_and_save_pcap(input_pcap_file, output_pcap_file):
     # Read the PCAP file
+    print(f'Opening {input_pcap_file} file, please wait...')
     packets = rdpcap(input_pcap_file)
-
+    print('File opened!')
+    print(f'Now rewritting packets with source {SOURCE_IP} and dest {TARGET_IP}')
     # Modify source and destination IP addresses of each packet
-    for packet in packets:
+    for packet in tqdm(packets):
         if IP in packet:
             packet[IP].src = SOURCE_IP
             packet[IP].dst = TARGET_IP
-
+    print(f'Packets re-written. NOW SAVING, please wait...')
     # Save the modified packets to another PCAP file
     wrpcap(output_pcap_file, packets)
-
-
-def resend_pcap_with_modification():
-    # Iterate over files in the directory
-    for filename in os.listdir(PATTERN_TO_REPLAY):
-        if filename.endswith(".pcap"):
-            pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
-            # print("Processing file:", pcap_file)
-
-            # Read the PCAP file
-            packets = rdpcap(pcap_file)
-            timestamps = [packet.time for packet in packets]
-            time_diffs = [timestamps[i + 1] - timestamps[i] for i in range(len(timestamps) - 1)]
-
-            for packet, time_diff in zip(packets, time_diffs):
-                if IP in packet:
-                    modify_and_send(packet)
-                time.sleep(time_diff)
+    print(f'File saved! ready to go!!')
 
 
 def resend_pcap_with_modification_tcpreplay():
 
-    # Iterate over files in the directory
-    for filename in os.listdir(PATTERN_TO_REPLAY):
-        if filename.endswith(".pcap"):
-            # print("Processing file:", filename)
-            pcap_file = os.path.join(PATTERN_TO_REPLAY, filename)
-            if not PREPROCESSED:
-                print('processing...')
-                # Modify and send packets using tcpreplay
-                modify_and_save_pcap(pcap_file, 'output_file.pcap')
-                print('sending...')
-                # Use tcpreplay command to send the modified packets
-                cmd = f"tcpreplay -i {IFACE_NAME} output_file.pcap"
-                subprocess.run(cmd, shell=True)
-            else:
-                if PATTERN_TO_REPLAY == 'doorlock':
-                    print('sending...')
-                    # Use tcpreplay command to send the modified packets
-                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_1-from{SOURCE_IP}to{TARGET_IP}.pcap"
-                    subprocess.run(cmd, shell=True)
-                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_2-from{SOURCE_IP}to{TARGET_IP}.pcap"
-                    subprocess.run(cmd, shell=True)
-                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_3-from{SOURCE_IP}to{TARGET_IP}.pcap"
-                    subprocess.run(cmd, shell=True)
-                else:
-                    print('sending...')
-                    # Use tcpreplay command to send the modified packets
-                    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
-                    subprocess.run(cmd, shell=True)
+    if PATTERN_TO_REPLAY == 'doorlock':
+        for i in range(1,4):
+            original_pcap_file = os.path.join(f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_{i}.pcap")
+            file_to_replay = f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}_{i}-from{SOURCE_IP}to{TARGET_IP}.pcap"
+            rewrite_and_send(original_pcap_file,file_to_replay)
+
+    else:
+
+        original_pcap_file = os.path.join(f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}.pcap")
+        file_to_replay = f"{PATTERN_TO_REPLAY}/{PATTERN_TO_REPLAY}-from{SOURCE_IP}to{TARGET_IP}.pcap"
+        rewrite_and_send(original_pcap_file,file_to_replay)
+
+def rewrite_and_send(original_pcap_file, file_to_replay):
+
+    if not os.path.exists(file_to_replay):
+        print(f'FILE NOT FOUND: {file_to_replay}')
+        print("Rewriting pattern with new addressses...")
+        # Modify and send packets using tcpreplay
+        modify_and_save_pcap(original_pcap_file, file_to_replay)
+    else:
+        print(f'REWRITEN {PATTERN_TO_REPLAY} PATTERN FOUND from {SOURCE_IP} to {TARGET_IP}')
+
+    print('sending...')
+    # Tcpreplay command to send the modified packets
+    cmd = f"tcpreplay -i {IFACE_NAME} --limit=30 --stats 3 {file_to_replay}"
+    subprocess.run(cmd, shell=True)
 
 
 def repeat_function():
@@ -145,22 +114,20 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Replay script with optional repeat argument")
-    parser.add_argument("PATTERN_TO_REPLAY", help="Pattern to replay directory")
+    parser.add_argument("PATTERN_TO_REPLAY", help="Pattern to replay")
     parser.add_argument("TARGET_IP", help="Target IP address")
-    parser.add_argument("--repeat", type=int, default=None, help="Number of seconds before repeating the pattern (default: Don't repeat)")
-    parser.add_argument("--preprocessed", type=int, default=True, help="Search for preprocessed pcap file instead of processing it. (Default: true)")
+    parser.add_argument("--repeat", type=int, default=5, help="Number of seconds before repeating the pattern (default: 5)")
 
     args = parser.parse_args()
 
     # Your new source IP
-    SOURCE_IP = get_source_ip_address()
+    SOURCE_IP = get_static_source_ip_address()
     SOURCE_MAC = get_source_mac()
 
     # Get the values from command line arguments
     PATTERN_TO_REPLAY = args.PATTERN_TO_REPLAY
     TARGET_IP = args.TARGET_IP
     REPEAT_PATTERN_SECS = args.repeat
-    PREPROCESSED = args.preprocessed
 
 
     print(f'Source IP {SOURCE_IP}')
@@ -168,7 +135,6 @@ if __name__ == "__main__":
     print(f'Target IP {TARGET_IP}')
     print(f'Pattern to replay: {PATTERN_TO_REPLAY}')
     print(f'Interval between replays: {REPEAT_PATTERN_SECS}')
-    print(f'Preprocessed Pcap Replay: {PREPROCESSED}')
 
 
     # Resend packets with modified IPs
