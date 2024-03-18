@@ -7,6 +7,6 @@ gns3_thesis/*
 gns3-thesis/*
 AttackerNode/bening_traffic/*
 AttackerNode/muhstik_old/*
-topology-handler/__pycache__/
+utils/__pycache__/
 poxController/smartController/admin_dashboard/__pycache__/
 poxController/jesus_wandb_api_key.txt
