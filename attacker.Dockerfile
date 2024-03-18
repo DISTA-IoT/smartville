@@ -38,6 +38,3 @@ COPY  mirai/. /app/mirai/
 COPY  muhstik/. /app/muhstik/
 COPY  okiru/. /app/okiru/
 COPY  torii/. /app/torii/
-
-RUN chmod +x /app/icmp_flood.py
-
