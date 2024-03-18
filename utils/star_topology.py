@@ -47,11 +47,10 @@ templates = None
 
 def resetProject(PROJECT_NAME):
     global project
-
+    print(f"The {PROJECT_NAME} GNS3 project will be deleted if existent")
     delete_project(server,PROJECT_NAME)
-    print("Project deleted")
     create_project(server,PROJECT_NAME,1000,1000)
-    print("New project created")
+    print(f"New GNS3 project created with name {PROJECT_NAME}")
     project = get_project_by_name(server, PROJECT_NAME)
     open_project_if_closed(server, project)
 
