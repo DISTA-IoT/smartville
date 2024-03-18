@@ -91,7 +91,7 @@ def rewrite_and_send(original_pcap_file, file_to_replay):
 
     print('sending...')
     # Tcpreplay command to send the modified packets
-    cmd = f"tcpreplay -i {IFACE_NAME} --limit=30 --stats 3 {file_to_replay}"
+    cmd = f"tcpreplay -i {IFACE_NAME} --stats 3 {file_to_replay}"
     subprocess.run(cmd, shell=True)
 
 
