@@ -233,7 +233,7 @@ def update_generic_template(img_name, start_command):
         print((f"{template_id}: deleting old template"))
         
     print((f"{template_id}: creating a new template using local image"))
-    create_docker_template(server, img_name, start_command, str(img_name+":latest"),)
+    create_docker_template(server, img_name, start_command, str(img_name+":latest"), environment=ENV_STR)
 
 
 def update_switch_template():
@@ -256,7 +256,7 @@ def update_controller_template():
         delete_template(server,project,controller_template_id)
         print(f"old controller template {CONTROLLER_IMG_NAME} deleted")
 
-    create_docker_template(server, CONTROLLER_IMG_NAME, CONTROLLER_START_COMMAND, str(CONTROLLER_IMG_NAME+":latest"),)
+    create_docker_template(server, CONTROLLER_IMG_NAME, CONTROLLER_START_COMMAND, str(CONTROLLER_IMG_NAME+":latest"),environment=ENV_STR)
 
 
 def update_templates():
@@ -292,7 +292,7 @@ if __name__ == "__main__":
     parser.add_argument("--gns3_auth", type=bool, default=True, help=" When not using config file. GNS3 server requires auth (Default True)")
     parser.add_argument("--gns3_username", type=str, default="admin", help="When not using config file. GNS3 server's admin username (Default is \"admin\")")
     parser.add_argument("--gns3_password", type=str, default="12345", help="When not using config file. GNS3 server's password (Default is \"12345\")")
-
+    parser.add_argument("--env_vars", type=str, default='', help="Newline char (\\n) Env variables for node containers. E.g:  VAR_ONE=value1\\nVAR2=2\\nBLABLABLA=something. Default is empty str.")
     args = parser.parse_args()
 
     PROJECT_NAME = args.project
@@ -305,6 +305,14 @@ if __name__ == "__main__":
     VICTIM_IMG_NAME = args.victim_docker
     ATTACKER_IMG_NAME = args.attacker_docker
     CONTROLLER_START_COMMAND = args.contr_start
+    # ENV_STR = args.env_var
+    
+    # Insubria server ShortCut  
+    # TODO delete  
+    ENV_STR = "https_proxy=http://proxy.uninsubria.it:3128\n"+\
+                "HTTPS_PROXY=http://proxy.uninsubria.it:3128\n"+\
+                    "HTTP_PROXY=http://proxy.uninsubria.it:3128\n"+\
+                        "http_proxy=http://proxy.uninsubria.it:3128"
 
     ATTACKER_NODE_COUNT = args.n_attackers
     VICTIM_NODE_COUNT = args.n_victims

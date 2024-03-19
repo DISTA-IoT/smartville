@@ -22,7 +22,7 @@ import subprocess
 import argparse
 
 TERMINAL_ISSUER_PATH = './terminal_issuer.sh'  # MAKE IT EXECUTABLE WITH chmod +x terminal_issuer.sh
-BROWSER_PATH = '/usr/bin/brave-browser'  # Change to your commodity browser
+BROWSER_PATH = None
 
 
 CURRICULUM=None # For training and labelling purposes. Must be set according to the labelling in the controller. 
@@ -88,7 +88,7 @@ def launch_grafana_detached(controller_container):
     command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:GRAFANA:{start_grafana_command}"]
     launch_detached_command(command)
     print('Waiting for Grafana to start...')
-    time.sleep(5)
+    time.sleep(10)
     print('Linking Grafana to Prometheus...')
     print(run_command_in_container(controller_container, "python3 pox/smartController/link_grafana_to_prometheus.py"))
     time.sleep(1)
@@ -172,14 +172,6 @@ def run_command_in_container(container, command):
     exec_result = container.exec_run(f"sh -c '{command} & echo $!'")
     pid = exec_result.output.decode("utf-8").strip()
     return pid
-
-
-def kill_attacks():
-    print('Killing attacks...')
-    for container, pid in process_ids.items():
-        container_info = client.api.inspect_container(container.id)
-        container.exec_run(f"kill {pid}")
-        print(f"Killed process {pid} in {container_info['Config']['Hostname']}")
 
 
 def pattern_replay_commands(argument):
@@ -321,10 +313,15 @@ if __name__ == "__main__":
         "--curriculum", 
         help="The curriculum to divide known, train unknown and test unkown patterns for ZdA Attack detection  (Default is 1)", 
         default=1)
+    parser.add_argument(
+        "--browser", 
+        help="Browser Exetubale Path (Default is /usr/bin/firefox, change to your favourite)", 
+        default="/usr/bin/firefox")
     
     args = parser.parse_args()
 
     CURRICULUM = args.curriculum
+    BROWSER_PATH = args.browser
 
 
     # Connect to the Docker daemon
