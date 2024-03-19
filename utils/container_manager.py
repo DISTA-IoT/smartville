@@ -23,16 +23,15 @@ import argparse
 
 TERMINAL_ISSUER_PATH = './terminal_issuer.sh'  # MAKE IT EXECUTABLE WITH chmod +x terminal_issuer.sh
 BROWSER_PATH = '/usr/bin/brave-browser'  # Change to your commodity browser
-CONTROLLER_IMG_NAME = 'pox-controller:latest'
-ATTACKER_IMG_NAME = 'attacker:latest'
-VICTIM_IMG_NAME = 'victim:latest'
+
 
 CURRICULUM=None # For training and labelling purposes. Must be set according to the labelling in the controller. 
 KNOWN_TRAFFIC_NODES = []
 TRAINING_ZDA_NODES = []
 TEST_ZDA_NODES = []  
 
-process_ids = {}
+
+
 containers_dict = {}
 
 start_zookeeper_command = "zookeeper-server-start.sh pox/smartController/zookeeper.properties"
@@ -129,8 +128,8 @@ def launch_brower_consoles(controller_container):
         controller_container, 
         "ifconfig")
     accessible_ip = ifconfig_output.split('eth1')[1].split('inet ')[1].split(' ')[0]
-    url = "http://"+accessible_ip+":9090"  # Prometheus
-    subprocess.call([BROWSER_PATH, url])
+    # url = "http://"+accessible_ip+":9090"  # Prometheus
+    # subprocess.call([BROWSER_PATH, url])
     url = "http://"+accessible_ip+":3000"  # Grafana
     subprocess.call([BROWSER_PATH, url])
 
@@ -152,11 +151,10 @@ def launch_controller_processes(controller_container):
     launch_grafana_detached(controller_container)
     print('Grafana launched on controller! please wait...')
     time.sleep(1)
-
     launch_kafka_detached(controller_container)
     print('Kafka launched on controller! please wait...')
     time.sleep(1)
-    print('Launching dashboards on host...')
+    print('Launching Grafanfa dashboard on host...')
     launch_brower_consoles(controller_container)
 
 
@@ -413,24 +411,38 @@ if __name__ == "__main__":
 
     user_input = input("SmartVille Container Maganer \n" +\
                        "Plase input a character and type enter. \n" +\
-                       "'c' to launch controller services, \n"+\
-                       "'0' to send all patterns from nodes, \n" +\
-                       f"'1' to send only known traffic according to (curriculum {CURRICULUM}), \n" +\
-                       f"'2' to send only training zdas (curriculum {CURRICULUM})\n" +\
-                       f"'3' to send only test zdas (curriculum {CURRICULUM})\n" +\
-                       "'4' to send node features from all nodes, \n" +\
-                       "'s' to stop network nodes (faster from GNS3), \n" +\
-                       "or 'q' to quit: ")
+                       "'c' to launch controller services. This will: \n"+\
+                       " |---1. launch zookeeper service,   ('zoo' option) \n"+\
+                       " |---2. config and launch prometheus service,   ('pro' option) \n"+\
+                       " |---3. config and launch grafana service ,     ('gra' option) \n"+\
+                       " |---4. delete kafka logs,                      ('dkl' option) \n"+\
+                       " |---5. config and launch kafka,                ('kaf' option) \n"+\
+                       " |---6. launch grafana dashboard on browser,    ('dash' option) \n"+\
+                       " ________________________________________________________________\n"+\
+                       "\n"+\
+                       "'s' to send all traffic patterns from nodes, This will: \n"+\
+                       " |---1. send known traffic according to curriculum,   ('known' option) \n"+\
+                       " |---2. send training zdas,                           ('zda1' option) \n"+\
+                       " |---3. send test zdas,                               ('zda2' option) \n"+\
+                       " ________________________________________________________________"+\
+                       "\n"+\
+                       "'m' to send node features from all nodes, \n"+\
+                       " ________________________________________________________________"+\
+                       "\n"+\
+                       "'q' to quit. \n"+\
+                       " ________________________________________________________________\n"+\
+                       " Your input: ")
+                   
     
-    if user_input == '0':
+    if user_input == 's':
         send_all_traffic()
-    elif user_input == '1':
+    elif user_input == 'known':
         send_known_traffic()
-    elif user_input == '2':
+    elif user_input == 'zda1':
         send_training_zdas()
-    if user_input == '3':
+    if user_input == 'zda2':
         send_test_zdas()
-    elif user_input == '4':
+    elif user_input == 'm':
         launch_metrics()
     elif user_input == 'c':
         launch_controller_processes(containers_dict['pox-controller-1'])
@@ -438,7 +450,7 @@ if __name__ == "__main__":
         print(launch_prometheus_detached(containers_dict['pox-controller-1']))
     elif user_input == 'gra':
         print(launch_grafana_detached(containers_dict['pox-controller-1']))
-    elif user_input == 'url':
+    elif user_input == 'dash':
         print(launch_brower_consoles(containers_dict['pox-controller-1']))
     elif user_input == 'zoo':
         print(launch_zookeeper_detached(containers_dict['pox-controller-1']))

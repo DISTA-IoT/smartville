@@ -30,10 +30,10 @@
             "justMyCode": true
         },
         {
-            "name": "Mount Topology",
+            "name": "Star Topology Generation",
             "type": "python",
             "request": "launch",
-            "program": "topology-handler/mount_topology.py",
+            "program": "utils/star_topology.py",
             "args": [
                 "--project=gns3",
                 "--n_attackers=2",
@@ -46,7 +46,7 @@
             "name": "Container Manager",
             "type": "python",
             "request": "launch",
-            "program": "docker/container_manager.py",
+            "program": "utils/container_manager.py",
             "justMyCode": true
         }
     ]
