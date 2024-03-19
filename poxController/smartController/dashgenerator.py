@@ -43,7 +43,7 @@ class DashGenerator:
     def generate_all_dashes(self):
         while True:
             if not self.dashboard_exists('CPU_data'):
-                print("Dashboard non esistente, creazione in corso...")
+                print("Creating new dashboard: CPU_data ...")
                 self.generate_single_dash_with_return('CPU_data','CPU (%)')
             else:
                 break
@@ -55,19 +55,19 @@ class DashGenerator:
         passate in ingresso le stringhe relative al nome della dashboard e l'UID che le identifica univocamente
         """
         if not self.dashboard_exists('RAM_data'):
-            print("Dashboard RAM_data non esistente, creazione in corso...")
+            print("Creating new dashboard: RAM_data...")
             self.generate_single_dash('RAM_data','RAM (GB)')
 
         if not self.dashboard_exists('PING_data'):
-            print("Dashboard PING_data non esistente, creazione in corso...")
+            print("Creating new dashboard:  PING_data ...")
             self.generate_single_dash('PING_data','Latenza (ms)')
 
         if not self.dashboard_exists('INT_data'):
-            print("Dashboard INT_data non esistente, creazione in corso...")
+            print("Creating new dashboard:  INT_data...")
             self.generate_single_dash('INT_data','Traffico rete in entrata (KBps)')
 
         if not self.dashboard_exists('ONT_data'):
-            print("Dashboard ONT_data non esistente, creazione in corso...")
+            print("Creating new dashboard: ONT_data creazione in corso...")
             self.generate_single_dash('ONT_data','Traffico rete in uscita (KBps)')
 
     
@@ -107,11 +107,11 @@ class DashGenerator:
         # Creazione effettiva dashboard 
         try:
             self.grafana_connection.dashboard.update_dashboard(dashboard_config)
-            print(f"Dashboard con UID '{dash_UID}' creata con successo!")
+            print(f"Dashboard with UID '{dash_UID}' created!")
             return True
 
         except Exception as e:
-            print(f"Errore: {e} ricontrolla username o password")
+            print(f"Errore: {e} try a different username or password")
             return False
 
     
@@ -134,4 +134,4 @@ class DashGenerator:
 
         # Creazione effettiva dashboard 
         self.grafana_connection.dashboard.update_dashboard(dashboard_config)
-        print(f"Dashboard con UID '{dash_UID}' creata con successo!")
+        print(f"Dashboard con UID '{dash_UID}' created!")

@@ -178,9 +178,9 @@ class GraphGenerator:
             # Aggiungi il pannello alla relativa dashboard
             dashboard['dashboard']['panels'].append(panel_config)
             self.grafana_connection.dashboard.update_dashboard(dashboard)
-            print(f"Grafico '{panel_title}' aggiunto alla dashboard '{dash_UID}' con successo!!!!")
+            print(f"Panel '{panel_title}' in dashboard '{dash_UID}' created!!!!")
         else:
-            print(f"Dashboard con UID '{dash_UID}' not presente.")
+            print(f"did not found Dashboard with UID '{dash_UID}' .")
 
     
     def sort_all_graphs(self):

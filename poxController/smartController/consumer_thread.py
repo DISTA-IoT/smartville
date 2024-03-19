@@ -121,10 +121,10 @@ class ConsumerThread(threading.Thread):
 
                     if msg.error():
                         if msg.error().code() == KafkaException._PARTITION_EOF:
-                            print(f'Partizione {msg.partition()} terminata')
+                            print(f'Partition {msg.partition()} terminated')
                             continue
                         else:
-                            print(f'Errore: {msg.error()}')
+                            print(f'Error: {msg.error()}')
                             break
 
                     # Lettura metriche dal server: ciascuna metrica ha la propria partizione dedicata
@@ -164,9 +164,9 @@ class ConsumerThread(threading.Thread):
                 if delete_ok:
                     admin_client.delete_topics([self.topic_name])
 
-                print(f"{self.topic_name}: thread arrestato")
+                print(f"{self.topic_name}: stopped thread")
 
         else:
 
             admin_client.delete_topics([self.topic_name])
-            print(f"Utente {self.topic_name} registrato non correttamente")
+            print(f"topic {self.topic_name} did not registered correctly")

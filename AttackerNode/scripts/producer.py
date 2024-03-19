@@ -54,37 +54,37 @@ def server_exist(bootstrap_servers):
     # Controlla se la stinga è del formato host:porta
 
     if ':' not in bootstrap_servers:
-        print("Errore: la stringa deve contenere il formato host:porta")
+        print(f"Error: The boostrap server string {bootstrap_servers} must be formatted with two integers -> (host:port)")
         return False
 
     split_values = bootstrap_servers.split(':')
 
     if len(split_values) != 2 :
-        print("Errore: la stringa deve contenere solo due valori (host:porta)")
+        print(f"Error: The boostrap server string {bootstrap_servers} must be formatted with two integers -> (host:port)")
         return False
         
     host, port = bootstrap_servers.split(':')
 
     if not port.isdigit():
-        print(f"Errore: il valore della porta '{port}' non è un numero valido.")
+        print(f"Error: '{port}' is not a valid port number.")
         return False
 
     try:
         # Attempt to create a socket connection to the Kafka broker
         with socket.create_connection((host, port), timeout=2):
-            print(f"Server {host}:{port} raggiungibile.")
+            print(f"Server {host}:{port} was reached.")
             return True
     except (socket.error, socket.timeout) as e:
-        print(f"Server {host}:{port} non raggiungibile")
+        print(f"Server {host}:{port} unreachable")
         return False
 
 # Definizione callback per il report dei messaggi inviati
 
 def delivery_report(err, msg):
     if err is not None:
-        print(f"Messaggio non inviato: {err}")
+        print(f"Could not send message: {err}")
     else:
-        print(f"Valore {msg.value().decode('utf-8')} inviato al topic {msg.topic()}, partizione {msg.partition()}, offset {msg.offset()}")
+        print(f"Value: {msg.value().decode('utf-8')} sent to topic {msg.topic()}, partition {msg.partition()}, offset {msg.offset()}")
 
 # Controllo sull'esistenza di un topic all'interno del cluster
 
@@ -115,7 +115,7 @@ def create_topic(bootstrap_servers, topic_name, num_partitions, replication_fact
     try:
         time.sleep(10)
     except Exception as e:
-        print(f"Errore nel creare il topic '{topic_name}': {e}")
+        print(f"Error while creating topic '{topic_name}': {e}")
 
 # Thread dedicato al calcolo della latenza
 
@@ -141,7 +141,7 @@ def ping_thread(host):
             
 
         except subprocess.TimeoutExpired:
-            print("Richiesta del ping scaduta.")
+            print("Ping request Timeout.")
             round_trip_time = None
 
         time.sleep(1)
@@ -181,26 +181,26 @@ if __name__ == "__main__":
                 kafka_check = True
 
             except KafkaException as e:
-                print(f"Errore nella connessione")
+                print(f"Connection Error")
                 admin = None
                 continue
         else:
-            print(f"Kafka server {bootstrap_servers} non trovato.")
+            print(f"Could not find Kafka broker at {bootstrap_servers}.")
 
     topic_name=SOURCE_IP
     # Controllo di esistenza topic, nel caso questo non esistesse, ne verrà creato uno nuovo
     exists = topic_exists(bootstrap_servers, topic_name)
 
     if exists:
-        print(f"Il topic '{topic_name}' esiste.")
+        print(f"Topic '{topic_name}' found in Kafka Broker.")
     else:
-        print(f"Il topic '{topic_name}' non esiste.")
+        print(f"Topic '{topic_name}' not found in Kafka Broker, will now create.")
         create_topic(bootstrap_servers, topic_name, num_partitions, replication_factor)
         exists = topic_exists(bootstrap_servers, topic_name)
         if exists:
-            print(f"Topic '{topic_name}' creato con successo.")
+            print(f"Topic '{topic_name}' successively created!.")
         else:
-            print("Utente non presente su Kafka server, impossibile procedere")
+            print("Could not register the topic in the Kafka Broker")
 
     # Inserimento metriche nel server
 
@@ -224,7 +224,7 @@ if __name__ == "__main__":
                     producer.flush()
 
                 except FileNotFoundError:
-                    print("Informazioni CPU non disponibili")
+                    print("Could not get CPU metrics")
                     producer.produce(topic=topic_name, value=end_message, partition=0, callback=delivery_report)
                     producer.flush()
         
@@ -242,7 +242,7 @@ if __name__ == "__main__":
                     #perram = ram_info.percent
                 
                 except FileNotFoundError:
-                    print("Informazioni RAM non disponibili")
+                    print("Could not get RAM metrics")
                     producer.produce(topic=topic_name, value=end_message, partition=1, callback=delivery_report)
                     producer.flush()
 
@@ -269,7 +269,7 @@ if __name__ == "__main__":
                         ping_thread.start()
 
                 except FileNotFoundError:
-                    print("Informazioni latenza non disponibili")
+                    print("Could not get delay metrics")
                     producer.produce(topic=topic_name, value=end_message, partition=2, callback=delivery_report)
                     producer.flush()
 
@@ -295,7 +295,7 @@ if __name__ == "__main__":
                         initial_stats_incoming = updated_stats_incoming
 
                     except FileNotFoundError:
-                        print("Informazioni dati rete non disponibili")
+                        print("Could not get network metrics")
                         producer.produce(topic=topic_name, value=end_message, partition=3, callback=delivery_report)
                         producer.flush()
                 else:
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                         start_time_incoming = time.time()
 
                     except FileNotFoundError:
-                        print("Informazioni dati rete non disponibili")
+                        print("Could not get network metrics")
                         producer.produce(topic=topic_name, value=end_message, partition=3, callback=delivery_report)
                         producer.flush()
                     
@@ -331,7 +331,7 @@ if __name__ == "__main__":
                         initial_stats_outcoming = updated_stats_outcoming
 
                     except FileNotFoundError:
-                        print("Informazioni dati rete non disponibili")
+                        print("Could not get network metrics")
                         producer.produce(topic=topic_name, value=end_message, partition=4, callback=delivery_report)
                         producer.flush()
                 else:
@@ -342,7 +342,7 @@ if __name__ == "__main__":
                         start_time_outcoming = time.time()
 
                     except FileNotFoundError:
-                        print("Informazioni dati rete non disponibili")
+                        print("Could not get network metrics")
                         producer.produce(topic=topic_name, value=end_message, partition=4, callback=delivery_report)
                         producer.flush()
 
@@ -360,4 +360,4 @@ if __name__ == "__main__":
                 producer.produce(topic=topic_name, value=end_message, partition=i, callback=delivery_report)
                 producer.flush()
             
-            print("Programma terminato!")
+            print("Producer thread terminated!")
