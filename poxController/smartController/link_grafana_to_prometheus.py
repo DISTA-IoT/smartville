@@ -15,6 +15,11 @@
 
 # Additional licensing information for third-party dependencies
 # used in this file can be found in the accompanying `NOTICE` file.
+
+"""
+THIS SCRIPT REGISTERS PROMETHEUS AS A GRAFANA DATA SOURCE, IT MUST BE LAUNCHED AFTER 
+PROMETHEUS AND GRAFANA ARE LAUNCHED. 
+"""
 from grafana_api.grafana_face import GrafanaFace
 import netifaces as ni 
 
