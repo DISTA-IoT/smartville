@@ -16,7 +16,8 @@
                 "--ai_debug=True",
                 "--multi_class=True",
                 "--k_shot=5",
-                "--batch_size=20"
+                "--batch_size=20",
+                "--node_features=True"
             ],
             "justMyCode": true
         },
