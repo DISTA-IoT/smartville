@@ -305,15 +305,17 @@ if __name__ == "__main__":
     VICTIM_IMG_NAME = args.victim_docker
     ATTACKER_IMG_NAME = args.attacker_docker
     CONTROLLER_START_COMMAND = args.contr_start
-    # ENV_STR = args.env_var
+    ENV_STR = args.env_vars
     
+
+    """
     # Insubria server ShortCut  
     # TODO delete  
     ENV_STR = "https_proxy=http://proxy.uninsubria.it:3128\n"+\
                 "HTTPS_PROXY=http://proxy.uninsubria.it:3128\n"+\
                     "HTTP_PROXY=http://proxy.uninsubria.it:3128\n"+\
                         "http_proxy=http://proxy.uninsubria.it:3128"
-
+    """
     ATTACKER_NODE_COUNT = args.n_attackers
     VICTIM_NODE_COUNT = args.n_victims
 
