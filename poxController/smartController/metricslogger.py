@@ -21,12 +21,10 @@ from smartController.consumer_thread import ConsumerThread
 from smartController.dashgenerator import DashGenerator
 from smartController.graphgenerator import GraphGenerator
 from grafana_api.grafana_face import GrafanaFace
-
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
 import time
 import socket
-from collections import deque
 import threading
 import netifaces as ni
 
@@ -87,7 +85,7 @@ class MetricsLogger:
         self.accessible_ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
         self.grafana_connection = GrafanaFace(
                 auth=(self.grafana_user, self.grafana_pass), 
-                host=self.accessible_ip+':3000')
+                host='localhost:3000')
 
         if self.init_kafka_connection(): 
             
@@ -146,7 +144,7 @@ class MetricsLogger:
         
         # prometheus_connection will permit the graph generator 
         # organize graphs...  
-        self.prometheus_connection = PrometheusConnect('http://'+self.accessible_ip+':9090/24):9090')
+        self.prometheus_connection = PrometheusConnect('http://localhost:9090/24):9090')
 
 
     def start_consuming(self):
