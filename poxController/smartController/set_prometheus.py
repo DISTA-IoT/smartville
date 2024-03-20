@@ -22,7 +22,7 @@ IT MUST BE RUN EACH TIME THE CONTROLLER CONTAINER IS REBOOT.
 THE OVERWRITTING TAKES PLACE IN THE PROMETHEUS CONFIG FILE, FOR THIS REASON, THIS SCRIPT MUST BE RUN BEFORE LAUNCHING PROMETHEUS.
 """
 import netifaces as ni 
-
+import os
 
 def get_source_ip_address():
     try:
@@ -62,11 +62,18 @@ scrape_configs:
     static_configs:
       - targets: ['{ip}:8000']"""
 
-    with open('prometheus.yml', 'w') as f:
-        f.write(config)
+    # Get the directory path of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
+    # Define the file path relative to the script directory
+    file_path = os.path.join(script_dir, 'prometheus.yml')
+
+    # Write to the file
+    with open(file_path, 'w') as f:
+        f.write(config)
 
 if __name__ == "__main__":
     dynamic_IP = get_source_ip_address()
     print(f'Generating Prometheus config file with ip {dynamic_IP}')
     generate_prometheus_config(dynamic_IP)
+    print('Done!')
