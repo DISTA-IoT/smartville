@@ -70,6 +70,14 @@ alerting:
 rule_files:
 
 scrape_configs:
+  - job_name: 'prometheus'
+
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+    static_configs:
+      - targets: ['{ip}:9090']
+
   - job_name: 'system_metrics'
 
     static_configs:
