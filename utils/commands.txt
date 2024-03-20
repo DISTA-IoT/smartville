@@ -1,6 +1,9 @@
 ################## CONTROLLER #################################
 
 # 1. launch prometheus server:
+    # First put the accessible ip given at run_time in the prometheus conf file:
+    python3 pox/smartController/set_prometheus.py
+    # Then you can start the server:
     prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/
 
 # 2. launch grafana server:
