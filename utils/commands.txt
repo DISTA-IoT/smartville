@@ -10,7 +10,7 @@
         # first, start the server
         grafana-server -homepath /usr/share/grafana
         # then, you have to link prometheus to grafana (can do it also from the web GUI)
-        python3 link_grafana_to_prometheus.py
+        python3 pox/smartController/link_grafana_to_prometheus.py
         
 # 3. launch zookeeper server:
 zookeeper-server-start.sh pox/smartController/zookeeper.properties
