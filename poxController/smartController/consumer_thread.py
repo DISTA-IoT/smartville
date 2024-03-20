@@ -20,6 +20,13 @@ from confluent_kafka.admin import AdminClient
 import threading
 import math
 
+RAM = 'RAM'
+CPU = 'CPU'
+IN_TRAFFIC = 'IN_TRAFFIC'
+OUT_TRAFFIC = 'OUT_TRAFFIC'
+DELAY = 'DELAY'
+
+
 class ConsumerThread(threading.Thread):
 
 
@@ -32,9 +39,13 @@ class ConsumerThread(threading.Thread):
             ram_metric, 
             ping_metric, 
             incoming_traffic_metric,
-            outcoming_traffic_metric):
+            outcoming_traffic_metric,
+            controller_metrics_dict
+            ):
         
         threading.Thread.__init__(self)
+
+        self.lock = threading.Lock()
         self.bootstrap_servers = bootstrap_servers
         self.topic_name = topic_name
         self.topic_object = topic_object
@@ -44,23 +55,35 @@ class ConsumerThread(threading.Thread):
         self.incoming_traffic_metric = incoming_traffic_metric
         self.outcoming_traffic_metric = outcoming_traffic_metric
         self.exit_signal = threading.Event()
+        self.controller_metrics_dict = controller_metrics_dict
+
 
     # Definizione metodi di aggiornamento delle metriche nelle rispettive variabili
     def update_cpu_metric(self, value, label_value):
         self.cpu_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            self.controller_metrics_dict[self.topic_name][CPU].append(value)
+
 
     def update_ram_metric(self, value, label_value):
         self.ram_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            self.controller_metrics_dict[self.topic_name][RAM].append(value)
 
     def update_ping_metric(self, value, label_value):
         self.ping_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            self.controller_metrics_dict[self.topic_name][DELAY].append(value)
 
     def update_incoming_traffic_metric(self, value, label_value):
         self.incoming_traffic_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            self.controller_metrics_dict[self.topic_name][IN_TRAFFIC].append(value)
 
     def update_outcoming_traffic_metric(self, value, label_value):
         self.outcoming_traffic_metric.labels(label_name=label_value).set(value)
-    
+        with self.lock:
+            self.controller_metrics_dict[self.topic_name][OUT_TRAFFIC].append(value)
 
     def stop_threads(self):
         print("Stopping thread...")

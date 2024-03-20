@@ -23,6 +23,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from smartController.wandb_tracker import WandBTracker
+from smartController.flow import CircularBuffer
 from pox.core import core  # only for logging.
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -70,6 +71,14 @@ colors = [
 'packet_count'
 #########################################
 """
+
+RAM = 'RAM'
+CPU = 'CPU'
+IN_TRAFFIC = 'IN_TRAFFIC'
+OUT_TRAFFIC = 'OUT_TRAFFIC'
+DELAY = 'DELAY'
+
+
 
 PRETRAINED_MODELS_DIR = 'models/'
 
@@ -209,6 +218,7 @@ class ControllerBrain():
     def __init__(self,
                  eval,
                  use_packet_feats,
+                 use_node_feats,
                  flow_feat_dim,
                  packet_feat_dim,
                  h_dim,
@@ -227,6 +237,7 @@ class ControllerBrain():
         
         self.eval = eval
         self.use_packet_feats = use_packet_feats
+        self.use_node_feats = use_node_feats
         self.flow_feat_dim = flow_feat_dim
         self.packet_feat_dim = packet_feat_dim
         self.h_dim = h_dim
@@ -514,7 +525,7 @@ class ControllerBrain():
                         test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
             
 
-    def classify_duet(self, flows):
+    def classify_duet(self, flows, node_feats: dict = None):
         """
         makes inferences about a duet flow (source ip, dest ip)
         """
@@ -523,7 +534,9 @@ class ControllerBrain():
             if len(flows) == 0:
                 return None
             else:
-                flow_input_batch, packet_input_batch = self.assembly_input_tensor(flows)
+                flow_input_batch, packet_input_batch = self.assembly_input_tensor(
+                    flows,
+                    node_feats)
                 batch_labels, zda_labels, test_zda_labels = self.get_labels(flows)
 
                 if random.random() > 0.3:
@@ -999,7 +1012,8 @@ class ControllerBrain():
 
     def assembly_input_tensor(
             self,
-            flows):
+            flows,
+            node_feats):
         """
         A batch is composed of a set of flows. 
         Each Flow has a bidimensional feature tensor. 
@@ -1007,9 +1021,12 @@ class ControllerBrain():
         """
         flow_input_batch = flows[0].get_feat_tensor().unsqueeze(0)
         packet_input_batch = None
+        node_feat_input_batch = None
 
         if self.use_packet_feats:
             packet_input_batch = flows[0].packets_tensor.buffer.unsqueeze(0)
+        if self.use_node_feats:
+            node_feat_input_batch =[]
 
         for flow in flows[1:]:
             flow_input_batch = torch.cat( 
@@ -1021,7 +1038,19 @@ class ControllerBrain():
                     [packet_input_batch,
                     flow.packets_tensor.buffer.unsqueeze(0)],
                     dim=0)
-                
+            if self.use_node_feats:
+                if flow.dest_ip in node_feats.keys():
+                    if flow.node_feats is None:
+                        flow.node_feats = CircularBuffer(
+                            buffer_size=10, 
+                            feature_size=5)
+                    else:
+                        print(node_feats[flow.dest_ip][CPU])
+                        print(node_feats[flow.dest_ip][RAM])
+                        print(node_feats[flow.dest_ip][IN_TRAFFIC])
+                        print(node_feats[flow.dest_ip][OUT_TRAFFIC])
+                        print(node_feats[flow.dest_ip][DELAY])
+
         return flow_input_batch, packet_input_batch
     
 

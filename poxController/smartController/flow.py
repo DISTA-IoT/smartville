@@ -58,6 +58,7 @@ class Flow():
                             buffer_size=flow_buff_len, 
                             feature_size=flow_feat_dim)
         self.packets_tensor = None
+        self.node_feats = None
         self.element_class = "Bening"
         self.zda = False
         self.test_zda = False

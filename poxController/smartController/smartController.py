@@ -78,6 +78,7 @@ class SmartSwitch(EventMixin):
         flow_logger, 
         metrics_logger, 
         brain,
+        use_node_feats: bool = False,
         flow_idle_timeout: int = 10,
         arp_timeout: int = 120,
         max_buffered_packets:int = 5,
@@ -92,6 +93,7 @@ class SmartSwitch(EventMixin):
     self.max_buffering_secs = max_buffering_secs
     self.arp_req_exp_secs = arp_req_exp_secs
 
+    self.use_node_feats = use_node_feats
     # We use this to prevent ARP flooding
     # Key: (switch_id, ARPed_IP) Values: ARP request expire time
     self.recently_sent_ARPs = {}
@@ -124,8 +126,13 @@ class SmartSwitch(EventMixin):
 
 
   def smart_check(self):
-      self.brain.classify_duet(
-        flows=list(self.flow_logger.flows_dict.values()))
+      if self.use_node_feats:
+        self.brain.classify_duet(
+          flows=list(self.flow_logger.flows_dict.values()),
+          node_feats=self.metrics_logger.metrics_dict)
+      else:
+        self.brain.classify_duet(
+          flows=list(self.flow_logger.flows_dict.values()))
 
 
   def _handle_expiration(self):
@@ -703,6 +710,7 @@ def launch(**kwargs):
     controller_brain = ControllerBrain(
         eval=eval,
         use_packet_feats=use_packet_feats,
+        use_node_feats=node_features,
         flow_feat_dim=4,
         packet_feat_dim=packet_feat_dim,
         h_dim=h_dim,
@@ -724,6 +732,7 @@ def launch(**kwargs):
       flow_logger=flow_logger,
       metrics_logger=metrics_logger,
       brain=controller_brain,
+      use_node_feats=node_features,
       **switching_args
       )
     

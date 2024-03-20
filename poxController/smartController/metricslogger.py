@@ -23,6 +23,7 @@ from smartController.graphgenerator import GraphGenerator
 from grafana_api.grafana_face import GrafanaFace
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
+from collections import deque
 import time
 import socket
 import threading
@@ -80,7 +81,7 @@ class MetricsLogger:
         self.sortcount = 0
         self.kafka_admin_client = None
         self.max_conn_retries = max_conn_retries  # max Kafkfa connection retries.
-        # self.metrics_dict = {}
+        self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
         self.accessible_ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
         self.grafana_connection = GrafanaFace(
@@ -171,14 +172,14 @@ class MetricsLogger:
 
                 self.graph_generator.generate_all_graphs(topic_name)
 
-                """
+                
                 self.metrics_dict[topic_name] = {
                     CPU: deque(maxlen=self.metric_buffer_len), 
                     DELAY: deque(maxlen=self.metric_buffer_len), 
                     IN_TRAFFIC: deque(maxlen=self.metric_buffer_len), 
                     OUT_TRAFFIC: deque(maxlen=self.metric_buffer_len),
                     RAM: deque(maxlen=self.metric_buffer_len) }
-                """
+                
 
                 print(f"Consumer Thread for topic {topic_name} commencing")
                 thread = ConsumerThread(
@@ -189,7 +190,8 @@ class MetricsLogger:
                     self.ram_metric,
                     self.ping_metric,
                     self.incoming_traffic_metric,
-                    self.outcoming_traffic_metric)
+                    self.outcoming_traffic_metric,
+                    self.metrics_dict)
 
                 self.threads.append(thread)
                 thread.start()
@@ -201,20 +203,3 @@ class MetricsLogger:
                 self.sortcount = 0
 
             self.sortcount +=1
-
-    """
-    def  update_cpu_metric(self, value, topic):
-        self.metrics_dict[topic][CPU].append(value)
-
-    def update_ram_metric(self, value, topic):
-        self.metrics_dict[topic][RAM].append(value)
-
-    def update_ping_metric(self, value, topic):
-        self.metrics_dict[topic][DELAY].append(value)
-
-    def update_incoming_traffic_metric(self, value, topic):
-        self.metrics_dict[topic][IN_TRAFFIC].append(value)
-
-    def update_outcoming_traffic_metric(self, value, topic):
-        self.metrics_dict[topic][OUT_TRAFFIC].append(value)
-    """
