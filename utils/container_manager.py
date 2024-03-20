@@ -69,7 +69,7 @@ def launch_prometheus(controller_container):
 
 
 def launch_prometheus_detached(controller_container):
-    print(run_command_in_container(controller_container, "python3 pox/smartController/set_prometheus.py"))
+    # print(run_command_in_container(controller_container, "python3 pox/smartController/set_prometheus.py"))
     time.sleep(1)
     # Build the command to execute your Bash script with its arguments
     command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:PROMETHEUS:{start_prometheus_command}"]
