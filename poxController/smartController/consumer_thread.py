@@ -62,27 +62,37 @@ class ConsumerThread(threading.Thread):
     def update_cpu_metric(self, value, label_value):
         self.cpu_metric.labels(label_name=label_value).set(value)
         with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
             self.controller_metrics_dict[self.topic_name][CPU].append(value)
 
 
     def update_ram_metric(self, value, label_value):
         self.ram_metric.labels(label_name=label_value).set(value)
         with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
             self.controller_metrics_dict[self.topic_name][RAM].append(value)
 
     def update_ping_metric(self, value, label_value):
         self.ping_metric.labels(label_name=label_value).set(value)
         with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
             self.controller_metrics_dict[self.topic_name][DELAY].append(value)
 
     def update_incoming_traffic_metric(self, value, label_value):
         self.incoming_traffic_metric.labels(label_name=label_value).set(value)
         with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
             self.controller_metrics_dict[self.topic_name][IN_TRAFFIC].append(value)
 
     def update_outcoming_traffic_metric(self, value, label_value):
         self.outcoming_traffic_metric.labels(label_name=label_value).set(value)
         with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
             self.controller_metrics_dict[self.topic_name][OUT_TRAFFIC].append(value)
 
     def stop_threads(self):

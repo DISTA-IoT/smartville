@@ -15,7 +15,7 @@
 
 # Additional licensing information for third-party dependencies
 # used in this file can be found in the accompanying `NOTICE` file.
-from smartController.neural_modules import  MultiClassFlowClassifier, \
+from smartController.neural_modules import  MultiClassFlowClassifier, ThreeStreamMulticlassFlowClassifier, \
         TwoStreamMulticlassFlowClassifier, KernelRegressionLoss, ConfidenceDecoder
 from smartController.replay_buffer import ReplayBuffer
 import os
@@ -339,74 +339,98 @@ class ControllerBrain():
         torch.manual_seed(seed)
         self.confidence_decoder = ConfidenceDecoder(device=self.device)
         self.os_criterion = nn.BCEWithLogitsLoss().to(self.device)
+        self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
+        self.kr_criterion = KernelRegressionLoss(repulsive_weigth=REPULSIVE_WEIGHT, 
+            attractive_weigth=ATTRACTIVE_WEIGHT).to(self.device)
         
         if self.use_packet_feats:
+            
+            if self.use_node_feats:
 
-                self.flow_classifier = TwoStreamMulticlassFlowClassifier(
-                flow_input_size=self.flow_feat_dim, 
-                packet_input_size=self.packet_feat_dim,
-                hidden_size=self.h_dim,
-                kr_heads=KERNEL_REGRESSOR_HEADS,
-                dropout_prob=self.dropout,
-                device=self.device)
-                self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
+                self.classifier = ThreeStreamMulticlassFlowClassifier(
+                    flow_input_size=self.flow_feat_dim, 
+                    second_stream_input_size=self.packet_feat_dim,
+                    third_stream_input_size=5,
+                    hidden_size=self.h_dim,
+                    kr_heads=KERNEL_REGRESSOR_HEADS,
+                    dropout_prob=self.dropout,
+                    device=self.device)
+            
+            else: 
 
+                self.classifier = TwoStreamMulticlassFlowClassifier(
+                    flow_input_size=self.flow_feat_dim, 
+                    second_stream_input_size=self.packet_feat_dim,
+                    hidden_size=self.h_dim,
+                    kr_heads=KERNEL_REGRESSOR_HEADS,
+                    dropout_prob=self.dropout,
+                    device=self.device)
 
         else:
+            
+            if self.use_node_feats:
+                
+                self.classifier = TwoStreamMulticlassFlowClassifier(
+                    flow_input_size=self.flow_feat_dim, 
+                    second_stream_input_size=5,
+                    hidden_size=self.h_dim,
+                    kr_heads=KERNEL_REGRESSOR_HEADS,
+                    dropout_prob=self.dropout,
+                    device=self.device)
+            else:
 
-                self.flow_classifier = MultiClassFlowClassifier(
+                self.classifier = MultiClassFlowClassifier(
                     input_size=self.flow_feat_dim, 
                     hidden_size=self.h_dim,
                     dropout_prob=self.dropout,
                     kr_heads=KERNEL_REGRESSOR_HEADS,
                     device=self.device)
-                self.cs_criterion = nn.CrossEntropyLoss().to(self.device)
+            
 
-        
-        self.kr_criterion = KernelRegressionLoss(repulsive_weigth=REPULSIVE_WEIGHT, 
-            attractive_weigth=ATTRACTIVE_WEIGHT).to(self.device)
 
         self.check_pretrained()
 
         params_for_optimizer = \
             list(self.confidence_decoder.parameters()) + \
-                list(self.flow_classifier.parameters())
+                list(self.classifier.parameters())
 
-        self.flow_classifier.to(self.device)
+        self.classifier.to(self.device)
         self.cs_optimizer = optim.Adam(
             params_for_optimizer, 
             lr=lr)
 
         if self.eval:
-            self.flow_classifier.eval()
+            self.classifier.eval()
             self.confidence_decoder.eval()
             self.logger_instance.info(f"Using MODULES in EVAL mode!")                
 
 
     def check_pretrained(self):
-        self.flow_classifier_path = ""
-        self.confidence_decoder_path = ""
+
+        if self.use_packet_feats:
+            if self.use_node_feats:
+                self.classifier_path = PRETRAINED_MODELS_DIR+'multiclass_flow_packet_node_classifier_pretrained'
+                self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'flow_packet_node_confidence_decoder_pretrained'
+            else:
+                self.classifier_path = PRETRAINED_MODELS_DIR+'multiclass_flow_packet_classifier_pretrained'
+                self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'flow_packet_confidence_decoder_pretrained'
+        else:
+            if self.use_node_feats:
+                self.classifier_path = PRETRAINED_MODELS_DIR+'multiclass_flow_node_classifier_pretrained'
+                self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'flow_node_confidence_decoder_pretrained'
+            else:    
+                self.classifier_path = PRETRAINED_MODELS_DIR+'multiclass_flow_classifier_pretrained'
+                self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'flow_confidence_decoder_pretrained'
+
         # Check if the file exists
         if os.path.exists(PRETRAINED_MODELS_DIR):
-            if self.multi_class:
-                if self.use_packet_feats:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'twostream-multiclass-flow_classifier_pretrained'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'twostream-confidence_decoder_pretrained'
-                else:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'multiclass-flow_classifier_pretrained'
-                    self.confidence_decoder_path = PRETRAINED_MODELS_DIR+'confidence_decoder_pretrained'
-            else:
-                if self.use_packet_feats:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'two-stream-binary-flow_classifier_pretrained'
-                else:
-                    self.flow_classifier_path = PRETRAINED_MODELS_DIR+'binary-flow_classifier_pretrained'
 
-            if os.path.exists(self.flow_classifier_path+'.pt'):
+            if os.path.exists(self.classifier_path+'.pt'):
                 # Load the pre-trained weights
-                self.flow_classifier.load_state_dict(torch.load(self.flow_classifier_path+'.pt'))
-                self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.flow_classifier_path}.pt")
+                self.classifier.load_state_dict(torch.load(self.classifier_path+'.pt'))
+                self.logger_instance.info(f"Pre-trained weights loaded successfully from {self.classifier_path}.pt")
             else:
-                self.logger_instance.info(f"Pre-trained weights not found at {self.flow_classifier_path}.pt")
+                self.logger_instance.info(f"Pre-trained weights not found at {self.classifier_path}.pt")
                 
             if self.multi_class:
                 if os.path.exists(self.confidence_decoder_path+'.pt'):
@@ -420,18 +444,40 @@ class ControllerBrain():
             self.logger_instance.info(f"Pre-trained folder not found at {PRETRAINED_MODELS_DIR}.")
 
 
-    def infer(self, flow_input_batch, packet_input_batch, batch_labels, query_mask):
+    def infer(
+            self,
+            flow_input_batch,
+            packet_input_batch,
+            node_feat_input_batch,
+            batch_labels,
+            query_mask):
 
         if self.use_packet_feats:
-                logits, hiddens, predicted_kernel = self.flow_classifier(
+            if self.use_node_feats:
+                logits, hiddens, predicted_kernel = self.classifier(
+                    flow_input_batch, 
+                    packet_input_batch, 
+                    node_feat_input_batch,
+                    batch_labels, 
+                    self.current_known_classes_count,
+                    query_mask)
+            else:
+                logits, hiddens, predicted_kernel = self.classifier(
                     flow_input_batch, 
                     packet_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
                     query_mask)
-
         else:
-                logits, hiddens, predicted_kernel = self.flow_classifier(
+            if self.use_node_feats:
+                logits, hiddens, predicted_kernel = self.classifier(
+                    flow_input_batch, 
+                    node_feat_input_batch, 
+                    batch_labels, 
+                    self.current_known_classes_count,
+                    query_mask)
+            else:
+                logits, hiddens, predicted_kernel = self.classifier(
                     flow_input_batch, 
                     batch_labels, 
                     self.current_known_classes_count,
@@ -662,6 +708,8 @@ class ControllerBrain():
         
     def sample_from_replay_buffers(self, samples_per_class, mode):
         balanced_packet_batch = None
+        balanced_node_feat_batch = None
+
         init = True
         if mode == TRAINING:
             buffers_dict = self.replay_buffers
@@ -675,6 +723,7 @@ class ControllerBrain():
                         batch_labels, \
                             zda_batch_labels, \
                                 test_zda_batch_labels = replay_buff.sample(samples_per_class)
+            
             if init:
                 balanced_flow_batch = flow_batch
                 balanced_labels = batch_labels
@@ -682,6 +731,9 @@ class ControllerBrain():
                 balanced_test_zda_labels = test_zda_batch_labels
                 if packet_batch is not None:
                     balanced_packet_batch = packet_batch
+                if node_feat_batch is not None:
+                    balanced_node_feat_batch = node_feat_batch
+
             else: 
                 balanced_flow_batch = torch.vstack(
                     [balanced_flow_batch, flow_batch])
@@ -693,10 +745,14 @@ class ControllerBrain():
                     [balanced_test_zda_labels, test_zda_batch_labels])
                 if packet_batch is not None:
                     balanced_packet_batch = torch.vstack(
-                        [balanced_packet_batch, packet_batch]) 
+                        [balanced_packet_batch, packet_batch])
+                if node_feat_batch is not None:
+                    balanced_node_feat_batch = torch.vstack(
+                       [balanced_node_feat_batch, node_feat_batch])
+
             init = False
 
-        return balanced_flow_batch, balanced_packet_batch, balanced_labels, balanced_zda_labels, balanced_test_zda_labels
+        return balanced_flow_batch, balanced_packet_batch, balanced_node_feat_batch, balanced_labels, balanced_zda_labels, balanced_test_zda_labels
 
 
     def get_canonical_query_mask(self, phase):
@@ -802,11 +858,12 @@ class ControllerBrain():
 
         balanced_flow_batch, \
             balanced_packet_batch, \
-                balanced_labels, \
-                    balanced_zda_labels, \
-                         balanced_test_zda_labels = self.sample_from_replay_buffers(
-            samples_per_class=self.replay_buff_batch_size,
-            mode=TRAINING)
+                balanced_node_feat_batch, \
+                    balanced_labels, \
+                        balanced_zda_labels, \
+                            balanced_test_zda_labels = self.sample_from_replay_buffers(
+                samples_per_class=self.replay_buff_batch_size,
+                mode=TRAINING)
         
         query_mask = self.get_canonical_query_mask(TRAINING)
 
@@ -815,6 +872,7 @@ class ControllerBrain():
         logits, hidden_vectors, predicted_kernel = self.infer(
             flow_input_batch=balanced_flow_batch,
             packet_input_batch=balanced_packet_batch,
+            node_feat_input_batch=balanced_node_feat_batch,
             batch_labels=balanced_labels,
             query_mask=query_mask)
         
@@ -872,7 +930,7 @@ class ControllerBrain():
 
     def evaluate_models(self):
 
-        self.flow_classifier.eval()
+        self.classifier.eval()
         self.confidence_decoder.eval()
         
         mean_eval_ad_acc = 0
@@ -883,11 +941,12 @@ class ControllerBrain():
                 
             balanced_flow_batch, \
                 balanced_packet_batch, \
-                    balanced_labels, \
-                        balanced_zda_labels, \
-                            balanced_test_zda_labels = self.sample_from_replay_buffers(
-                samples_per_class=self.replay_buff_batch_size,
-                mode=INFERENCE)
+                    balanced_node_feat_batch, \
+                        balanced_labels, \
+                            balanced_zda_labels, \
+                                balanced_test_zda_labels = self.sample_from_replay_buffers(
+                                    samples_per_class=self.replay_buff_batch_size,
+                                    mode=INFERENCE)
             
             query_mask = self.get_canonical_query_mask(INFERENCE)
 
@@ -896,6 +955,7 @@ class ControllerBrain():
             logits, hidden_vectors, predicted_kernel = self.infer(
                 flow_input_batch=balanced_flow_batch,
                 packet_input_batch=balanced_packet_batch,
+                node_feat_input_batch=balanced_node_feat_batch,
                 batch_labels=balanced_labels,
                 query_mask=query_mask)
 
@@ -951,7 +1011,7 @@ class ControllerBrain():
                 query_mask=query_mask,
                 phase=INFERENCE)
 
-        self.flow_classifier.train()
+        self.classifier.train()
         self.confidence_decoder.train()
 
 
@@ -1007,10 +1067,10 @@ class ControllerBrain():
 
     def save_cs_model(self, postfix='single'):
         torch.save(
-            self.flow_classifier.state_dict(), 
-            self.flow_classifier_path+postfix+'.pt')
+            self.classifier.state_dict(), 
+            self.classifier_path+postfix+'.pt')
         if self.AI_DEBUG: 
-            self.logger_instance.info(f'New {postfix} flow classifier model version saved to {self.flow_classifier_path}{postfix}.pt')
+            self.logger_instance.info(f'New {postfix} flow classifier model version saved to {self.classifier_path}{postfix}.pt')
 
 
     def save_ad_model(self, postfix='single'):
@@ -1090,18 +1150,17 @@ class ControllerBrain():
         if self.use_packet_feats:
             packet_input_batch = flows[0].packets_tensor.buffer.unsqueeze(0)
         if self.use_node_feats:
+            flows[0].node_feats = -1 * torch.ones(
+                    size=(10,5),
+                    device=self.device)
             if flows[0].dest_ip in node_feats.keys():
-                flows[0].node_feats = torch.Tensor([
-                    node_feats[flow.dest_ip][CPU],
-                    node_feats[flow.dest_ip][RAM],
-                    node_feats[flow.dest_ip][IN_TRAFFIC],
-                    node_feats[flow.dest_ip][OUT_TRAFFIC],
-                    node_feats[flow.dest_ip][DELAY]],
-                    device=self.device)
-            else:
-                flows[0].node_feats = torch.zeros(
-                    size=(5,10),
-                    device=self.device)
+                flows[0].node_feats[:len(node_feats[flow.dest_ip][CPU]),:]  = torch.hstack([
+                        torch.Tensor(node_feats[flow.dest_ip][CPU]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][RAM]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][IN_TRAFFIC]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][OUT_TRAFFIC]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][DELAY]).unsqueeze(1)])
+            
             node_feat_input_batch = flows[0].node_feats.unsqueeze(0)
 
         for flow in flows[1:]:
@@ -1115,18 +1174,17 @@ class ControllerBrain():
                     flow.packets_tensor.buffer.unsqueeze(0)],
                     dim=0)
             if self.use_node_feats:
-                if flow.dest_ip in node_feats.keys():                        
-                    flow.node_feats = torch.Tensor([
-                        node_feats[flow.dest_ip][CPU],
-                        node_feats[flow.dest_ip][RAM],
-                        node_feats[flow.dest_ip][IN_TRAFFIC],
-                        node_feats[flow.dest_ip][OUT_TRAFFIC],
-                        node_feats[flow.dest_ip][DELAY]]) 
-                else: 
-                    flow.node_feats = torch.zeros(
-                        size=(5,10),
+                flow.node_feats = -1 * torch.ones(
+                        size=(10,5),
                         device=self.device)
-                
+                if flow.dest_ip in node_feats.keys():
+                    flow.node_feats[:len(node_feats[flow.dest_ip][CPU]),:] = torch.hstack([
+                        torch.Tensor(node_feats[flow.dest_ip][CPU]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][RAM]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][IN_TRAFFIC]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][OUT_TRAFFIC]).unsqueeze(1),
+                        torch.Tensor(node_feats[flow.dest_ip][DELAY]).unsqueeze(1)]) 
+                       
                 node_feat_input_batch = torch.cat(
                             [node_feat_input_batch,
                             flow.node_feats.unsqueeze(0)],

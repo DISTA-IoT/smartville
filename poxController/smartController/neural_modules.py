@@ -123,13 +123,13 @@ class MultiClassFlowClassifier(nn.Module):
 
 
 class TwoStreamMulticlassFlowClassifier(nn.Module):
-    def __init__(self, flow_input_size, packet_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
+    def __init__(self, flow_input_size, second_stream_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
         super(TwoStreamMulticlassFlowClassifier, self).__init__()
         self.device = device
         self.flow_normalizer = nn.BatchNorm1d(flow_input_size)
         self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
-        self.packet_normalizer = nn.BatchNorm1d(packet_input_size)
-        self.packet_rnn = RecurrentModel(packet_input_size, hidden_size, device=self.device)
+        self.second_stream_normalizer = nn.BatchNorm1d(second_stream_input_size)
+        self.second_stream_rnn = RecurrentModel(second_stream_input_size, hidden_size, device=self.device)
         self.kernel_regressor = HighDimKernelRegressor(
             in_features=hidden_size*2,
             out_features=hidden_size,
@@ -138,15 +138,53 @@ class TwoStreamMulticlassFlowClassifier(nn.Module):
             device=self.device)
         self.classifier = MulticlassPrototypicalClassifier(device=self.device)
 
-    def forward(self, flows, packets, labels, curr_known_attack_count, query_mask):
+    def forward(self, flows, second_domain_feats, labels, curr_known_attack_count, query_mask):
         
         flows = self.flow_normalizer(flows.permute((0,2,1))).permute((0,2,1))
-        packets = self.packet_normalizer(packets.permute((0,2,1))).permute((0,2,1))
+        second_domain_feats = self.second_stream_normalizer(second_domain_feats.permute((0,2,1))).permute((0,2,1))
 
         flows = self.flow_rnn(flows)
-        packets = self.packet_rnn(packets)
+        second_domain_feats = self.second_stream_rnn(second_domain_feats)
 
-        hiddens = torch.cat([flows, packets], dim=1)
+        hiddens = torch.cat([flows, second_domain_feats], dim=1)
+
+        hiddens, predicted_kernel = self.kernel_regressor(hiddens)
+        logits  = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
+
+        return logits, hiddens, predicted_kernel
+ 
+
+class ThreeStreamMulticlassFlowClassifier(nn.Module):
+    def __init__(self, flow_input_size, second_stream_input_size, third_stream_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
+        super(ThreeStreamMulticlassFlowClassifier, self).__init__()
+        self.device = device
+        self.flow_normalizer = nn.BatchNorm1d(flow_input_size)
+        self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
+        self.second_stream_normalizer = nn.BatchNorm1d(second_stream_input_size)
+        self.second_stream_rnn = RecurrentModel(second_stream_input_size, hidden_size, device=self.device)
+        self.third_stream_normalizer = nn.BatchNorm1d(third_stream_input_size)
+        self.third_stream_rnn = RecurrentModel(third_stream_input_size, hidden_size, device=self.device)
+        self.kernel_regressor = HighDimKernelRegressor(
+            in_features=hidden_size*3,
+            out_features=hidden_size,
+            n_heads=kr_heads,
+            dropout=dropout_prob,
+            device=self.device)
+        self.classifier = MulticlassPrototypicalClassifier(device=self.device)
+
+    def forward(self, flows, second_domain_feats, third_domain_feats, labels, curr_known_attack_count, query_mask):
+        
+        flows = self.flow_normalizer(flows.permute((0,2,1))).permute((0,2,1))
+        second_domain_feats = self.second_stream_normalizer(second_domain_feats.permute((0,2,1))).permute((0,2,1))
+        if torch.any(third_domain_feats.isnan()):
+            print('hello')
+        third_domain_feats = self.third_stream_normalizer(third_domain_feats.permute((0,2,1))).permute((0,2,1))
+
+        flows = self.flow_rnn(flows)
+        second_domain_feats = self.second_stream_rnn(second_domain_feats)
+        third_domain_feats = self.third_stream_rnn(third_domain_feats)
+
+        hiddens = torch.cat([flows, second_domain_feats, third_domain_feats], dim=1)
 
         hiddens, predicted_kernel = self.kernel_regressor(hiddens)
         logits  = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
