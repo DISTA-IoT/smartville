@@ -444,7 +444,8 @@ class ControllerBrain():
     def push_to_replay_buffers(
             self,
             flow_input_batch, 
-            packet_input_batch, 
+            packet_input_batch,
+            node_feat_input_batch,
             batch_labels,
             zda_batch_labels,
             test_zda_batch_labels):
@@ -462,21 +463,43 @@ class ControllerBrain():
             mask = batch_labels == label
 
             if self.use_packet_feats:
-                for sample_idx in range(flow_input_batch[mask].shape[0]):
-                    self.replay_buffers[label.item()].push(
-                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
-                        packet_input_batch[mask][sample_idx].unsqueeze(0), 
-                        label=batch_labels[mask][sample_idx].unsqueeze(0),
-                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
-                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
-            else: 
-                for sample_idx in range(flow_input_batch[mask].shape[0]):
-                    self.replay_buffers[label.item()].push(
-                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
-                        None, 
-                        label=batch_labels[mask][sample_idx].unsqueeze(0),
-                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
-                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+                if self.use_node_feats:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            packet_input_batch[mask][sample_idx].unsqueeze(0),
+                            node_feat_input_batch[mask][sample_idx].unsqueeze(0),
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+                else:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            packet_input_batch[mask][sample_idx].unsqueeze(0),
+                            None,
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+            else:
+                if self.use_node_feats:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            None,
+                            node_feat_input_batch[mask][sample_idx].unsqueeze(0),
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))                   
+                else:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            None,
+                            None, 
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
         
         if not self.inference_allowed or not self.experience_learning_allowed or not self.eval_allowed:
             buff_lengths = [len(replay_buff) for replay_buff in self.replay_buffers.values()]
@@ -497,7 +520,8 @@ class ControllerBrain():
     def push_to_test_replay_buffers(
             self,
             flow_input_batch, 
-            packet_input_batch, 
+            packet_input_batch,
+            node_feat_input_batch, 
             batch_labels,
             zda_batch_labels,
             test_zda_batch_labels):
@@ -508,51 +532,90 @@ class ControllerBrain():
             mask = batch_labels == label
 
             if self.use_packet_feats:
-                for sample_idx in range(flow_input_batch[mask].shape[0]):
-                    self.test_replay_buffers[label.item()].push(
-                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
-                        packet_input_batch[mask][sample_idx].unsqueeze(0), 
-                        label=batch_labels[mask][sample_idx].unsqueeze(0),
-                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
-                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
-            else: 
-                for sample_idx in range(flow_input_batch[mask].shape[0]):
-                    self.test_replay_buffers[label.item()].push(
-                        flow_input_batch[mask][sample_idx].unsqueeze(0), 
-                        None, 
-                        label=batch_labels[mask][sample_idx].unsqueeze(0),
-                        zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
-                        test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+                if self.use_node_feats:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.test_replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            packet_input_batch[mask][sample_idx].unsqueeze(0),
+                            node_feat_input_batch[mask][sample_idx].unsqueeze(0),
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))                 
+                else:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.test_replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            packet_input_batch[mask][sample_idx].unsqueeze(0),
+                            None,
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+            else:
+                if self.use_node_feats:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.test_replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            None,
+                            node_feat_input_batch[mask][sample_idx].unsqueeze(0),
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
+                else:
+                    for sample_idx in range(flow_input_batch[mask].shape[0]):
+                        self.test_replay_buffers[label.item()].push(
+                            flow_input_batch[mask][sample_idx].unsqueeze(0), 
+                            None,
+                            None,
+                            label=batch_labels[mask][sample_idx].unsqueeze(0),
+                            zda_label=zda_batch_labels[mask][sample_idx].unsqueeze(0),
+                            test_zda_label=test_zda_batch_labels[mask][sample_idx].unsqueeze(0))
             
 
     def classify_duet(self, flows, node_feats: dict = None):
         """
         makes inferences about a duet flow (source ip, dest ip)
         """
+        node_feat_arg = None
+        packet_feat_arg = None
+        
         with lock:
 
             if len(flows) == 0:
                 return None
             else:
-                flow_input_batch, packet_input_batch = self.assembly_input_tensor(
+                flow_input_batch, packet_input_batch, node_feat_input_batch = self.assembly_input_tensor(
                     flows,
                     node_feats)
                 batch_labels, zda_labels, test_zda_labels = self.get_labels(flows)
 
                 if random.random() > 0.3:
                     to_push_mask = ~test_zda_labels.bool()
+
+                    if self.use_node_feats:
+                        node_feat_arg = node_feat_input_batch[to_push_mask]
+                    if self.use_packet_feats:
+                        packet_feat_arg = packet_input_batch[to_push_mask] 
+
                     self.push_to_replay_buffers(
                         flow_input_batch[to_push_mask], 
-                        packet_input_batch[to_push_mask], 
+                        packet_feat_arg,
+                        node_feat_arg,  
                         batch_labels=batch_labels[to_push_mask],
                         zda_batch_labels=zda_labels[to_push_mask],
                         test_zda_batch_labels=test_zda_labels[to_push_mask])
                 else:
                     known_mask = ~zda_labels.bool()
                     to_push_mask = torch.logical_or(test_zda_labels.bool(), known_mask)
+
+                    if self.use_node_feats:
+                        node_feat_arg = node_feat_input_batch[to_push_mask]
+                    if self.use_packet_feats:
+                        packet_feat_arg = packet_input_batch[to_push_mask] 
+
                     self.push_to_test_replay_buffers(
                         flow_input_batch[to_push_mask], 
-                        packet_input_batch[to_push_mask], 
+                        packet_feat_arg, 
+                        node_feat_arg,  
                         batch_labels=batch_labels[to_push_mask],
                         zda_batch_labels=zda_labels[to_push_mask],
                         test_zda_batch_labels=test_zda_labels[to_push_mask])
@@ -608,9 +671,10 @@ class ControllerBrain():
         for replay_buff in buffers_dict.values():
             flow_batch, \
                 packet_batch, \
-                    batch_labels, \
-                        zda_batch_labels, \
-                             test_zda_batch_labels = replay_buff.sample(samples_per_class)
+                    node_feat_batch, \
+                        batch_labels, \
+                            zda_batch_labels, \
+                                test_zda_batch_labels = replay_buff.sample(samples_per_class)
             if init:
                 balanced_flow_batch = flow_batch
                 balanced_labels = batch_labels
@@ -1026,7 +1090,19 @@ class ControllerBrain():
         if self.use_packet_feats:
             packet_input_batch = flows[0].packets_tensor.buffer.unsqueeze(0)
         if self.use_node_feats:
-            node_feat_input_batch =[]
+            if flows[0].dest_ip in node_feats.keys():
+                flows[0].node_feats = torch.Tensor([
+                    node_feats[flow.dest_ip][CPU],
+                    node_feats[flow.dest_ip][RAM],
+                    node_feats[flow.dest_ip][IN_TRAFFIC],
+                    node_feats[flow.dest_ip][OUT_TRAFFIC],
+                    node_feats[flow.dest_ip][DELAY]],
+                    device=self.device)
+            else:
+                flows[0].node_feats = torch.zeros(
+                    size=(5,10),
+                    device=self.device)
+            node_feat_input_batch = flows[0].node_feats.unsqueeze(0)
 
         for flow in flows[1:]:
             flow_input_batch = torch.cat( 
@@ -1039,19 +1115,24 @@ class ControllerBrain():
                     flow.packets_tensor.buffer.unsqueeze(0)],
                     dim=0)
             if self.use_node_feats:
-                if flow.dest_ip in node_feats.keys():
-                    if flow.node_feats is None:
-                        flow.node_feats = CircularBuffer(
-                            buffer_size=10, 
-                            feature_size=5)
-                    else:
-                        print(node_feats[flow.dest_ip][CPU])
-                        print(node_feats[flow.dest_ip][RAM])
-                        print(node_feats[flow.dest_ip][IN_TRAFFIC])
-                        print(node_feats[flow.dest_ip][OUT_TRAFFIC])
-                        print(node_feats[flow.dest_ip][DELAY])
-
-        return flow_input_batch, packet_input_batch
+                if flow.dest_ip in node_feats.keys():                        
+                    flow.node_feats = torch.Tensor([
+                        node_feats[flow.dest_ip][CPU],
+                        node_feats[flow.dest_ip][RAM],
+                        node_feats[flow.dest_ip][IN_TRAFFIC],
+                        node_feats[flow.dest_ip][OUT_TRAFFIC],
+                        node_feats[flow.dest_ip][DELAY]]) 
+                else: 
+                    flow.node_feats = torch.zeros(
+                        size=(5,10),
+                        device=self.device)
+                
+                node_feat_input_batch = torch.cat(
+                            [node_feat_input_batch,
+                            flow.node_feats.unsqueeze(0)],
+                            dim=0)
+                        
+        return flow_input_batch, packet_input_batch, node_feat_input_batch
     
 
     def plot_confusion_matrix(
