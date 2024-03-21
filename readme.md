@@ -9,12 +9,102 @@
 - [License](#license)
 
 ## Installation
+### Setting Up the Program on a Native Linux Distribution or WSL
+This guide provides step-by-step instructions for setting up the program on either a native Linux distribution or using Windows Subsystem for Linux (WSL).
 
-Instructions on how to install the project and its dependencies.
+### GNS3 
+Install the GNS3 software following the official documentation at:
+https://docs.gns3.com/docs/getting-started/installation/linux/
+
+Start the server either via GUI or by running 
+
+    gns3server
+
+the server will run on *localhost:3080* as default
+### Dependencies
+All the required dependecies are listed in the requirements.txt file. 
+
+    pip install -r requirements.txt
+
+### Docker Images
+The docker images used to build the nodes can be obtained by running the Makefile
+
+    make all
+
+### Kafka, Prometheus, Grafana
+The Kafka server must be launched on a Docker image. To do this, after navigating to the directory, you need to type the following command on bash:
+
+    docker-compose up -d
+
+To build the producer image:
+
+    docker build -t producer .
+
+To run the program, you must first ensure that Prometheus and Grafana are installed. For Prometheus, use the following commands:
+
+    wget https://github.com/prometheus/prometheus/releases/download/v2.30.3/prometheus-2.30.3.linux-amd64.tar.gz
+    tar -xzf prometheus-2.30.3.linux-amd64.tar.gz
+
+Move the Prometheus binary files to specific folders:
+
+    sudo mv prometheus-2.30.3.linux-amd64/prometheus /usr/local/bin/
+    sudo mv prometheus-2.30.3.linux-amd64/promtool /usr/local/bin/  
+
+Then, define Prometheus scraping jobs in the yml file:
+
+    sudo nano /etc/prometheus/prometheus.yml
+
+For Prometheus scraping job settings:
+
+Set scrape and evaluation intervals to 5 seconds
+In the scrape_config section, set "system_metrics" as job_name and ["localhost:8000"] as targets
+
+Next, run the Prometheus server:
+    
+    sudo /usr/local/prometheus/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus/
+
+To install Grafana:
+
+    sudo apt-get install -y software-properties-common
+    sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
+    sudo apt-get update
+    sudo apt-get install -y grafana
+
+
+Then, run the Grafana server, navigating to its directory first:
+
+    cd /usr/share/grafana
+    sudo ./bin/grafana-server web
+
+To view the graphs on the local system:
+
+    http://localhost:3000
+    
+
+
+### Setup
+Modify the line 21 in file *controller.dockerfile* and insert your wandb API key as:
+*your_wandb_api_key.txt*
+
 
 ## Usage
 
-Instructions on how to use the project and any relevant examples.
+### Build topology
+To start the *star topology* execute star_topology.py.
+You will get in the GNS3 GUI a new project with this scenario.
+![alt text](\readme_imgs\topology.png)
+Each node can communicate with eachother and everyone has Internet connection available.
+
+### Smart Controller
+the OpenVSwitches automatically connects and set as default controller the Controller at *192.168.1.1*. 
+
+TODO: aggiungere il nuovo funzionamento del controller
+
+### A.I.
+TODO: aggiungere il nuovo funzionamento dell' AI
+
+### Modify nodes
+Each node can be modified or replaced by manipulating the *node.dockerfile* and *star_topology.py* to fit the desired requirements.
 
 ## Background
 ### SDN and OpenFlow characteristics
@@ -30,10 +120,10 @@ A Docker container characterizes each node in the SmartVille testbed. The contai
 
 This example of code represents the .Dockerfile of each victim node. It's possible to identify four main docker containers in our testbed.
 
-    - Controller: all the dependencies to run the controller and a suite of networking tools are installed. The POX library and pytorch are retrieved and set to the gar-experimental branch. Kafka, Grafana, Prometheus tools are retrieved and ports 9090, 9092, 3000 are exposed to allow the instance of the three servers, lastly the script entrypoint.sh, which keeps the application alive is run.
-    - Victim: all the dependencies to run the victim behavior are installed (python3, TCP Replay, scapy, kafka, network tools) and the victim's scripts are imported in the file system.
-    - Attacker: all the dependencies to run the attacker behavior are installed (python3,TCP Replay, scapy, kafka, network tools) and the scripts of the different cyber attacks are copied in the file system.
-    - Switch: the container of the OpenVSwitch is based on the official GNS3 OpenVSwitch appliance. However, the boot kernel has been modified to suit our application scenario via the boot.sh script.
+- Controller: all the dependencies to run the controller and a suite of networking tools are installed. The POX library and pytorch are retrieved and set to the gar-experimental branch. Kafka, Grafana, Prometheus tools are retrieved and ports 9090, 9092, 3000 are exposed to allow the instance of the three servers, lastly the script entrypoint.sh, which keeps the application alive is run.
+- Victim: all the dependencies to run the victim behavior are installed (python3, TCP Replay, scapy, kafka, network tools) and the victim's scripts are imported in the file system.
+- Attacker: all the dependencies to run the attacker behavior are installed (python3,TCP Replay, scapy, kafka, network tools) and the scripts of the different cyber attacks are copied in the file system.
+- Switch: the container of the OpenVSwitch is based on the official GNS3 OpenVSwitch appliance. However, the boot kernel has been modified to suit our application scenario via the boot.sh script.
 
 The Docker containers can be modified to match the configuration of every desired device that needs to be emulated in the network topology.
 
@@ -49,22 +139,22 @@ If none of the rules matches the packet's parameters, a flow miss occurs. The pa
 ### IoT traffic Details
 The Aposemat IoT23 dataset was used in our work to reproduce realistic IoT attack and honeypot patterns. The following attacks were extracted from the original Pcap files that are publicly available. Unless explicitly stated diversely, we extracted these flows using the attacker origin IP address as the filtering criterion. Recall that source and destination IP addresses and transport-layer ports were online masked before feeding the neural modules with raw packet bytes.
 
-    - Hajime: This Trojan malware searches to exploit Linux-related vulnerabilities. It was extracted from the dataset's capture 9.1. We extracted 5e4 flows.
-    - Hakai: This is a distributed denial-of-service (DDoS) botnet, a specialization of the Mirai and Gafgyt malware. (Extracted from dataset's capture 8.1.) 1.2e4 flows were extracted.
-    - Bashlite: This is another more general DDoS botnet. (Dataset's capture 60.1.) 5e4 flows extracted.
-    - Mirai: This is an open-source DDoS attack specially used over IoT devices. Capture: 34.1. Flows: 2.4e4.
-    - Torii: A Command and Conquer (C&C) and Information Gathering malware. Capture: 20.1. Flows extracted: 5e4.
-    - Muhstik: A worm based on the Mirai Botnet. Among others, it targets IoT devices. Commonly used to mine cryptocurrency and perform DDoS attacks. Capture: 3.1. Flows extracted: 5e4.
-    - Okiru: Another C&C Botnet that targets ARC processors, commonly used in wearables, and medical IoT, among others. Capture 7.1. Flows extracted: 5e4. The criteria for extracting these attack flows included target source and destination transport ports.
-    - Horizontal Scan: 5e4 traffic flows related to generic Horizontal Scan (HScan) were extracted from dataset's capture 1.1.
-    - C&C HeartBeat: Generic heartbeat-related server-side flows were also extracted in the context of the C&C traffic. Capture 7.1. Flows extracted: 0.15e4.
-    - Generic DDoS: Also, a set of 5e4 generic DDoS-related flows were extracted in the context of the C&C traffic from capture 7.1.
+- Hajime: This Trojan malware searches to exploit Linux-related vulnerabilities. It was extracted from the dataset's capture 9.1. We extracted 5e4 flows.
+- Hakai: This is a distributed denial-of-service (DDoS) botnet, a specialization of the Mirai and Gafgyt malware. (Extracted from dataset's capture 8.1.) 1.2e4 flows were extracted.
+- Bashlite: This is another more general DDoS botnet. (Dataset's capture 60.1.) 5e4 flows extracted.
+- Mirai: This is an open-source DDoS attack specially used over IoT devices. Capture: 34.1. Flows: 2.4e4.
+- Torii: A Command and Conquer (C&C) and Information Gathering malware. Capture: 20.1. Flows extracted: 5e4.
+- Muhstik: A worm based on the Mirai Botnet. Among others, it targets IoT devices. Commonly used to mine cryptocurrency and perform DDoS attacks. Capture: 3.1. Flows extracted: 5e4.
+- Okiru: Another C&C Botnet that targets ARC processors, commonly used in wearables, and medical IoT, among others. Capture 7.1. Flows extracted: 5e4. The criteria for extracting these attack flows included target source and destination transport ports.
+- Horizontal Scan: 5e4 traffic flows related to generic Horizontal Scan (HScan) were extracted from dataset's capture 1.1.
+- C&C HeartBeat: Generic heartbeat-related server-side flows were also extracted in the context of the C&C traffic. Capture 7.1. Flows extracted: 0.15e4.
+- Generic DDoS: Also, a set of 5e4 generic DDoS-related flows were extracted in the context of the C&C traffic from capture 7.1.
 
 The Honeypot devices used by the authors of the IoT23 captures were used in our cyber-ranch to emulate honeypot IoT devices used as attack victims. More specifically, these honeypots were the following:
 
-    - Somfy door lock device: All the flows contained in the first three captures of folder Honeypot7.1 were extracted. These flows are related to a smart door lock device. In our topology, two nodes reproduced these flows.
-    - Philips HUE smart LED lamp: These flows were extracted from the folder Honeypot4.1. One node reproduced these flows in our topology.
-    - Amazon Echo home intelligent personal assistant: These flows were extracted from the folder Honeypot5.1. One node reproduced these flows in our topology.
+- Somfy door lock device: All the flows contained in the first three captures of folder Honeypot7.1 were extracted. These flows are related to a smart door lock device. In our topology, two nodes reproduced these flows.
+- Philips HUE smart LED lamp: These flows were extracted from the folder Honeypot4.1. One node reproduced these flows in our topology.
+- Amazon Echo home intelligent personal assistant: These flows were extracted from the folder Honeypot5.1. One node reproduced these flows in our topology.
 
 The interested reader is referred to for more details on these captures. All the flow extraction code is open-sourced alongside the testbed.
 
