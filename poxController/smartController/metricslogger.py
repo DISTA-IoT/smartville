@@ -27,7 +27,6 @@ from collections import deque
 import time
 import socket
 import threading
-import netifaces as ni
 
 RAM = 'RAM'
 CPU = 'CPU'
@@ -83,7 +82,6 @@ class MetricsLogger:
         self.max_conn_retries = max_conn_retries  # max Kafkfa connection retries.
         self.metrics_dict = {}
         self.metric_buffer_len = metric_buffer_len
-        self.accessible_ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
         self.grafana_connection = GrafanaFace(
                 auth=(self.grafana_user, self.grafana_pass), 
                 host='localhost:3000')
@@ -134,7 +132,7 @@ class MetricsLogger:
     
 
     def init_prometheus_server(self):
-        start_http_server(port=8000, addr=self.accessible_ip)
+        start_http_server(port=8000, addr='localhost')
 
         # Definizione metriche inserite su Prometheus
         self.cpu_metric = Gauge('CPU_percentage', 'Metrica CPU percentuale', ['label_name'])
