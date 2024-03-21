@@ -1154,12 +1154,12 @@ class ControllerBrain():
                     size=(10,5),
                     device=self.device)
             if flows[0].dest_ip in node_feats.keys():
-                flows[0].node_feats[:len(node_feats[flow.dest_ip][CPU]),:]  = torch.hstack([
-                        torch.Tensor(node_feats[flow.dest_ip][CPU]).unsqueeze(1),
-                        torch.Tensor(node_feats[flow.dest_ip][RAM]).unsqueeze(1),
-                        torch.Tensor(node_feats[flow.dest_ip][IN_TRAFFIC]).unsqueeze(1),
-                        torch.Tensor(node_feats[flow.dest_ip][OUT_TRAFFIC]).unsqueeze(1),
-                        torch.Tensor(node_feats[flow.dest_ip][DELAY]).unsqueeze(1)])
+                flows[0].node_feats[:len(node_feats[flows[0].dest_ip][CPU]),:]  = torch.hstack([
+                        torch.Tensor(node_feats[flows[0].dest_ip][CPU]).unsqueeze(1),
+                        torch.Tensor(node_feats[flows[0].dest_ip][RAM]).unsqueeze(1),
+                        torch.Tensor(node_feats[flows[0].dest_ip][IN_TRAFFIC]).unsqueeze(1),
+                        torch.Tensor(node_feats[flows[0].dest_ip][OUT_TRAFFIC]).unsqueeze(1),
+                        torch.Tensor(node_feats[flows[0].dest_ip][DELAY]).unsqueeze(1)])
             
             node_feat_input_batch = flows[0].node_feats.unsqueeze(0)
 
