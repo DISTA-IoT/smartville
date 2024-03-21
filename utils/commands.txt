@@ -7,8 +7,9 @@
     prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/
 
 # 2. launch grafana server:
-grafana-server -homepath /usr/share/grafana
-
+        # first, start the server
+        grafana-server -homepath /usr/share/grafana
+        
 # 3. launch zookeeper server:
 zookeeper-server-start.sh pox/smartController/zookeeper.properties
 

@@ -89,8 +89,8 @@ def launch_grafana_detached(controller_container):
     launch_detached_command(command)
     print('Waiting for Grafana to start...')
     time.sleep(10)
-    print('Linking Grafana to Prometheus...')
-    print(run_command_in_container(controller_container, "python3 pox/smartController/link_grafana_to_prometheus.py"))
+    # print('Linking Grafana to Prometheus...')
+    # print(run_command_in_container(controller_container, "python3 pox/smartController/link_grafana_to_prometheus.py"))
     time.sleep(1)
 
 

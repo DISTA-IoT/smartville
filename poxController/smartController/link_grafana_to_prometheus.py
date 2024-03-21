@@ -21,15 +21,6 @@ THIS SCRIPT REGISTERS PROMETHEUS AS A GRAFANA DATA SOURCE, IT MUST BE LAUNCHED A
 PROMETHEUS AND GRAFANA ARE LAUNCHED. 
 """
 from grafana_api.grafana_face import GrafanaFace
-import netifaces as ni 
-
-
-def get_source_ip_address():
-    try:
-        ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
-        return ip
-    except ValueError:
-        return "Interface not found"
 
 
 def delete_datasources_by_name(grafana_connection, datasource_name):
@@ -49,10 +40,9 @@ def add_datasource(grafana_connection, datasource_config):
 
 
 if __name__ == "__main__":
-    dynamic_IP = get_source_ip_address()
 
-    grafana_url = f'{dynamic_IP}:3000'  # URL where Grafana is hosted
-    prometheus_url = f'http://{dynamic_IP}:9090/24):9090'
+    grafana_url = f'localhost:3000'  # URL where Grafana is hosted
+    prometheus_url = f'http://localhost:9090/24):9090'
     datasource_config = {
         "name": "prometheus",
         "type": "prometheus",

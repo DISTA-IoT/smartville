@@ -75,6 +75,7 @@ RUN rm -r .git
 COPY entrypoint.sh /pox/entrypoint.sh
 
 COPY  smartController/. /pox/pox/smartController/
+COPY  smartController/prometheus_grafana_datasource.yaml /usr/share/grafana/conf/provisioning/datasources
 
 RUN chmod -R 777 /pox/
 

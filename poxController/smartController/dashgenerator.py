@@ -15,18 +15,6 @@
 
 # Additional licensing information for third-party dependencies
 # used in this file can be found in the accompanying `NOTICE` file.
-import netifaces as ni
-
-IFACE_NAME = 'eth1'
-
-
-def get_source_ip_address(interface=IFACE_NAME):
-    try:
-        ip = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
-        return ip
-    except ValueError:
-        return "Interface not found"
-
 class DashGenerator:
     """
     Classe dedicata all'inserimento delle varie dashboard su Grafana per la visualizzazione 
@@ -35,7 +23,6 @@ class DashGenerator:
     """
 
     def __init__(self, grafana_connection):
-        self.accesible_ip = get_source_ip_address()
         self.grafana_connection = grafana_connection
         self.generate_all_dashes()
 
