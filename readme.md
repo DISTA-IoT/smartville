@@ -114,7 +114,7 @@ Prometheus is a system for monitoring systems and services. It collects metrics 
 
 Grafana is an interactive open-source data visualization platform developed by Grafana Labs. It allows users to view data through unified tables and charts on a single or multiple dashboards, making interpretation and understanding easier. In our work, Grafana and Prometheus work in tandem. Once the data is saved persistently by Prometheus, it's then retrieved by Grafana to build and show a comprehensive dashboard of each topic to the user.
 
-![alt text]([\readme_imgs\kafka.png](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/kafka.png))
+![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/kafka.png)
 
 As a result of these system interactions, the user can view a dashboard of the devices' status in the network. The persistent data is then made available for further usage by the controller.
 
@@ -123,7 +123,7 @@ Prototypical Networks (PN) offer a neural architectural strategy that decouples 
 
 PNs are trained through episodic learning: Given in input a set of query and support latent samples, PNs make a multiclass classification inference for each one of the former as a function of the labels of the latter: Let the input batch be represented by 𝓑 = {𝓑𝓢 ∪ 𝓑𝓠} where 𝓑𝓢 is the set of support latent vectors 𝐳𝐬1, 𝐳𝐬2, …, 𝐳𝐬|𝓑𝓢| and 𝓑𝓠 is the set of query latent vectors 𝐳𝐪1, 𝐳𝐪2, …, 𝐳𝐪|𝓑𝓠|. The class-wise centroids or prototypes are computed using the support latents:
 
-![alt text]([\readme_imgs\formula.png](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/formula.png))
+![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/formula.png)
 where 𝑁𝑖 is the number of support latents in class 𝑖 and 𝓒 is the set of classes included in 𝓑.
 
 Successively, PNs build a classification logits vector for each query sample where the vector components are the association scores to each class. These scores are inversely proportional to the Euclidean distances between the latent representation of the query sample and the correspondent class prototype. The neural modules of the SmartController implemented in SmartVille are those of ASAP that use PNs to perform multi-class classification of attacks. By doing so, the class prototypes learnt in the PN framework are mapped to latent attack signatures. For more information on the prototypical classification mechanism in our neural modules, the reader is referred to ASAP.
