@@ -9,5 +9,6 @@ AttackerNode/bening_traffic/*
 AttackerNode/muhstik_old/*
 utils/__pycache__/
 utils/star_topology_dista_server.py
+utils/container_manager pro.py
 poxController/smartController/admin_dashboard/__pycache__/
 poxController/jesus_wandb_api_key.txt
