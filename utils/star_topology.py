@@ -81,6 +81,9 @@ def mountSwitch(curr_switch_label,ip,gateway):
 
 
 def mount_edge_switch():
+    """
+    We did not add Gateways to node configuration in GNS3. If you need to do so, refer to the GNS3utils API.
+    """
     template_id = get_template_id_from_name(templates, SWITCH_IMG_NAME)
     curr_switch_label = "openvswitch-edge-1"
     edge_openvswitch=create_node(server, project, 0, -200, template_id,curr_switch_label)
@@ -97,6 +100,9 @@ def mount_edge_switch():
 
 
 def mountController(switch_name, ip):
+    """
+    We did not add Gateways to node configuration in GNS3. If you need to do so, refer to the GNS3utils API.
+    """
     template_id = get_template_id_from_name(templates, CONTROLLER_IMG_NAME)
     controller_name = "pox-controller-1"+"("+ip+")"
     openvswitch_id = get_node_id_by_name(server,project,switch_name)
