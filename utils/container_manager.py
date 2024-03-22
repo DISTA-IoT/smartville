@@ -126,8 +126,6 @@ def launch_prometheus(controller_container):
 
 
 def launch_prometheus_detached(controller_container):
-    print(run_command_in_container(controller_container, "python3 pox/smartController/set_prometheus.py"))
-    time.sleep(1)
     # Build the command to execute your Bash script with its arguments
     command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:PROMETHEUS:{start_prometheus_command}"]
     launch_detached_command(command)
@@ -324,7 +322,7 @@ def launch_traffic():
 
 if __name__ == "__main__":
     print("\n________________________________________________________________\n\n"+\
-          "               SMARTVILLE Container Maganer \n" +\
+          "               SMARTVILLE Container Manager \n" +\
           "________________________________________________________________\n"+\
           "\n"+\
           "IMPORTANT:  - Parameters are read from the smartville.yaml file at project's root dir. \n" +\
@@ -354,12 +352,12 @@ if __name__ == "__main__":
         user_input = input(
                         "Please input a character and type enter. \n" +\
                         "'c' to launch controller services. This will: \n"+\
-                        " |---1. launch zookeeper service,   ('zoo' option) \n"+\
-                        " |---2. config and launch prometheus service,   ('pro' option) \n"+\
-                        " |---3. config and launch grafana service ,     ('gra' option) \n"+\
-                        " |---4. delete kafka logs,                      ('dkl' option) \n"+\
-                        " |---5. config and launch kafka,                ('kaf' option) \n"+\
-                        " |---6. launch grafana dashboard on browser,    ('dash' option) \n"+\
+                        " |---1. launch Zookeeper,                 ('zoo' option) \n"+\
+                        " |---2. launch Prometheus,                ('pro' option) \n"+\
+                        " |---3. launch Grafana ,                  ('gra' option) \n"+\
+                        " |---4. delete previous Kafka logs,       ('dkl' option) \n"+\
+                        " |---5. launch Kafka,                     ('kaf' option) \n"+\
+                        " |---6. launch Grafana GUI on browser,    ('dash' option) \n"+\
                         " ________________________________________________________________\n"+\
                         "\n"+\
                         "'s' to send all traffic patterns from nodes.\n"+\
