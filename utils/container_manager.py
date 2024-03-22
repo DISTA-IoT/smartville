@@ -205,10 +205,11 @@ def launch_brower_consoles(controller_container):
         "ifconfig")
     accessible_ip = ifconfig_output.split('eth1')[1].split('inet ')[1].split(' ')[0]
     # url = "http://"+accessible_ip+":9090"  # Prometheus
-    # subprocess.call([config_dict['base_params']['browser_path'], url])
+    # subprocess.Popen([config_dict['base_params']['browser_path'], url])
     url = "http://"+accessible_ip+":3000"  # Grafana
-    subprocess.call([config_dict['base_params']['browser_path'], url])
-
+    subprocess.Popen([config_dict['base_params']['browser_path'], url])
+    time.sleep(5)
+    print('\nBrowser launched, press enter to continue\n')
 
 def delete_kafka_logs(controller_container):
     print('Deleting Kafka logs...')
@@ -322,8 +323,12 @@ def launch_traffic():
 
 
 if __name__ == "__main__":
-    print("SmartVille Container Maganer \n" +\
-          "IMPORTANT: parameters are read from the smartville.yaml file at project's root dir. \n")
+    print("\n________________________________________________________________\n\n"+\
+          "               SMARTVILLE Container Maganer \n" +\
+          "________________________________________________________________\n"+\
+          "\n"+\
+          "IMPORTANT:  - Parameters are read from the smartville.yaml file at project's root dir. \n" +\
+          "            - Re-launch this script each time you change container status (through node restart). \n\n\n")
     # Read configuration from YAML file
     config_file_path = "../smartville.yaml"
     config_dict = read_config(config_file_path)
@@ -344,53 +349,55 @@ if __name__ == "__main__":
 
         containers_dict[container_img_name] = container
 
-    user_input = input(
-                       "Plase input a character and type enter. \n" +\
-                       "'c' to launch controller services. This will: \n"+\
-                       " |---1. launch zookeeper service,   ('zoo' option) \n"+\
-                       " |---2. config and launch prometheus service,   ('pro' option) \n"+\
-                       " |---3. config and launch grafana service ,     ('gra' option) \n"+\
-                       " |---4. delete kafka logs,                      ('dkl' option) \n"+\
-                       " |---5. config and launch kafka,                ('kaf' option) \n"+\
-                       " |---6. launch grafana dashboard on browser,    ('dash' option) \n"+\
-                       " ________________________________________________________________\n"+\
-                       "\n"+\
-                       "'s' to send all traffic patterns from nodes.\n"+\
-                       " ________________________________________________________________"+\
-                       "\n"+\
-                       "'t' to initiate training at controller.\n"+\
-                       " ________________________________________________________________"+\
-                       "\n"+\
-                       "'m' to send node features from all nodes, \n"+\
-                       " ________________________________________________________________"+\
-                       "\n"+\
-                       "'q' to quit. \n"+\
-                       " ________________________________________________________________\n"+\
-                       " Your input: ")
-                   
-    
-    if user_input == 's':
-        launch_traffic()
-    elif user_input == 'm':
-        launch_metrics()
-    elif user_input == 'c':
-        launch_controller_processes(containers_dict['pox-controller-1'])
-    elif user_input == 't':
-        start_training(containers_dict['pox-controller-1'])
-    elif user_input == 'pro':
-        print(launch_prometheus_detached(containers_dict['pox-controller-1']))
-    elif user_input == 'gra':
-        print(launch_grafana_detached(containers_dict['pox-controller-1']))
-    elif user_input == 'dash':
-        print(launch_brower_consoles(containers_dict['pox-controller-1']))
-    elif user_input == 'zoo':
-        print(launch_zookeeper_detached(containers_dict['pox-controller-1']))
-    elif user_input == 'kaf':
-        print(launch_kafka_detached(containers_dict['pox-controller-1']))
-    elif user_input == 'dkl':
-        print(delete_kafka_logs(containers_dict['pox-controller-1']))
-    elif user_input == 'q':
-        print('Bye Bye!')
-        exit
-    else:
-        print=('Invalid Option!')
+    while True:
+
+        user_input = input(
+                        "Please input a character and type enter. \n" +\
+                        "'c' to launch controller services. This will: \n"+\
+                        " |---1. launch zookeeper service,   ('zoo' option) \n"+\
+                        " |---2. config and launch prometheus service,   ('pro' option) \n"+\
+                        " |---3. config and launch grafana service ,     ('gra' option) \n"+\
+                        " |---4. delete kafka logs,                      ('dkl' option) \n"+\
+                        " |---5. config and launch kafka,                ('kaf' option) \n"+\
+                        " |---6. launch grafana dashboard on browser,    ('dash' option) \n"+\
+                        " ________________________________________________________________\n"+\
+                        "\n"+\
+                        "'s' to send all traffic patterns from nodes.\n"+\
+                        " ________________________________________________________________"+\
+                        "\n"+\
+                        "'t' to initiate training at controller.\n"+\
+                        " ________________________________________________________________"+\
+                        "\n"+\
+                        "'m' to send node features from all nodes, \n"+\
+                        " ________________________________________________________________"+\
+                        "\n"+\
+                        "'q' to quit. \n"+\
+                        " ________________________________________________________________\n"+\
+                        " Your input: ")
+                    
+        
+        if user_input == 's':
+            launch_traffic()
+        elif user_input == 'm':
+            launch_metrics()
+        elif user_input == 'c':
+            launch_controller_processes(containers_dict['pox-controller-1'])
+        elif user_input == 't':
+            start_training(containers_dict['pox-controller-1'])
+        elif user_input == 'pro':
+            print(launch_prometheus_detached(containers_dict['pox-controller-1']))
+        elif user_input == 'gra':
+            print(launch_grafana_detached(containers_dict['pox-controller-1']))
+        elif user_input == 'dash':
+            print(launch_brower_consoles(containers_dict['pox-controller-1']))
+        elif user_input == 'zoo':
+            print(launch_zookeeper_detached(containers_dict['pox-controller-1']))
+        elif user_input == 'kaf':
+            print(launch_kafka_detached(containers_dict['pox-controller-1']))
+        elif user_input == 'dkl':
+            print(delete_kafka_logs(containers_dict['pox-controller-1']))
+        elif user_input == 'q':
+            print('Bye Bye!')
+            break
+        else:
+            print=('Invalid Option!')
