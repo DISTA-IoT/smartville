@@ -324,7 +324,7 @@ def launch_traffic():
 
 if __name__ == "__main__":
     print("\n________________________________________________________________\n\n"+\
-          "               SMARTVILLE Container Maganer \n" +\
+          "               SMARTVILLE Container Manager \n" +\
           "________________________________________________________________\n"+\
           "\n"+\
           "IMPORTANT:  - Parameters are read from the smartville.yaml file at project's root dir. \n" +\
