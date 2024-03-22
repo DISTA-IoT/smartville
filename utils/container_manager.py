@@ -34,7 +34,7 @@ TRAINING_ZDA_NODES = []
 TEST_ZDA_NODES = []  
 
 
-default_config = {
+config_dict = {
     'intrusion_detection': {
         'eval': False,
         'device': 'cpu',
@@ -46,9 +46,7 @@ default_config = {
         'flow_buff_len': 10,
         'node_features': False,
         'metric_buffer_len': 10,
-        'inference_freq_secs': 60
-    },
-    'monitoring': {
+        'inference_freq_secs': 60,
         'grafana_user': 'admin',
         'grafana_password': 'admin'
     }
@@ -61,6 +59,32 @@ start_kafka_command = "kafka-server-start.sh pox/smartController/kafka_server.pr
 start_prometheus_command = "prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/"
 start_grafana_command = "grafana-server -homepath /usr/share/grafana"
 start_training_command = "./pox.py samples.pretty_log smartController.smartController"
+
+
+def read_config(file_path):
+        
+    try:
+        # Read configuration from YAML file
+        with open(file_path, 'r') as file:
+            file_confg_dict = yaml.safe_load(file)
+        
+        # Update default configuration with values from the file
+        if file_confg_dict:
+            for key in config_dict.keys():
+                if key in file_confg_dict:
+                    config_dict[key].update(file_confg_dict[key])
+
+
+        print(config_dict)
+        return config_dict
+
+    except FileNotFoundError:
+        print(f"Error: Configuration file '{file_path}' not found.")
+        return config_dict
+
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file: {e}")
+        return config_dict
 
 
 # Function to continuously print output of a command
@@ -147,8 +171,18 @@ def launch_kafka_detached(controller_container):
     launch_detached_command(command)
 
 
+
+def get_cmd_line_args(config_dict):
+    args_str = ""
+    for key, value in config_dict.items():
+        args_str += f" --{key}={value}"
+    return args_str
+
+
 def start_training(controller_container):
-    training_command = start_training_command
+
+    training_args = get_cmd_line_args(config_dict['intrusion_detection'])
+    training_command = f"{start_training_command} {training_args}"
     print(f"Training command: {training_command}")
     print(f"Now launching training")
     command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:TRAINING:{training_command}"]
@@ -277,35 +311,11 @@ def launch_traffic(from_file=False):
         print("Error:", e)
 
 
-def read_config(file_path):
-   
-    try:
-        # Read configuration from YAML file
-        with open(file_path, 'r') as file:
-            config = yaml.safe_load(file)
-        
-        # Update default configuration with values from the file
-        if config:
-            for key in default_config.keys():
-                if key in config:
-                    default_config[key].update(config[key])
-        print(default_config)
-        return default_config
-
-    except FileNotFoundError:
-        print(f"Error: Configuration file '{file_path}' not found.")
-        return default_config
-
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML file: {e}")
-        return default_config
-    
-
 if __name__ == "__main__":
 
     # Read configuration from YAML file
     config_file_path = "../smartVille.yaml"
-    config = read_config(config_file_path)
+    config_dict = read_config(config_file_path)
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Container Manager script")

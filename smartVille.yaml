@@ -12,7 +12,5 @@ intrusion_detection:
   node_features: false  # Use node features to build the feature vectors
   metric_buffer_len: 10  # If 'node_features'=True, node features time-window size to build feature vectors
   inference_freq_secs: 60  # Time in seconds between two consecutive calls to an inference (and a batch training from experience buffer)
-
-monitoring:
   grafana_user: 'admin'  # Username for the Grafana dashboard (Must coincide with grafana config files, default config files are at usr/share/grafana in the controller)
   grafana_password: 'admin'  # Password for the Grafana dashboard
