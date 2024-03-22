@@ -80,7 +80,7 @@ DELAY = 'DELAY'
 
 
 
-PRETRAINED_MODELS_DIR = 'models/'
+PRETRAINED_MODELS_DIR = '/pox/pox/smartController/models/'
 
 REPLAY_BUFFER_MAX_CAPACITY=1000
 
