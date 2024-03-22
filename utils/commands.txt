@@ -20,63 +20,10 @@ kafka-server-start.sh pox/smartController/kafka_server.properties
 # optional -> remove kafka logs
 rm -rf /opt/kafka/logs
 
-
-
-################## LAUNCH SWITCH: #####################
-# switch is 192.168.1.2
+################## LINK SWITCH TO CONTROLLER: #####################
+# If you create your switch docker image using the star topology script, you should not 
+# need to issue this command, because it is automatically set 
+# as a start command 
+# Supposing the controller is at 192.168.1.1 and that the swith is connected to it through iface br0: 
 ovs-vsctl set-controller br0 tcp:192.168.1.1:6633
-
-
-############### LAUNCHING ATTACKS: ####################
-
-        # Known Attacks:
-
-# command for attacker-4 192.168.1.7
-python3 replay.py cc_heartbeat 192.168.1.3 --repeat 10
-
-# command for attacker-5 192.168.1.8
-python3 replay.py generic_ddos 192.168.1.4 --repeat 10
-
-# command for attacker-6 192.168.1.9
-python3 replay.py h_scan 192.168.1.5 --repeat 10
-
-        # Training ZdAs:
-
-# command for attacker-7 192.168.1.10
-python3 replay.py hakai 192.168.1.6 --repeat 10
-
-# command for attacker-8 192.168.1.11
-python3 replay.py torii 192.168.1.4 --repeat 10
-
-# command for attacker-9 192.168.1.12
-python3 replay.py mirai 192.168.1.5 --repeat 10
-
-# command for attacker-10 192.168.1.13
-python3 replay.py gafgyt 192.168.1.3 --repeat 10    
-
-        # Test ZdAs:
-
-# command for attacker-11 192.168.1.14
-python3 replay.py hajime 192.168.1.6 --repeat 10
-
-# command for attacker-12 192.168.1.15
-python3 replay.py okiru  192.168.1.5 --repeat 10
-
-# command for attacker-13 192.168.1.16
-python3 replay.py muhstik  192.168.1.3 --repeat 10
-
-###################################################
-
-############### SENDING BENING TRAFFIC: ####################
-# command for victim-0 192.168.1.3
-python3 replay.py doorlock 192.168.1.6 --repeat 10
-
-# command for victim-1 192.168.1.4
-python3 replay.py echo 192.168.1.5 --repeat 10
-
-# command for victim-2 192.168.1.5
-python3 replay.py hue 192.168.1.3 --repeat 10
-
-# command for victim-3 192.168.1.6
-python3 replay.py doorlock 192.168.1.4 --repeat 10
 

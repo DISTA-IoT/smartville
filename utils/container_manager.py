@@ -39,6 +39,7 @@ start_zookeeper_command = "zookeeper-server-start.sh pox/smartController/zookeep
 start_kafka_command = "kafka-server-start.sh pox/smartController/kafka_server.properties"
 start_prometheus_command = "prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/"
 start_grafana_command = "grafana-server -homepath /usr/share/grafana"
+start_training_command = "./pox.py samples.pretty_log smartController.smartController"
 
 
 # Function to continuously print output of a command
@@ -122,6 +123,14 @@ def launch_kafka_detached(controller_container):
     time.sleep(1)
     # Build the command to execute your Bash script with its arguments
     command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:KAFKA:{start_kafka_command}"]
+    launch_detached_command(command)
+
+
+def start_training(controller_container):
+    training_command = start_training_command
+    print(f"Training command: {training_command}")
+    print(f"Now launching training")
+    command = [TERMINAL_ISSUER_PATH, f"{controller_container.id}:TRAINING:{training_command}"]
     launch_detached_command(command)
 
 
@@ -291,6 +300,9 @@ if __name__ == "__main__":
                        "'s' to send all traffic patterns from nodes.\n"+\
                        " ________________________________________________________________"+\
                        "\n"+\
+                       "'t' to initiate training at controller.\n"+\
+                       " ________________________________________________________________"+\
+                       "\n"+\
                        "'m' to send node features from all nodes, \n"+\
                        " ________________________________________________________________"+\
                        "\n"+\
@@ -305,6 +317,8 @@ if __name__ == "__main__":
         launch_metrics()
     elif user_input == 'c':
         launch_controller_processes(containers_dict['pox-controller-1'])
+    elif user_input == 't':
+        start_training(containers_dict['pox-controller-1'])
     elif user_input == 'pro':
         print(launch_prometheus_detached(containers_dict['pox-controller-1']))
     elif user_input == 'gra':
@@ -318,4 +332,7 @@ if __name__ == "__main__":
     elif user_input == 'dkl':
         print(delete_kafka_logs(containers_dict['pox-controller-1']))
     elif user_input == 'q':
+        print('Bye Bye!')
         exit
+    else:
+        print=('Invalid Option!')
