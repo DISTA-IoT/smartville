@@ -20,13 +20,12 @@ import threading
 import time
 import subprocess
 import argparse
-import json
-import random
 
 TERMINAL_ISSUER_PATH = './terminal_issuer.sh'  # MAKE IT EXECUTABLE WITH chmod +x terminal_issuer.sh
 BROWSER_PATH = None
 
 
+CURRICULUM=None # For training and labelling purposes. Must be set according to the labelling in the controller. 
 KNOWN_TRAFFIC_NODES = []
 TRAINING_ZDA_NODES = []
 TEST_ZDA_NODES = []  
@@ -175,65 +174,41 @@ def run_command_in_container(container, command):
     return pid
 
 
-def launch_traffic(from_file=False):
+def pattern_replay_commands(argument):
+    """
+    Modify this function to adjust it to your topolgy and desired pattern replay dynamics.
+    """
+    switch_cases = {
+        # Known Bening:
+        'victim-0': 'python3 replay.py doorlock 192.168.1.6 --repeat 10',
+        'victim-1': 'python3 replay.py echo 192.168.1.5 --repeat 10',
+        'victim-2': 'python3 replay.py hue 192.168.1.3 --repeat 10',
+        'victim-3': 'python3 replay.py doorlock 192.168.1.4 --repeat 10',
+        'attacker-4': 'python3 replay.py cc_heartbeat 192.168.1.3 --repeat 10',
+        'attacker-5': 'python3 replay.py generic_ddos  192.168.1.4 --repeat 10',
+        'attacker-6': 'python3 replay.py h_scan 192.168.1.5 --repeat 10',
+        'attacker-7': 'python3 replay.py hakai 192.168.1.6 --repeat 10',
+        'attacker-8': 'python3 replay.py torii 192.168.1.4 --repeat 10',
+        'attacker-9': 'python3 replay.py mirai 192.168.1.5 --repeat 10',
+        'attacker-10': 'python3 replay.py gafgyt 192.168.1.3 --repeat 10',
+        'attacker-11': 'python3 replay.py hajime 192.168.1.6 --repeat 10',
+        'attacker-12': 'python3 replay.py okiru 192.168.1.5 --repeat 10',
+        'attacker-13': 'python3 replay.py muhstik 192.168.1.3 --repeat 10',
+        'default': None
+    }
+    return switch_cases.get(argument, switch_cases['default'])
+
+
+def send_known_traffic():
     args = []
 
-    if from_file:
-        # Read dictionary from a file in JSON format
-        # Modify this file to adjust it to your topology and desired pattern replay dynamics.
-        with open('preset_traffic.json', 'r') as file:
-            replay_dictionary = json.load(file)
-        print("Replay configuration from file.")
-        for container in containers:
-            container_info = client.api.inspect_container(container.id)
-            # Extract the IP address of the container from its network settings
-            container_info_str = container_info['Config']['Hostname']
-            container_img_name = container_info_str.split('(')[0]
-            container_ip = container_info_str.split('(')[-1][:-1]
-            container_ip = container_ip.split('/')[0]
-            # print(container_img_name)
-            # print("Container IP:", container_ip)
-            if 'attacker' in container_img_name or 'victim' in container_img_name:
-                # Get the proper command
-                command_to_run = replay_dictionary[container_img_name] 
-                print(f"{container_img_name} ({container_ip}) will launch {command_to_run}")
-                args.append(f"{container.id}:{container_info_str}:{command_to_run}")
-    else: 
-        print('Random traffic configuration.')
-        victims = [] 
-        attackers = [] 
-        attacks = ['cc_heartbeat', 'generic_ddos', 'h_scan', 'hakai',  'torii', 'mirai', 'gafgyt', 'hajime', 'okiru', 'muhstik'] 
-        bening_patterns =['echo', 'doorlock', 'hue'] 
-        for container in containers:
-            container_info = client.api.inspect_container(container.id)
-            # Extract the IP address of the container from its network settings
-            container_info_str = container_info['Config']['Hostname']
-            container_img_name = container_info_str.split('(')[0]
-            container_ip = container_info_str.split('(')[-1][:-1]
-            container_ip = container_ip.split('/')[0]
-            
-            if 'attacker' in container_img_name:
-                attackers.append((container.id,container_img_name, container_ip, container_info_str)) 
-            elif 'victim' in container_img_name:
-                victims.append((container.id,container_img_name, container_ip, container_info_str)) 
-            
-        victim_ips =[ip for (_, _, ip, _) in victims]
+    for container_img_name in KNOWN_TRAFFIC_NODES:
+        container = containers_dict[container_img_name]
 
-        for attacker_tuple in attackers:
-            # Get the proper command
-            command_to_run = f"python3 replay.py {random.choice(attacks)} {random.choice(victim_ips)} --repeat 10"
-            print(f"{attacker_tuple[1]} ({attacker_tuple[2]}) will launch {command_to_run}")
-            args.append(f"{attacker_tuple[0]}:{attacker_tuple[3]}:{command_to_run}")
+        command_to_run = pattern_replay_commands(container_img_name)
+        if command_to_run:
+            args.append(f"{container.id}:{container_img_name}:{command_to_run}")
 
-        for victim_tuple in victims:
-            # Get the proper command
-            curr_dests = list(set(victim_ips) - set([victim_tuple[2]]))
-            command_to_run = f"python3 replay.py {random.choice(bening_patterns)} {random.choice(curr_dests)} --repeat 10"
-            print(f"{victim_tuple[1]} ({victim_tuple[2]}) will launch {command_to_run}")
-            args.append(f"{victim_tuple[0]}:{victim_tuple[3]}:{command_to_run}")
-
-    
-    print('Now launching traffic:')
     # Build the command to execute your Bash script with its arguments
     command = [TERMINAL_ISSUER_PATH] + args
 
@@ -245,6 +220,88 @@ def launch_traffic(from_file=False):
     except subprocess.CalledProcessError as e:
         # Handle errors if the command exits with a non-zero status
         print("Error:", e)
+
+
+def send_training_zdas():
+    
+    args = []
+
+    for container_img_name in TRAINING_ZDA_NODES:
+
+        curr_container = containers_dict[container_img_name]
+        command_to_run = pattern_replay_commands(container_img_name)
+        args.append(f"{curr_container.id}:{container_img_name} (Training ZdA):{command_to_run}")
+    
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
+
+def send_test_zdas():
+
+    args = []
+
+    for container_img_name in TEST_ZDA_NODES:
+
+        curr_container = containers_dict[container_img_name]
+        command_to_run = pattern_replay_commands(container_img_name)
+        args.append(f"{curr_container.id}:{container_img_name} (Test ZdA):{command_to_run}")
+    
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
+
+def launch_traffic():
+
+    args = []
+
+    for container in containers:
+        container_info = client.api.inspect_container(container.id)
+        # Extract the IP address of the container from its network settings
+        container_info_str = container_info['Config']['Hostname']
+        container_img_name = container_info_str.split('(')[0]
+        # container_ip = container_info_str.split('(')[-1][:-1]
+        # print(container_img_name)
+        # print("Container IP:", container_ip)
+        # Get the proper command
+        command_to_run = pattern_replay_commands(container_img_name)
+        if command_to_run != 'echo hello':
+            args.append(f"{container.id}:{container_info_str}:{command_to_run}")
+
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print("Error:", e)
+
+
+def send_all_traffic():
+    send_known_traffic()
+    send_training_zdas()
+    send_test_zdas()
     
 
 if __name__ == "__main__":
@@ -253,13 +310,17 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Container Manager script")
     parser.add_argument(
+        "--curriculum", 
+        help="The curriculum to divide known, train unknown and test unkown patterns for ZdA Attack detection  (Default is 1)", 
+        default=1)
+    parser.add_argument(
         "--browser", 
         help="Browser Exetubale Path (Default is /usr/bin/firefox, change to your favourite)", 
         default="/usr/bin/firefox")
     
     args = parser.parse_args()
 
-    
+    CURRICULUM = args.curriculum
     BROWSER_PATH = args.browser
 
 
@@ -277,6 +338,75 @@ if __name__ == "__main__":
 
         containers_dict[container_img_name] = container
 
+    
+    if CURRICULUM == 0:
+
+        KNOWN_TRAFFIC_NODES = [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-4',
+        'attacker-5',
+        'attacker-6']  
+
+        TRAINING_ZDA_NODES = [
+        'attacker-7',
+        'attacker-8',
+        'attacker-9',
+        'attacker-10']  
+
+        TEST_ZDA_NODES = [
+        'attacker-11',
+        'attacker-12',
+        'attacker-13']  
+
+    elif CURRICULUM == 1:
+
+        KNOWN_TRAFFIC_NODES = [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-7',
+        'attacker-8',
+        'attacker-12']  
+
+        TRAINING_ZDA_NODES = [
+        'attacker-4',
+        'attacker-5',
+        'attacker-9',
+        'attacker-10']  
+
+
+        TEST_ZDA_NODES = [
+        'attacker-11',
+        'attacker-6',
+        'attacker-13']  
+
+    elif CURRICULUM == 2:
+
+        KNOWN_TRAFFIC_NODES = [
+        'victim-0',
+        'victim-1',
+        'victim-2',
+        'victim-3',
+        'attacker-13',
+        'attacker-11',
+        'attacker-9']  
+
+        TRAINING_ZDA_NODES = [
+        'attacker-4',
+        'attacker-5',
+        'attacker-12',
+        'attacker-6']  
+
+        TEST_ZDA_NODES = [
+        'attacker-7',
+        'attacker-10',
+        'attacker-8']  
+
+
     user_input = input("SmartVille Container Maganer \n" +\
                        "Plase input a character and type enter. \n" +\
                        "'c' to launch controller services. This will: \n"+\
@@ -288,7 +418,10 @@ if __name__ == "__main__":
                        " |---6. launch grafana dashboard on browser,    ('dash' option) \n"+\
                        " ________________________________________________________________\n"+\
                        "\n"+\
-                       "'s' to send all traffic patterns from nodes.\n"+\
+                       "'s' to send all traffic patterns from nodes, This will: \n"+\
+                       " |---1. send known traffic according to curriculum,   ('known' option) \n"+\
+                       " |---2. send training zdas,                           ('zda1' option) \n"+\
+                       " |---3. send test zdas,                               ('zda2' option) \n"+\
                        " ________________________________________________________________"+\
                        "\n"+\
                        "'m' to send node features from all nodes, \n"+\
@@ -300,7 +433,13 @@ if __name__ == "__main__":
                    
     
     if user_input == 's':
-        launch_traffic()
+        send_all_traffic()
+    elif user_input == 'known':
+        send_known_traffic()
+    elif user_input == 'zda1':
+        send_training_zdas()
+    if user_input == 'zda2':
+        send_test_zdas()
     elif user_input == 'm':
         launch_metrics()
     elif user_input == 'c':
