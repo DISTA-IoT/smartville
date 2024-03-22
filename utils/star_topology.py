@@ -307,15 +307,6 @@ if __name__ == "__main__":
     CONTROLLER_START_COMMAND = args.contr_start
     ENV_STR = args.env_vars
     
-
-    """
-    # Insubria server ShortCut  
-    # TODO delete  
-    ENV_STR = "https_proxy=http://proxy.uninsubria.it:3128\n"+\
-                "HTTPS_PROXY=http://proxy.uninsubria.it:3128\n"+\
-                    "HTTP_PROXY=http://proxy.uninsubria.it:3128\n"+\
-                        "http_proxy=http://proxy.uninsubria.it:3128"
-    """
     ATTACKER_NODE_COUNT = args.n_attackers
     VICTIM_NODE_COUNT = args.n_victims
 
