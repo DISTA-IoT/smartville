@@ -22,6 +22,8 @@ import subprocess
 import argparse
 import json
 import random
+import yaml
+
 
 TERMINAL_ISSUER_PATH = './terminal_issuer.sh'  # MAKE IT EXECUTABLE WITH chmod +x terminal_issuer.sh
 BROWSER_PATH = None
@@ -32,6 +34,25 @@ TRAINING_ZDA_NODES = []
 TEST_ZDA_NODES = []  
 
 
+default_config = {
+    'intrusion_detection': {
+        'eval': False,
+        'device': 'cpu',
+        'seed': 777,
+        'ai_debug': True,
+        'multi_class': True,
+        'use_packet_feats': True,
+        'packet_buffer_len': 1,
+        'flow_buff_len': 10,
+        'node_features': False,
+        'metric_buffer_len': 10,
+        'inference_freq_secs': 60
+    },
+    'monitoring': {
+        'grafana_user': 'admin',
+        'grafana_password': 'admin'
+    }
+}
 
 containers_dict = {}
 
@@ -254,10 +275,37 @@ def launch_traffic(from_file=False):
     except subprocess.CalledProcessError as e:
         # Handle errors if the command exits with a non-zero status
         print("Error:", e)
+
+
+def read_config(file_path):
+   
+    try:
+        # Read configuration from YAML file
+        with open(file_path, 'r') as file:
+            config = yaml.safe_load(file)
+        
+        # Update default configuration with values from the file
+        if config:
+            for key in default_config.keys():
+                if key in config:
+                    default_config[key].update(config[key])
+        print(default_config)
+        return default_config
+
+    except FileNotFoundError:
+        print(f"Error: Configuration file '{file_path}' not found.")
+        return default_config
+
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file: {e}")
+        return default_config
     
 
 if __name__ == "__main__":
 
+    # Read configuration from YAML file
+    config_file_path = "../smartVille.yaml"
+    config = read_config(config_file_path)
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Container Manager script")
