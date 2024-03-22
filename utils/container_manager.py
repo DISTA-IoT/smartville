@@ -352,12 +352,12 @@ if __name__ == "__main__":
         user_input = input(
                         "Please input a character and type enter. \n" +\
                         "'c' to launch controller services. This will: \n"+\
-                        " |---1. launch zookeeper service,   ('zoo' option) \n"+\
-                        " |---2. config and launch prometheus service,   ('pro' option) \n"+\
-                        " |---3. config and launch grafana service ,     ('gra' option) \n"+\
-                        " |---4. delete kafka logs,                      ('dkl' option) \n"+\
-                        " |---5. config and launch kafka,                ('kaf' option) \n"+\
-                        " |---6. launch grafana dashboard on browser,    ('dash' option) \n"+\
+                        " |---1. launch Zookeeper,                 ('zoo' option) \n"+\
+                        " |---2. launch Prometheus,                ('pro' option) \n"+\
+                        " |---3. launch Grafana ,                  ('gra' option) \n"+\
+                        " |---4. delete previous Kafka logs,       ('dkl' option) \n"+\
+                        " |---5. launch Kafka,                     ('kaf' option) \n"+\
+                        " |---6. launch Grafana GUI on browser,    ('dash' option) \n"+\
                         " ________________________________________________________________\n"+\
                         "\n"+\
                         "'s' to send all traffic patterns from nodes.\n"+\
