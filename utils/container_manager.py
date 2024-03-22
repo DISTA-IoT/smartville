@@ -19,15 +19,12 @@ import docker
 import threading
 import time
 import subprocess
-import argparse
 import json
 import random
 import yaml
 
 
-TERMINAL_ISSUER_PATH = './terminal_issuer.sh'  # MAKE IT EXECUTABLE WITH chmod +x terminal_issuer.sh
-BROWSER_PATH = None
-
+TERMINAL_ISSUER_PATH = None
 
 KNOWN_TRAFFIC_NODES = []
 TRAINING_ZDA_NODES = []
@@ -35,6 +32,11 @@ TEST_ZDA_NODES = []
 
 
 config_dict = {
+    'base_params': {
+        'container_manager_replay_from_file': True,
+        'browser_path': '/usr/bin/firefox',
+        'terminal_issuer_path': './terminal_issuer.sh'
+    },
     'intrusion_detection': {
         'eval': False,
         'device': 'cpu',
@@ -48,7 +50,18 @@ config_dict = {
         'metric_buffer_len': 10,
         'inference_freq_secs': 60,
         'grafana_user': 'admin',
-        'grafana_password': 'admin'
+        'grafana_password': 'admin',
+        'max_kafka_conn_retries': 5,
+        'curriculum': 1,
+        'wb_tracking': False,
+        'wb_project_name': 'SmartVille',
+        'wb_run_name': 'My new run',
+        'FLOWSTATS_FREQ_SECS': 5,
+        'flow_idle_timeout': 10,
+        'arp_timeout': 120,
+        'max_buffered_packets': 5,
+        'max_buffering_secs' : 5,
+        'arp_req_exp_secs': 4
     }
 }
 
@@ -73,9 +86,6 @@ def read_config(file_path):
             for key in config_dict.keys():
                 if key in file_confg_dict:
                     config_dict[key].update(file_confg_dict[key])
-
-
-        print(config_dict)
         return config_dict
 
     except FileNotFoundError:
@@ -195,9 +205,9 @@ def launch_brower_consoles(controller_container):
         "ifconfig")
     accessible_ip = ifconfig_output.split('eth1')[1].split('inet ')[1].split(' ')[0]
     # url = "http://"+accessible_ip+":9090"  # Prometheus
-    # subprocess.call([BROWSER_PATH, url])
+    # subprocess.call([config_dict['base_params']['browser_path'], url])
     url = "http://"+accessible_ip+":3000"  # Grafana
-    subprocess.call([BROWSER_PATH, url])
+    subprocess.call([config_dict['base_params']['browser_path'], url])
 
 
 def delete_kafka_logs(controller_container):
@@ -239,9 +249,9 @@ def run_command_in_container(container, command):
     return pid
 
 
-def launch_traffic(from_file=False):
+def launch_traffic():
     args = []
-
+    from_file = config_dict['base_params']['container_manager_replay_from_file']  
     if from_file:
         # Read dictionary from a file in JSON format
         # Modify this file to adjust it to your topology and desired pattern replay dynamics.
@@ -312,24 +322,14 @@ def launch_traffic(from_file=False):
 
 
 if __name__ == "__main__":
-
+    print("SmartVille Container Maganer \n" +\
+          "IMPORTANT: parameters are read from the smartville.yaml file at project's root dir. \n")
     # Read configuration from YAML file
-    config_file_path = "../smartVille.yaml"
+    config_file_path = "../smartville.yaml"
     config_dict = read_config(config_file_path)
 
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Container Manager script")
-    parser.add_argument(
-        "--browser", 
-        help="Browser Exetubale Path (Default is /usr/bin/firefox, change to your favourite)", 
-        default="/usr/bin/firefox")
-    
-    args = parser.parse_args()
-
-    
-    BROWSER_PATH = args.browser
-
-
+    # setting global vars for commodity:
+    TERMINAL_ISSUER_PATH = config_dict['base_params']['terminal_issuer_path']    
     # Connect to the Docker daemon
     client = docker.from_env()
     # List containers
@@ -344,7 +344,7 @@ if __name__ == "__main__":
 
         containers_dict[container_img_name] = container
 
-    user_input = input("SmartVille Container Maganer \n" +\
+    user_input = input(
                        "Plase input a character and type enter. \n" +\
                        "'c' to launch controller services. This will: \n"+\
                        " |---1. launch zookeeper service,   ('zoo' option) \n"+\
