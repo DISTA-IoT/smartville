@@ -7,7 +7,7 @@
 ![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/smartville.png)
 
 
-If you use our work, plase cite us: 
+If you use our work, please cite us: 
 [Copy Citation](#citation)
 
 ## Table of Contents
