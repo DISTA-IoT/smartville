@@ -1,0 +1,20 @@
+# Immagine ufficiale di Ubuntu
+FROM ubuntu:latest
+
+# Installazione packages necessari
+RUN apt-get update && \
+    apt-get install -y iputils-ping python3 python3-pip
+
+# Stabilisco la directory di lavoro
+WORKDIR /app
+
+# Copio il resto dell'applicazione nel container /app
+COPY . /app/
+
+# Installo tutti i packages necessari, contenuti nel file requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Definisco i comandi per far correre la mia applicazione
+CMD ["python3", "producerdoc.py"]
+
+

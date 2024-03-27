@@ -1,0 +1,40 @@
+# SmartVille Configuration
+
+base_params:
+  # container_manager_replay_from_file 
+  # If True, the "s" option in container manager will replay patterns following the "preset_traffic.json" file. 
+  # Otherwise, random patterns will be launched. 
+  # Recommended option is True. (adjust the json file according to your needs) 
+  container_manager_replay_from_file : true 
+  browser_path: '/usr/bin/firefox' # Browser Exetubale Path change to your favourite
+  # terminal issuer path:
+  # we created a bash script in the utils dir to issue commands on separated pseudo TTYs to keep track
+  # of processes' status. If you do not like it, feel free to change it... 
+  # make sure to make the terminal_issuer script executable by running  +x terminal_issuer.sh (or whatever other issuer script you create)
+  terminal_issuer_path: './terminal_issuer.sh'     
+
+intrusion_detection:
+  eval: false  # Whether to use neural modules in evaluation mode (no training)
+  device: 'cpu'  # Can be 'cpu' or 'cuda:0', 'cuda:1', etc. Depending on hw availability
+  seed: 777  # A fixed initial seed for random sampling and storing in the experience buffer
+  ai_debug: true  # A boolean flag for a verbose version of ML related code
+  multi_class: true  # A boolean flag indicating if the ML classifier should perform multi-class classification
+  use_packet_feats: true  # Use first bytes of first packets of each flow alongside flowstats to build feature vectors
+  packet_buffer_len: 1  # If 'use_packet_feats'=True, indicates how many packets are retained from each flow to build feature vectors
+  flow_buff_len: 10  # Indicates the flowstats time-window size to build feature vectors
+  node_features: false  # Use node features to build the feature vectors
+  metric_buffer_len: 10  # If 'node_features'=True, node features time-window size to build feature vectors
+  inference_freq_secs: 60  # Time in seconds between two consecutive calls to an inference (and a batch training from experience buffer)
+  grafana_user: 'admin'  # Username for the Grafana dashboard (Must coincide with grafana config files, default config files are at usr/share/grafana in the controller)
+  grafana_password: 'admin'  # Password for the Grafana dashboard
+  max_kafka_conn_retries: 5 #(int, optional): max. num. of connections attempts to the kafka broker. Default is 5.
+  curriculum: 1 # labelling scheme for known attacks, train ZdAs and test ZdAs. (can be 0,1, or 2). Default is 1. 
+  wb_tracking: false #  Track this run with WeightsAndBiases. (default is False)
+  wb_project_name:  'SmartVille' # if 'wb_tracking'=True, The name of the W&B project to associate the run with. Default is 'SmartVille'
+  wb_run_name: 'My new run' # if 'wb_tracking'=True, the name of the W&B run to track training metrics.
+  FLOWSTATS_FREQ_SECS:  5 # Num. of seconds between two consecutive flowstats request from this controller to its assigned switch. Default is 5.
+  flow_idle_timeout:  10 # Number of no-activity seconds  for a flow that triggers the switch to delete the corresponding entry in the flow table. Default is 10.
+  arp_timeout: 120 # Number of seconds to delete and ARP entry in the switch. Default is 120
+  max_buffered_packets: 5  # Max num. of packets the switch buffers while waiting to solve the dest MAC address and forward. Default is 5. 
+  max_buffering_secs: 5  # Max time in seconds the switch buffers a packet while waiting to solve the dest MAC address and forward. Default is 5. 
+  arp_req_exp_secs: 4 #  Max time in secs. that the switch waits for an ARP response before issuing another requets. (prevents ARP flooding). Default is 4. 

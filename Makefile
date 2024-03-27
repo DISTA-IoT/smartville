@@ -1,12 +1,15 @@
-BUILD_CMD = docker build
+.PHONY: all build-controller build-attacker build-victim
 
-all:customHost/Dockerfile \
-	poxController/Dockerfile \
+all: build-controller build-attacker build-victim build-openvswitch
 
-customHost: customHost/Dockerfile
-	$(BUILD_CMD) --file $< --tag custom-host customHost
-	@touch buildstatus
+build-controller:
+	docker build -t pox-controller -f controller.Dockerfile poxController/.
 
-poxController: poxController/Dockerfile
-	$(BUILD_CMD) --file $< --tag pox-controller poxController
-	@touch buildstatus
+build-attacker:
+	docker build -t attacker -f attacker.Dockerfile AttackerNode/.
+
+build-victim:
+	docker build -t victim -f victim.Dockerfile VictimNode/.
+
+build-openvswitch:
+	docker build -t openvswitch -f openvswitch.Dockerfile openSwitch/.

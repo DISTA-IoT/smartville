@@ -1,0 +1,29 @@
+################## CONTROLLER #################################
+
+# 1. launch prometheus server:
+prometheus --config.file=pox/smartController/prometheus.yml --storage.tsdb.path=pox/smartController/PrometheusLogs/
+
+# 2. launch grafana server:
+grafana-server -homepath /usr/share/grafana
+        
+# 3. launch zookeeper server:
+zookeeper-server-start.sh pox/smartController/zookeeper.properties
+
+# 4. launch kafka server:
+kafka-server-start.sh pox/smartController/kafka_server.properties
+
+# 5. lanch pox controller:
+./pox.py --verbose samples.pretty_log smartController.smartController
+# or can also do it less verbose:
+./pox.py samples.pretty_log smartController.smartController
+
+# optional -> remove kafka logs
+rm -rf /opt/kafka/logs
+
+################## LINK SWITCH TO CONTROLLER: #####################
+# If you create your switch docker image using the star topology script, you should not 
+# need to issue this command, because it is automatically set 
+# as a start command 
+# Supposing the controller is at 192.168.1.1 and that the swith is connected to it through iface br0: 
+ovs-vsctl set-controller br0 tcp:192.168.1.1:6633
+
