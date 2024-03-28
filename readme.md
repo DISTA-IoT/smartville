@@ -189,12 +189,12 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 
 ## Citation
-@article{Sample2020,
-author = {John Doe and Jane Smith},
-title = {SmartVille: an open-source SDN online-intrusion detection testbed},
-journal = {arXiv preprint},
-year = {2024},
-eprint = {2001.12345},
-archivePrefix = {arXiv},
-primaryClass = {cs.AI}
-}
+    @article{Sample2020,
+    author = {John Doe and Jane Smith},
+    title = {SmartVille: an open-source SDN online-intrusion detection testbed},
+    journal = {arXiv preprint},
+    year = {2024},
+    eprint = {2001.12345},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.AI}
+    }
