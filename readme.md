@@ -1,5 +1,15 @@
 # Smartville
 
+**This is the official SmartVille repository, from the paper:**
+*"SmartVille: an open-source SDN online-intrusion detection testbed"*
+
+
+![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/smartville.png)
+
+
+If you use our work, please cite us: 
+[Copy Citation](#citation)
+
 ## Table of Contents
 
 
@@ -179,3 +189,15 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file.
 
 7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated
+
+
+## Citation
+    @article{Sample2020,
+    author = {John Doe and Jane Smith},
+    title = {SmartVille: an open-source SDN online-intrusion detection testbed},
+    journal = {arXiv preprint},
+    year = {2024},
+    eprint = {2001.12345},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.AI}
+    }
