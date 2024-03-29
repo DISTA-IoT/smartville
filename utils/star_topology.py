@@ -37,7 +37,7 @@ NAT_IMG_NAME = "NAT"
 CONTROLLER_START_COMMAND=None
 
 
-node_ids = {}
+node_ids = []
 template_ids = {}
 server = None
 gns3_server_connector = None
@@ -75,8 +75,9 @@ def mountSwitch(curr_switch_label,ip,gateway):
 
     set_node_network_interfaces(server, project, openvswitch_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
     print(f"{curr_switch_label}: assigned ip: {ip}, gateway: {gateway} on eth0")
-    start_node_by_name(server,project,switch1_node_name)
+    
     print(f"{curr_switch_label}: started")
+    node_ids.append(openvswitch_id)
     return switch1_node_name
 
 
@@ -94,7 +95,7 @@ def mount_edge_switch():
     set_dhcp_node_network_interfaces(server, project, edge_openvswitch_id, interface, None)
     print(f"{curr_switch_label}: DHCP on ",interface)
 
-    start_node(server,project,edge_openvswitch_id)
+    node_ids.append(edge_openvswitch_id)
     print(f"{curr_switch_label}: started")
     return curr_switch_label
 
@@ -121,7 +122,7 @@ def mountController(switch_name, ip):
     set_node_network_interfaces(server, project, controller_id, "eth0", ipaddress.IPv4Interface("192.168.1.1/24"), None)
     print(f"{CONTROLLER_IMG_NAME}: assigned ip: {ip} on eth0")
     set_dhcp_node_network_interfaces(server,project,controller_id,"eth1", "smartcontroller")
-    start_node(server,project,controller_id)
+    node_ids.append(controller_id)
     print(f"{CONTROLLER_IMG_NAME}: started")
     return controller_name
 
@@ -158,7 +159,7 @@ def mount_single_Host(curr_img_name, curr_node_name,switch1_node_name,switch_por
     print(f"{curr_node_name}: assigned ip: {ip}, gateway: {gateway} on eth0")
     create_link(server, project,host_id,0,openvswitch_id,switch_port)
     print(f"{curr_node_name}: link to {switch1_node_name} on port {switch_port} created")
-    start_node(server,project,host_id)
+    node_ids.append(host_id)
     print(f"{curr_node_name}: started")
 
 
@@ -220,6 +221,11 @@ def connect_all(edge_switch_node_name,controller_node_name,host_names):
         host_id = get_node_id_by_name(server, project, host_name)
         create_link(server, project,str(edge_switch_id),3+idx,str(host_id),1)
 
+def start_all():
+    for id in node_ids:
+        start_node(server, project, id)
+        print("Node: ",id," started")
+
 
 def starTopology():
     switch1_node_name = mountSwitch("openvswitch-1","192.168.1.2/24","192.168.1.1")
@@ -228,7 +234,7 @@ def starTopology():
     host_names = mount_all_hosts(switch1_node_name)
     mountNAT()
     connect_all(edge_switch_node_name,controller_node_name,host_names)
-
+    start_all()
 
 def update_generic_template(img_name, start_command):
     global project
