@@ -27,7 +27,6 @@ WORKDIR /app
 
 COPY scripts/. /app/
 
-COPY  bening_traffic/. /app/bening_traffic/
 COPY  cc_heartbeat/. /app/cc_heartbeat/
 COPY  gafgyt/. /app/gafgyt/
 COPY  generic_ddos/. /app/generic_ddos/
