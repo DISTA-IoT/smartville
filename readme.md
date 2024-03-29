@@ -2,7 +2,7 @@
 
 **This is the official SmartVille repository, from the paper:**
 *"SmartVille: an open-source SDN online-intrusion detection testbed"*
-![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/smartville.png)
+![alt text](./readme_imgs/smartville.png)
 
  If you use our work, plase cite us: 
 [Copy Citation](#citation)
@@ -48,7 +48,7 @@ Modify the line 21 in file *controller.dockerfile* and insert your wandb API key
 ### Build topology
 To start the *star topology* execute star_topology.py.
 You will get in the GNS3 GUI a new project with this scenario.
-![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/topology.png)
+![alt text](./readme_imgs/topology.png)
 Each node can communicate with eachother and everyone has Internet connection available.
 
 ### Smart Controller
@@ -64,7 +64,7 @@ Each node can be modified or replaced by manipulating the *node.dockerfile* and 
 
 ## Background
 ### SDN and OpenFlow characteristics
-![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/sdn.png)
+![alt text](./readme_imgs/sdn.png)
 Networking environments are composed of a data plane, responsible for forwarding packets, and a control plane, responsible for determining how packets are forwarded. To illustrate the difference between SDN and traditional networking, consider the following example. If Alice wants to email Bob, Alice’s router will forward the packets (data plane) according to its routing table (control plane) to Bob’s router. In traditional networking, the data and control planes reside on the same device, whereas in SDN, a separate "layer" known as the controller is added between the data plane and the control plane. The controller acts as a centralized intelligence that specifies how the nodes must handle the packets.
 
 There are four types of interactions in SDN. The controller interacts with the application plane through the so-called Northbound APIs. Through these APIs, applications communicate network resource requisites (data, storage, bandwidth, etc.) so the network can be configured accordingly. Northbound APIs should adhere to the REST criteria.
@@ -121,7 +121,7 @@ Prometheus is a system for monitoring systems and services. It collects metrics 
 
 Grafana is an interactive open-source data visualization platform developed by Grafana Labs. It allows users to view data through unified tables and charts on a single or multiple dashboards, making interpretation and understanding easier. In our work, Grafana and Prometheus work in tandem. Once the data is saved persistently by Prometheus, it's then retrieved by Grafana to build and show a comprehensive dashboard of each topic to the user.
 
-![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/kafka.png)
+![alt text](./readme_imgs/kafka.png)
 
 As a result of these system interactions, the user can view a dashboard of the devices' status in the network. The persistent data is then made available for further usage by the controller.
 
@@ -130,7 +130,7 @@ Prototypical Networks (PN) offer a neural architectural strategy that decouples 
 
 PNs are trained through episodic learning: Given in input a set of query and support latent samples, PNs make a multiclass classification inference for each one of the former as a function of the labels of the latter: Let the input batch be represented by 𝓑 = {𝓑𝓢 ∪ 𝓑𝓠} where 𝓑𝓢 is the set of support latent vectors 𝐳𝐬1, 𝐳𝐬2, …, 𝐳𝐬|𝓑𝓢| and 𝓑𝓠 is the set of query latent vectors 𝐳𝐪1, 𝐳𝐪2, …, 𝐳𝐪|𝓑𝓠|. The class-wise centroids or prototypes are computed using the support latents:
 
-![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/formula.png)
+![alt text](./readme_imgs/formula.png)
 where 𝑁𝑖 is the number of support latents in class 𝑖 and 𝓒 is the set of classes included in 𝓑.
 
 Successively, PNs build a classification logits vector for each query sample where the vector components are the association scores to each class. These scores are inversely proportional to the Euclidean distances between the latent representation of the query sample and the correspondent class prototype. The neural modules of the SmartController implemented in SmartVille are those of ASAP that use PNs to perform multi-class classification of attacks. By doing so, the class prototypes learnt in the PN framework are mapped to latent attack signatures. For more information on the prototypical classification mechanism in our neural modules, the reader is referred to ASAP.
@@ -189,12 +189,12 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 
 ## Citation
-@article{Sample2020,
-author = {John Doe and Jane Smith},
-title = {SmartVille: an open-source SDN online-intrusion detection testbed},
-journal = {arXiv preprint},
-year = {2024},
-eprint = {2001.12345},
-archivePrefix = {arXiv},
-primaryClass = {cs.AI}
-}
+    @article{Sample2020,
+    author = {John Doe and Jane Smith},
+    title = {SmartVille: an open-source SDN online-intrusion detection testbed},
+    journal = {arXiv preprint},
+    year = {2024},
+    eprint = {2001.12345},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.AI}
+    }
