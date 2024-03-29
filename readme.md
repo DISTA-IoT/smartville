@@ -12,6 +12,7 @@
 
 - [Installation](#installation)
 - [Usage](#usage)
+- [Troubleshooting](#troubleshooting)
 - [Background](#background)
 - [License](#license)
 
@@ -61,6 +62,15 @@ TODO: aggiungere il nuovo funzionamento dell' AI
 
 ### Modify nodes
 Each node can be modified or replaced by manipulating the *node.dockerfile* and *star_topology.py* to fit the desired requirements.
+
+## Troubleshooting
+### gns3_server.conf is not found
+The file "gns3_server.conf" which contains GNS3's setup configuration should be generated automatically during GNS3 installation.However it's a known issue that this may not happen. 
+The script *generate_default_conf.sh* can be run in terminal via:
+
+    sh generate_default_conf.sh
+
+It creates the default configration file in the default directory for linux *$HOME/.config/GNS3/2.2/*.
 
 ## Background
 ### SDN and OpenFlow characteristics
