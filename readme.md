@@ -2,13 +2,7 @@
 
 **This is the official SmartVille repository, from the paper:**
 *"SmartVille: an open-source SDN online-intrusion detection testbed"*
-<<<<<<< HEAD
-
-
-![alt text](https://github.com/thetimeste/GNS3_TESI/blob/feat_delivery/readme_imgs/smartville.png)
-=======
 ![alt text](./readme_imgs/smartville.png)
->>>>>>> 99ac2d32f66e9c1acb7dbe3c0b780fb3de64056f
 
 
 If you use our work, please cite us: 
