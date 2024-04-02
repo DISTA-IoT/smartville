@@ -31,7 +31,7 @@ intrusion_detection:
   curriculum: 1 # labelling scheme for known attacks, train ZdAs and test ZdAs. (can be 0,1, or 2). Default is 1. 
   wb_tracking: false #  Track this run with WeightsAndBiases. (default is False)
   wb_project_name:  'SmartVille' # if 'wb_tracking'=True, The name of the W&B project to associate the run with. Default is 'SmartVille'
-  wb_run_name: 'My new run' # if 'wb_tracking'=True, the name of the W&B run to track training metrics.
+  wb_run_name: 'My_new_run' # if 'wb_tracking'=True, the name of the W&B run to track training metrics.
   FLOWSTATS_FREQ_SECS:  5 # Num. of seconds between two consecutive flowstats request from this controller to its assigned switch. Default is 5.
   flow_idle_timeout:  10 # Number of no-activity seconds  for a flow that triggers the switch to delete the corresponding entry in the flow table. Default is 10.
   arp_timeout: 120 # Number of seconds to delete and ARP entry in the switch. Default is 120

@@ -18,7 +18,7 @@ RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 
 
 # For AI logging purposes (can comment if u dont need it...)
-COPY jesus_wandb_api_key.txt /root/.netrc
+#COPY jesus_wandb_api_key.txt /root/.netrc
 
 RUN git clone https://github.com/noxrepo/pox.git /pox
 
