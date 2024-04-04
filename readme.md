@@ -4,7 +4,8 @@
 *"SmartVille: an open-source SDN online-intrusion detection testbed"*
 ![alt text](./readme_imgs/smartville.png)
 
- If you use our work, plase cite us: 
+
+If you use our work, please cite us: 
 [Copy Citation](#citation)
 
 ## Table of Contents
