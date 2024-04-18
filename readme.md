@@ -26,7 +26,7 @@ If you use our work, please cite us:
 
 ## Installation
 ### Setting Up the Program on a Native Linux Distribution or WSL
-This guide provides step-by-step instructions for setting up the program on either a native Linux distribution or using Windows Subsystem for Linux (WSL).
+This guide provides step-by-step instructions for setting up the testbed on a native Linux distribution. We have not verified if it works on the Windows Subsystem for Linux (WSL).
 
 ### GNS3 
 Install the GNS3 software following the official documentation at:
@@ -55,13 +55,24 @@ Modify the line 21 in file *controller.dockerfile* and insert your wandb API key
 ## Usage
 
 ### Build topology
-To start the *star topology* execute star_topology.py.
+To start the *star topology* execute star_topology.py:
+
+
+    python3 utils/star_topology.py
+
 You will get in the GNS3 GUI a new project with this scenario.
+
+
 ![alt text](./readme_imgs/topology.png)
+
+
 Each node can communicate with eachother and everyone has Internet connection available.
 
-### Smart Controller
-the OpenVSwitches automatically connects and set as default controller the Controller at *192.168.1.1*. 
+### Container Manager
+
+Execute the container_manager script and it will guide you through the rest!
+
+    python3 utils/container_manager.py
 
 Stay tuned for a full walk-through tutorial!
 
