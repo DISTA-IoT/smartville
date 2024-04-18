@@ -1,7 +1,14 @@
 # Smartville
 
-**This is the official SmartVille repository, from the paper:**
-*"SmartVille: an open-source SDN online-intrusion detection testbed"*
+**This is the official SmartVille repository**
+
+Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online intrusion detection systems based on machine learning. 
+
+
+**Feel free to contribute!**
+
+The related paper *"SmartVille: an open-source SDN online-intrusion detection testbed"*  is under review. Stay tuned!
+
 ![alt text](./readme_imgs/smartville.png)
 
 
@@ -56,10 +63,7 @@ Each node can communicate with eachother and everyone has Internet connection av
 ### Smart Controller
 the OpenVSwitches automatically connects and set as default controller the Controller at *192.168.1.1*. 
 
-TODO: aggiungere il nuovo funzionamento del controller
-
-### A.I.
-TODO: aggiungere il nuovo funzionamento dell' AI
+Stay tuned for a full walk-through tutorial!
 
 ### Modify nodes
 Each node can be modified or replaced by manipulating the *node.dockerfile* and *star_topology.py* to fit the desired requirements.
@@ -200,12 +204,11 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 
 ## Citation
-    @article{Sample2020,
-    author = {John Doe and Jane Smith},
-    title = {SmartVille: an open-source SDN online-intrusion detection testbed},
-    journal = {arXiv preprint},
-    year = {2024},
-    eprint = {2001.12345},
-    archivePrefix = {arXiv},
-    primaryClass = {cs.AI}
-    }
+    @misc{cevallos2024smartville,
+        title = {Smartville: an open-source SDN online-intrusion detection testbed},
+        author = {Cevallos, Jesus and Iannello, Stefano and Grattacaso, Giuseppe and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
+        year = {2024}, 
+        url = {https://github.com/DISTA-IoT/smartville},
+        note = {Accessed: YYYY-MM-DD} 
+        }
+
