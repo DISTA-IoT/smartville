@@ -37,7 +37,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Download Kafka binaries
-RUN wget https://dlcdn.apache.org/kafka/3.6.1/kafka_2.13-3.6.1.tgz && \
+RUN wget https://archive.apache.org/dist/kafka/3.6.1/kafka_2.13-3.6.1.tgz && \
     tar -xzf kafka_2.13-3.6.1.tgz && \
     rm kafka_2.13-3.6.1.tgz && \
     mv kafka_2.13-3.6.1 /opt/kafka
