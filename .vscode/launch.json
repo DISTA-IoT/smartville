@@ -46,8 +46,10 @@
             "name": "Container Manager",
             "type": "python",
             "request": "launch",
-            "program": "utils/container_manager.py",
-            "justMyCode": true
+            "program": "container_manager.py",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/utils",  // Set the current working directory here
+
         }
     ]
 }
