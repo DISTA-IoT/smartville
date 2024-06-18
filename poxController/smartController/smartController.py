@@ -53,7 +53,8 @@ from collections import defaultdict
 from smartController.curricula import \
   AC0_TRAINING_LABELS_DICT, AC0_TEST_ZDA_DICT, AC0_ZDA_DICT, \
   AC1_TRAINING_LABELS_DICT, AC1_TEST_ZDA_DICT, AC1_ZDA_DICT, \
-  AC2_TRAINING_LABELS_DICT, AC2_TEST_ZDA_DICT, AC2_ZDA_DICT
+  AC2_TRAINING_LABELS_DICT, AC2_TEST_ZDA_DICT, AC2_ZDA_DICT, \
+  CUSTOM_TRAINING_LABELS_DICT, CUSTOM_TEST_ZDA_DICT, CUSTOM_ZDA_DICT
 
 
 log = core.getLogger()
@@ -621,7 +622,7 @@ def launch(**kwargs):
     grafana_user = kwargs.get('grafana_user', 'admin')
     grafana_password = kwargs.get('grafana_password', 'admin')
     max_kafka_conn_retries = int(kwargs.get('max_kafka_conn_retries', 5))
-    curriculum = int(kwargs.get('curriculum', 1))
+    curriculum = kwargs.get('curriculum', "1")
 
     wb_tracking = str_to_bool(kwargs.get('wb_tracking', False))
     wb_project_name = kwargs.get('wb_project_name', 'SmartVille')
@@ -649,18 +650,22 @@ def launch(**kwargs):
     """
     if multi_class:
 
-        if curriculum == 0:
+        if curriculum == "0":
               TRAINING_LABELS_DICT = AC0_TRAINING_LABELS_DICT
               ZDA_DICT = AC0_ZDA_DICT
               TEST_ZDA_DICT = AC0_TEST_ZDA_DICT
-        if curriculum == 1:
+        elif curriculum == "1":
               TRAINING_LABELS_DICT = AC1_TRAINING_LABELS_DICT
               ZDA_DICT = AC1_ZDA_DICT
               TEST_ZDA_DICT = AC1_TEST_ZDA_DICT
-        if curriculum == 2:
-          TRAINING_LABELS_DICT = AC2_TRAINING_LABELS_DICT
-          ZDA_DICT = AC2_ZDA_DICT
-          TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
+        elif curriculum == "2":
+              TRAINING_LABELS_DICT = AC2_TRAINING_LABELS_DICT
+              ZDA_DICT = AC2_ZDA_DICT
+              TEST_ZDA_DICT = AC2_TEST_ZDA_DICT
+        elif curriculum == "custom":
+              TRAINING_LABELS_DICT = CUSTOM_TRAINING_LABELS_DICT
+              ZDA_DICT = CUSTOM_ZDA_DICT
+              TEST_ZDA_DICT = CUSTOM_TEST_ZDA_DICT
 
     else:
         ZDA_DICT = defaultdict(lambda: False)            # No ZdA detection experiments in binary classification 

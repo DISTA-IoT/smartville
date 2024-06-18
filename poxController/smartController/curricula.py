@@ -189,3 +189,31 @@ AC2_TEST_ZDA_DICT["192.168.1.13"] = True
 AC2_TRAINING_LABELS_DICT["192.168.1.11"] = "Torii (ZdA G2)"
 AC2_ZDA_DICT["192.168.1.11"] = True
 AC2_TEST_ZDA_DICT["192.168.1.11"] = True
+
+
+
+
+#########################################################################################################
+############# CUSTOM CURRICULUM (Used for custom/random traffic patterns fill as desised.)  ########### 
+######################################################################################################### 
+
+# IpV4 attackers (for training purposes) Also victim response flows are considered infected
+CUSTOM_TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+CUSTOM_ZDA_DICT = defaultdict(lambda: False) 
+CUSTOM_TEST_ZDA_DICT = defaultdict(lambda: False) 
+
+####################### Known attacks: 
+
+CUSTOM_TRAINING_LABELS_DICT["192.168.1.6"] = "Gen_DDoS"
+
+####################### ZdAs group 1:
+
+CUSTOM_TRAINING_LABELS_DICT["192.168.1.5"] = "Mirai (ZdA G1)"
+CUSTOM_ZDA_DICT["192.168.1.5"] = True
+
+
+####################### ZdAs group 2:
+
+CUSTOM_TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai (ZdA G2)"
+CUSTOM_ZDA_DICT["192.168.1.10"] = True
+CUSTOM_TEST_ZDA_DICT["192.168.1.10"] = True

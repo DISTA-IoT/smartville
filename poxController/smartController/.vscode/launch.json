@@ -17,7 +17,8 @@
                 "--multi_class=True",
                 "--k_shot=5",
                 "--batch_size=20",
-                "--node_features=True"
+                "--node_features=True",
+                //"--curriculum=custom"
             ],
             "justMyCode": true
         },
