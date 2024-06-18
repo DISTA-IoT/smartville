@@ -38,9 +38,70 @@ Start the server either via GUI or by running
 
 the server will run on *localhost:3080* as default
 ### Dependencies
-All the required dependecies are listed in the requirements.txt file. 
 
-    pip install -r requirements.txt
+Sure! Here’s a Markdown formatted text that you can include in your `README.md` file for creating a virtual environment (venv) and installing requirements for your project:
+
+---
+
+# Project Title
+
+Brief description of what your project does and its purpose.
+
+## Getting Started
+
+Follow these instructions to set up your development environment and get the project running on your local machine.
+
+### Prerequisites
+
+Make sure you have Python installed. You can download it from [python.org](https://www.python.org/downloads/).
+
+#### Setting up a Virtual Environment
+
+1. **Navigate to the Project Directory**:
+   
+   Open your terminal and change to your project directory where you want to set up the virtual environment.
+   
+   ```sh
+   cd path/to/your/smartville_folder
+   ```
+
+2. **Create the Virtual Environment**:
+   
+   Use the `venv` module to create a virtual environment. Replace `venv` with your preferred name for the environment.
+
+   ```sh
+   python -m venv smartville_venv
+   ```
+
+3. **Activate the Virtual Environment**:
+   
+   - **On Windows**:
+     
+     ```sh
+     smartville_venv\Scripts\activate
+     ```
+
+   - **On macOS and Linux**:
+     
+     ```sh
+     source smartville_venv/bin/activate
+     ```
+
+   After activation, your terminal should show the virtual environment name in the prompt, indicating it's active.
+
+4. **Install the Required Packages**:
+
+   With the virtual environment active, install the necessary packages using the `requirements.txt` file.
+
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+#### Notes
+
+- Ensure that you always activate the virtual environment before running any scripts or installing new packages.
+- You can check if the virtual environment is activated by looking at your terminal prompt; it should show `(smartville_venv)` or your environment's name.
+
 
 ### Docker Images
 The docker images used to build the nodes can be obtained by running the Makefile

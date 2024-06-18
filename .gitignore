@@ -7,6 +7,9 @@
 # These are our venvs environments names:
 gns3_thesis/*
 gns3-thesis
+venv
+smartville_venv
+
 
 AttackerNode/bening_traffic/*
 AttackerNode/muhstik_old/*
