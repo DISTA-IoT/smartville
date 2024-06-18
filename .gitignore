@@ -3,8 +3,10 @@
 /.venv/*
 /buildstatus/*
 /bin/*
+
+# This is our venv environment name:
 gns3_thesis/*
-gns3-thesis/*
+
 AttackerNode/bening_traffic/*
 AttackerNode/muhstik_old/*
 utils/__pycache__/
