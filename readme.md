@@ -274,7 +274,7 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated
 
 
-## Citation
+## Citations
     @misc{cevallos2024smartville,
         title = {Smartville: an open-source SDN online-intrusion detection testbed},
         author = {Cevallos, Jesus and Iannello, Stefano and Grattacaso, Giuseppe and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
