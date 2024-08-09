@@ -1,19 +1,19 @@
 # Smartville
+![alt text](./readme_imgs/smartville.png)
 
 **This is the official SmartVille repository**
 
 Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online intrusion detection systems based on machine learning. 
 
+- A related paper *"SmartVille: an open-source SDN online-intrusion detection testbed"*  is under review. Stay tuned!
+
+- SmartVille also contains an implementation of the ASAP framework for automatic synthesis of attack prototypes, described on our omonimous under-review paper: *“ASAP: Automatic Synthesis of Attack Prototypes, an Online-Learning, End-to-End Approach”*. 
+
+If you find our work useful, please cite us: 
+[Copy Citation](#citation)
 
 **Feel free to contribute!**
 
-The related paper *"SmartVille: an open-source SDN online-intrusion detection testbed"*  is under review. Stay tuned!
-
-![alt text](./readme_imgs/smartville.png)
-
-
-If you use our work, please cite us: 
-[Copy Citation](#citation)
 
 ## Table of Contents
 
@@ -284,3 +284,9 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
         note = {Accessed: YYYY-MM-DD} 
         }
 
+    @techreport{cevallos2024asap,
+        title = {ASAP: Automatic Synthesis of Attack Prototypes, an Online-Learning, End-to-End Approach},
+        author = {Cevallos, Jesus and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
+        year = {2024}, 
+        note = {Under review}
+        }
