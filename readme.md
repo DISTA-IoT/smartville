@@ -9,8 +9,7 @@ Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for trai
 
 - SmartVille also contains an implementation of the ASAP framework for automatic synthesis of attack prototypes, described on our omonimous under-review paper: *“ASAP: Automatic Synthesis of Attack Prototypes, an Online-Learning, End-to-End Approach”*. 
 
-If you find our work useful, please cite us: 
-[Copy Citation](#citation)
+If you find our work useful, [please cite us!](#citation)
 
 **Feel free to contribute!**
 
