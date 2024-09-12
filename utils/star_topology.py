@@ -237,7 +237,6 @@ def starTopology(templates):
     start_all()
 
 
-
 def update_generic_template(templates, img_name, start_command):
     global project
 
@@ -286,7 +285,6 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Topology creation script")
     parser.add_argument("--project", help="GNS3 Project Name (Default is \"SmartVille\")", default="SmartVille")
-    parser.add_argument("--topo", help="Topology type, (Default is \"star\")", default="star")
 
     parser.add_argument("--controller_docker", help="Controller's Docker image Name (Default is \"pox-controller\")", default="pox-controller")
     parser.add_argument("--switch_docker", help="SDN Switch's Docker image Name (Default is \"openvswitch\")", default="openvswitch")
@@ -349,8 +347,5 @@ if __name__ == "__main__":
     update_templates(templates)
     templates = get_all_templates(server)
 
-    if args.topo == 'star':
-        starTopology(templates)
-    elif args.topo == 'hierarchical':
-        print('hierarchical topology')
-        # hierarchicalTopology(templates)
+    
+    starTopology(templates)
