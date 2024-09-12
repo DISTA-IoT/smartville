@@ -3,6 +3,7 @@
 /.venv/*
 /buildstatus/*
 /bin/*
+.vscode
 
 # These are our venvs environments names:
 gns3_thesis/*
