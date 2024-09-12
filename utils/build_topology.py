@@ -56,7 +56,7 @@ def resetProject(PROJECT_NAME):
 
 def generateIPList(ip_nr,network,netmask, starting_from=3):
     ip_pool = []
-    for i in range(3,ip_nr+3):
+    for i in range(starting_from, ip_nr+starting_from):
         net_ip = network[:-1]
         ip = net_ip+str(i)+netmask
         ip_pool.append(ip)
