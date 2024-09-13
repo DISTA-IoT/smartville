@@ -24,18 +24,16 @@ NAT_IMG_NAME = "NAT"
 
 node_ids = []
 template_ids = {}
-server = None
 gns3_server_connector = None
-project = None
 
 
-def resetProject(PROJECT_NAME):
-    print(f"The {PROJECT_NAME} GNS3 project will be deleted if existent")
-    delete_project(server,PROJECT_NAME)
-    create_project(server,PROJECT_NAME,1000,1000)
-    print(f"New GNS3 project created with name {PROJECT_NAME}")
-    project = get_project_by_name(server, PROJECT_NAME)
-    open_project_if_closed(server, project)
+def resetProject(args):
+    print(f"The {args.project} GNS3 project will be deleted if existent")
+    delete_project(args.server,args.project)
+    create_project(args.server,args.project,1000,1000)
+    print(f"New GNS3 project created with name {args.project}")
+    project = get_project_by_name(args.server, args.project)
+    open_project_if_closed(args.server, project)
     return project
 
 def generateIPList(ip_nr,network,netmask, starting_from=3):
@@ -48,7 +46,7 @@ def generateIPList(ip_nr,network,netmask, starting_from=3):
     return ip_pool
 
 
-def mount_switches(args, server, project, templates, switches_to_create, gateway=None):
+def mount_switches(args, templates, switches_to_create, gateway=None):
 
     switch_node_names = []
     template_id = get_template_id_from_name(templates, args.switch_docker)
@@ -57,11 +55,11 @@ def mount_switches(args, server, project, templates, switches_to_create, gateway
         curr_switch_label = f"openvswitch-"+str(i+1)
         ip = f"192.168.1.{i+1}/24"
         switch_node_name = curr_switch_label + "\n("+ ip +")"
-        openvswitch=create_node(server, project, -400*(switches_to_create//2) + (400*i), 150, template_id, switch_node_name)
+        openvswitch=create_node(args.server, args.project, -400*(switches_to_create//2) + (400*i), 150, template_id, switch_node_name)
         print(f"{curr_switch_label}: created")
         openvswitch_id = openvswitch['node_id']
 
-        set_node_network_interfaces(server, project, openvswitch_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
+        set_node_network_interfaces(args.server, args.project, openvswitch_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
         print(f"{curr_switch_label}: assigned ip: {ip}, gateway: {gateway} on eth0")
         print(f"{curr_switch_label}: started")
         node_ids.append(openvswitch_id)
@@ -76,12 +74,12 @@ def mount_edge_switch(args, templates):
     """
     template_id = get_template_id_from_name(templates, args.switch_docker)
     curr_switch_label = "openvswitch-edge-1"
-    edge_openvswitch=create_node(server, project, 0, -200, template_id,curr_switch_label)
+    edge_openvswitch=create_node(args.server, args.project, 0, -200, template_id,curr_switch_label)
     print(f"{curr_switch_label}: created")
     edge_openvswitch_id = edge_openvswitch['node_id']
 
     interface = 'eth1'
-    set_dhcp_node_network_interfaces(server, project, edge_openvswitch_id, interface, None)
+    set_dhcp_node_network_interfaces(args.server, args.project, edge_openvswitch_id, interface, None)
     print(f"{curr_switch_label}: DHCP on ",interface)
 
     node_ids.append(edge_openvswitch_id)
@@ -95,22 +93,22 @@ def mountController(args, templates, switch_names):
     """
     template_id = get_template_id_from_name(templates, args.controller_docker)
     controller_name = "pox-controller-1"
-    controller_id = get_node_id_by_name(server,project,controller_name)
+    controller_id = get_node_id_by_name(args.server,args.project,controller_name)
     
     if(controller_id is not None):
-                delete_node(server,project,controller_id)
+                delete_node(args.server,args.project,controller_id)
                 print("Old controller node deleted")
 
-    controller = create_node(server, project, 0, -50, template_id, controller_name)
+    controller = create_node(args.server, args.project, 0, -50, template_id, controller_name)
     controller_id = controller['node_id']
     print(f"new {args.controller_docker} controller created ")
     time.sleep(2)
 
     for idx, switch_name in enumerate(switch_names):
-        openvswitch_id = get_node_id_by_name(server,project,switch_name)
+        openvswitch_id = get_node_id_by_name(args.server,args.project,switch_name)
         create_link(
-            server, 
-            project,
+            args.server, 
+            args.project,
             controller_id,
             idx,
             openvswitch_id,
@@ -119,8 +117,8 @@ def mountController(args, templates, switch_names):
         
         ip_address = f"192.168.1.{idx+1+len(switch_names)}/24"
         set_node_network_interfaces(
-            server,
-            project,
+            args.server,
+            args.project,
             controller_id,
             f"eth{idx}",
             ipaddress.IPv4Interface(ip_address),
@@ -130,18 +128,18 @@ def mountController(args, templates, switch_names):
         node_ids.append(controller_id)
     
     # for connecting to internet through the edge switch
-    set_dhcp_node_network_interfaces(server,project, controller_id, f"eth{idx+1}", "smartcontroller")
+    set_dhcp_node_network_interfaces(args.server,args.project, controller_id, f"eth{idx+1}", "smartcontroller")
 
     return controller_name
 
 
-def mountNAT(templates):    
+def mountNAT(args, templates):    
     NAT_template_id = get_template_id_from_name(templates, NAT_IMG_NAME)
     print("NAT TEMPLATE ID: ", NAT_template_id)
 
     # Create a new node
     nat_node = gfy.Node(
-        project_id=project.id, 
+        project_id=args.project.id, 
         connector=gns3_server_connector, 
         name=NAT_IMG_NAME, 
         template_id= NAT_template_id,
@@ -153,19 +151,19 @@ def mountNAT(templates):
     print("NAT created")
 
 
-def mount_single_Host(templates, curr_img_name, curr_node_name,switch1_node_name,switch_port,ip,gateway,x,y):
+def mount_single_Host(args, templates, curr_img_name, curr_node_name,switch1_node_name,switch_port,ip,gateway,x,y):
     template_id = get_template_id_from_name(templates, curr_img_name)
 
-    openvswitch_id = get_node_id_by_name(server,project,switch1_node_name)
+    openvswitch_id = get_node_id_by_name(args.server,args.project,switch1_node_name)
 
-    host=create_node(server, project, x, y, template_id,curr_node_name)
+    host=create_node(args.server, args.project, x, y, template_id,curr_node_name)
     host_id=host['node_id']
     print(f"{curr_node_name}: created")
-    set_node_network_interfaces(server, project, host_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
-    set_dhcp_node_network_interfaces(server,project,host_id,"eth1", None)
+    set_node_network_interfaces(args.server, args.project, host_id, "eth0", ipaddress.IPv4Interface(ip), gateway)
+    set_dhcp_node_network_interfaces(args.server,args.project,host_id,"eth1", None)
 
     print(f"{curr_node_name}: assigned ip: {ip}, gateway: {gateway} on eth0")
-    create_link(server, project,host_id,0,openvswitch_id,switch_port)
+    create_link(args.server, args.project,host_id,0,openvswitch_id,switch_port)
     print(f"{curr_node_name}: link to {switch1_node_name} on port {switch_port} created")
     node_ids.append(host_id)
     print(f"{curr_node_name}: started")
@@ -204,6 +202,7 @@ def mount_all_hosts(args, templates, switch_node_names, curr_node_count):
             node_horizontal_position =  switch_horizontal_position -150*(nodes_per_switch//2) + 150*idx
 
             mount_single_Host(
+                args,
                 templates,
                 img_name,
                 curr_node_name,
@@ -220,33 +219,33 @@ def mount_all_hosts(args, templates, switch_node_names, curr_node_count):
     return node_names
 
 
-def connect_all(edge_switch_node_name,switch_node_names,controller_node_name,host_names):
+def connect_all(args, edge_switch_node_name,switch_node_names,controller_node_name,host_names):
 
-    nat_id = get_node_id_by_name(server, project, NAT_IMG_NAME)
-    edge_switch_id = get_node_id_by_name(server, project, edge_switch_node_name)
-    create_link(server, project, str(nat_id), 0, str(edge_switch_id), 1)
+    nat_id = get_node_id_by_name(args.server, args.project, NAT_IMG_NAME)
+    edge_switch_id = get_node_id_by_name(args.server, args.project, edge_switch_node_name)
+    create_link(args.server, args.project, str(nat_id), 0, str(edge_switch_id), 1)
 
-    controller_id = get_node_id_by_name(server, project, controller_node_name)
-    create_link(server, project, str(edge_switch_id), 2, str(controller_id), len(switch_node_names))
+    controller_id = get_node_id_by_name(args.server, args.project, controller_node_name)
+    create_link(args.server, args.project, str(edge_switch_id), 2, str(controller_id), len(switch_node_names))
 
     hosts_per_switch = len(host_names)//len(switch_node_names)
 
     for idx in range(len(switch_node_names)-1):
         switch_name_1 = switch_node_names[idx]
         switch_name_2 = switch_node_names[idx+1]
-        switch_id_1 = get_node_id_by_name(server, project, switch_name_1)
-        switch_id_2 = get_node_id_by_name(server, project, switch_name_2)
+        switch_id_1 = get_node_id_by_name(args.server, args.project, switch_name_1)
+        switch_id_2 = get_node_id_by_name(args.server, args.project, switch_name_2)
 
         create_link(
-            server,
-            project,
+            args.server,
+            args.project,
             str(switch_id_1),
             hosts_per_switch+1,
             str(switch_id_2),
             hosts_per_switch+2)
         set_dhcp_node_network_interfaces(
-            server,
-            project,
+            args.server,
+            args.project,
             switch_id_1,
             f"eth{hosts_per_switch+1}", 
             None)
@@ -254,58 +253,56 @@ def connect_all(edge_switch_node_name,switch_node_names,controller_node_name,hos
 
     # Connect the last switch to the edge switch with a dhcp interface: 
     create_link(
-        server,
-        project,
+        args.server,
+        args.project,
         str(switch_id_2),
         hosts_per_switch+1,
         str(edge_switch_id),
         3
     )
     set_dhcp_node_network_interfaces(
-        server,
-        project,
+        args.server,
+        args.project,
         switch_id_2,
         f"eth{hosts_per_switch+1}", 
         None)
 
 
-def start_all():
+def start_all(args):
     for id in node_ids:
-        start_node(server, project, id)
+        start_node(args.server, args.project, id)
         print("Node: ",id," started")
 
 
-def tree_topology(args, server, project, templates):
+def tree_topology(args, templates):
 
-    switch_node_names = mount_switches(args, server, project, templates, args.n_switches)
+    switch_node_names = mount_switches(args, templates, args.n_switches)
     edge_switch_node_name = mount_edge_switch(args, templates)
 
     controller_node_name = mountController(args, templates, switch_node_names)
     host_names = mount_all_hosts(args, templates, switch_node_names, 
                                  curr_node_count=2+args.n_switches)
-    mountNAT(templates)
-    connect_all(edge_switch_node_name,switch_node_names, controller_node_name,host_names)
-    start_all()
+    mountNAT(args, templates)
+    connect_all(args, edge_switch_node_name,switch_node_names, controller_node_name,host_names)
+    start_all(args)
 
 
 def update_generic_template(args, templates, img_name, start_command):
-    global project
 
     template_id = get_template_id_from_name(templates, img_name)
     if(template_id is not None):  
-        delete_template(server,project,template_id)
+        delete_template(args.server,args.project,template_id)
         print((f"{template_id}: deleting old template"))
         
     print((f"{template_id}: creating a new template using local image"))
-    create_docker_template(server, img_name, start_command, str(img_name+":latest"), environment=args.env_vars)
+    create_docker_template(args.server, img_name, start_command, str(img_name+":latest"), environment=args.env_vars)
 
 
 def update_switch_template(args, templates):
-    global project
 
     switch_template_id = get_template_id_from_name(templates, args.switch_docker)
     if(switch_template_id is not None):
-        delete_template(server,project,switch_template_id)
+        delete_template(args.server,args.project,switch_template_id)
         print((f"{args.switch_docker}: old switch template deleted"))
     print((f"{args.switch_docker}: creating a new template using local image"))
 
@@ -315,19 +312,18 @@ def update_switch_template(args, templates):
     # we also add a controller connection, a connection for an eventual NAT node, and a connection for a separated  dchp controller connection.
     network_adapters_count += 3
 
-    create_docker_template_switch(server, args.switch_docker, str(args.switch_docker+":latest"), adapter_count=network_adapters_count)
+    create_docker_template_switch(args.server, args.switch_docker, str(args.switch_docker+":latest"), adapter_count=network_adapters_count)
 
 
 def update_controller_template(args, templates):
-    global project
 
     controller_template_id = get_template_id_from_name(templates, args.controller_docker)
     if(controller_template_id is not None):
-        delete_template(server,project,controller_template_id)
+        delete_template(args.server,args.project,controller_template_id)
         print(f"old controller template {args.controller_docker} deleted")
 
     create_docker_template(
-        server,
+        args.server,
         args.controller_docker,
         args.contr_start,
         str(args.controller_docker+":latest"),
@@ -375,21 +371,21 @@ if __name__ == "__main__":
 
 
     if args.use_gns3_config_file:
-        server = Server(*read_local_gns3_config(args.gns3_config_path))
-        args.gns3_host = server.addr
-        args.gns3_port = server.port
-        args.gns3_auth = server.auth
-        args.gns3_username = server.user
-        args.gns3_password = server.password
+        args.server = Server(*read_local_gns3_config(args.gns3_config_path))
+        args.gns3_host = args.server.addr
+        args.gns3_port = args.server.port
+        args.gns3_auth = args.server.auth
+        args.gns3_username = args.server.user
+        args.gns3_password = args.server.password
    
 
     gns3_server_connector = gfy.Gns3Connector(f"http://{args.gns3_host}:{args.gns3_port}", user=args.gns3_username, cred=args.gns3_password )
 
-    project = resetProject(args.project)
+    args.project = resetProject(args)
 
-    templates = get_all_templates(server)
+    templates = get_all_templates(args.server)
     update_templates(args, templates)
-    templates = get_all_templates(server)
+    templates = get_all_templates(args.server)
 
     
-    tree_topology(args, server, project, templates)
+    tree_topology(args, templates)
