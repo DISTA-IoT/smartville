@@ -18,24 +18,9 @@
 from gns3util import *
 import gns3fy as gfy
 import argparse
-import math
 
-PROJECT_NAME = None
 
-GNS3_HOST = None
-GNS3_PORT = None
-
-ATTACKER_NODE_COUNT = None
-VICTIM_NODE_COUNT = None
-
-CONTROLLER_IMG_NAME = None
-SWITCH_IMG_NAME = None
-VICTIM_IMG_NAME = None
-ATTACKER_IMG_NAME = None
 NAT_IMG_NAME = "NAT"
-
-CONTROLLER_START_COMMAND=None
-
 
 node_ids = []
 template_ids = {}
@@ -63,16 +48,16 @@ def generateIPList(ip_nr,network,netmask, starting_from=3):
     return ip_pool
 
 
-def mount_switches(server, project, templates, switches_to_create, gateway="192.168.1.1"):
+def mount_switches(args, server, project, templates, switches_to_create, gateway=None):
 
     switch_node_names = []
-    template_id = get_template_id_from_name(templates, SWITCH_IMG_NAME)
+    template_id = get_template_id_from_name(templates, args.switch_docker)
 
     for i in range(switches_to_create):
         curr_switch_label = f"openvswitch-"+str(i+1)
         ip = f"192.168.1.{i+1}/24"
         switch_node_name = curr_switch_label + "\n("+ ip +")"
-        openvswitch=create_node(server, project, -250*(switches_to_create//2) + (250*i), 150, template_id, switch_node_name)
+        openvswitch=create_node(server, project, -400*(switches_to_create//2) + (400*i), 150, template_id, switch_node_name)
         print(f"{curr_switch_label}: created")
         openvswitch_id = openvswitch['node_id']
 
@@ -85,11 +70,11 @@ def mount_switches(server, project, templates, switches_to_create, gateway="192.
     return switch_node_names
 
 
-def mount_edge_switch(templates):
+def mount_edge_switch(args, templates):
     """
     We did not add Gateways to node configuration in GNS3. If you need to do so, refer to the GNS3utils API.
     """
-    template_id = get_template_id_from_name(templates, SWITCH_IMG_NAME)
+    template_id = get_template_id_from_name(templates, args.switch_docker)
     curr_switch_label = "openvswitch-edge-1"
     edge_openvswitch=create_node(server, project, 0, -200, template_id,curr_switch_label)
     print(f"{curr_switch_label}: created")
@@ -104,13 +89,11 @@ def mount_edge_switch(templates):
     return curr_switch_label
 
 
-def mountController(templates, switch_names):
+def mountController(args, templates, switch_names):
     """
     We did not add Gateways to node configuration in GNS3. If you need to do so, refer to the GNS3utils API.
     """
-    ip_address = f"192.168.1.{1+len(switch_names)}/24"
-
-    template_id = get_template_id_from_name(templates, CONTROLLER_IMG_NAME)
+    template_id = get_template_id_from_name(templates, args.controller_docker)
     controller_name = "pox-controller-1"
     controller_id = get_node_id_by_name(server,project,controller_name)
     
@@ -120,7 +103,7 @@ def mountController(templates, switch_names):
 
     controller = create_node(server, project, 0, -50, template_id, controller_name)
     controller_id = controller['node_id']
-    print(f"new {CONTROLLER_IMG_NAME} controller created ")
+    print(f"new {args.controller_docker} controller created ")
     time.sleep(2)
 
     for idx, switch_name in enumerate(switch_names):
@@ -132,19 +115,29 @@ def mountController(templates, switch_names):
             idx,
             openvswitch_id,
             0)
+        print(f"Created a link from {controller_name} to {switch_name} on port eth{idx}")
+        
         ip_address = f"192.168.1.{idx+1+len(switch_names)}/24"
-        print(f"Created a link from {CONTROLLER_IMG_NAME} to {switch_name} on port eth{idx}")
-        set_node_network_interfaces(server, project, controller_id, f"eth{idx}", ipaddress.IPv4Interface(ip_address), None)
-        print(f"{CONTROLLER_IMG_NAME}: assigned ip: {ip_address} on eth{idx}")
-        set_dhcp_node_network_interfaces(server,project, controller_id, f"eth{idx}", "smartcontroller")
+        set_node_network_interfaces(
+            server,
+            project,
+            controller_id,
+            f"eth{idx}",
+            ipaddress.IPv4Interface(ip_address),
+            None)
+        
+        print(f"{args.controller_docker}: assigned ip: {ip_address} on eth{idx}")
         node_ids.append(controller_id)
     
+    # for connecting to internet through the edge switch
+    set_dhcp_node_network_interfaces(server,project, controller_id, f"eth{idx+1}", "smartcontroller")
+
     return controller_name
 
 
 def mountNAT(templates):    
     NAT_template_id = get_template_id_from_name(templates, NAT_IMG_NAME)
-    print("NAT TEMPLATE ID: ",NAT_template_id)
+    print("NAT TEMPLATE ID: ", NAT_template_id)
 
     # Create a new node
     nat_node = gfy.Node(
@@ -178,13 +171,13 @@ def mount_single_Host(templates, curr_img_name, curr_node_name,switch1_node_name
     print(f"{curr_node_name}: started")
 
 
-def mount_all_hosts(templates, switch_node_names, curr_node_count):
+def mount_all_hosts(args, templates, switch_node_names, curr_node_count):
     node_names = []
     # mounts hosts and links each one to a port of the switch
     gateway = None  
     network = "192.168.1.0"
     netmask = "/24"
-    node_count = ATTACKER_NODE_COUNT + VICTIM_NODE_COUNT
+    node_count = args.n_attackers + args.n_victims
     nodes_per_switch = node_count // len(switch_node_names)
 
     #generate pool of ip addresses for specified network (es. 192.168.1.0)
@@ -198,14 +191,14 @@ def mount_all_hosts(templates, switch_node_names, curr_node_count):
 
     for switch_idx, switch_name in enumerate(switch_node_names):
 
-        switch_horizontal_position = -250*(len(switch_node_names)//2) + (250*switch_idx)
-        current_switch_port = 3
+        switch_horizontal_position = -400*(len(switch_node_names)//2) + (400*switch_idx)
+        current_switch_port = 1
 
         pools_for_switch = ip_pool[switch_idx*nodes_per_switch:(switch_idx+1)*nodes_per_switch]
 
         for idx, ip in enumerate(pools_for_switch):
 
-            img_name = VICTIM_IMG_NAME
+            img_name = args.victim_docker
             curr_node_name = f"User-{(switch_idx*nodes_per_switch)+idx}\n({ip})"
             
             node_horizontal_position =  switch_horizontal_position -150*(nodes_per_switch//2) + 150*idx
@@ -227,18 +220,54 @@ def mount_all_hosts(templates, switch_node_names, curr_node_count):
     return node_names
 
 
-def connect_all(edge_switch_node_name,controller_node_name,host_names):
+def connect_all(edge_switch_node_name,switch_node_names,controller_node_name,host_names):
 
     nat_id = get_node_id_by_name(server, project, NAT_IMG_NAME)
     edge_switch_id = get_node_id_by_name(server, project, edge_switch_node_name)
-    create_link(server, project,str(nat_id),0,str(edge_switch_id),1)
+    create_link(server, project, str(nat_id), 0, str(edge_switch_id), 1)
 
     controller_id = get_node_id_by_name(server, project, controller_node_name)
-    create_link(server, project,str(edge_switch_id),2,str(controller_id),1)
+    create_link(server, project, str(edge_switch_id), 2, str(controller_id), len(switch_node_names))
 
-    for idx, host_name in enumerate(host_names):
-        host_id = get_node_id_by_name(server, project, host_name)
-        create_link(server, project,str(edge_switch_id),3+idx,str(host_id),1)
+    hosts_per_switch = len(host_names)//len(switch_node_names)
+
+    for idx in range(len(switch_node_names)-1):
+        switch_name_1 = switch_node_names[idx]
+        switch_name_2 = switch_node_names[idx+1]
+        switch_id_1 = get_node_id_by_name(server, project, switch_name_1)
+        switch_id_2 = get_node_id_by_name(server, project, switch_name_2)
+
+        create_link(
+            server,
+            project,
+            str(switch_id_1),
+            hosts_per_switch+1,
+            str(switch_id_2),
+            hosts_per_switch+2)
+        set_dhcp_node_network_interfaces(
+            server,
+            project,
+            switch_id_1,
+            f"eth{hosts_per_switch+1}", 
+            None)
+
+
+    # Connect the last switch to the edge switch with a dhcp interface: 
+    create_link(
+        server,
+        project,
+        str(switch_id_2),
+        hosts_per_switch+1,
+        str(edge_switch_id),
+        3
+    )
+    set_dhcp_node_network_interfaces(
+        server,
+        project,
+        switch_id_2,
+        f"eth{hosts_per_switch+1}", 
+        None)
+
 
 def start_all():
     for id in node_ids:
@@ -246,20 +275,20 @@ def start_all():
         print("Node: ",id," started")
 
 
-def tree_topology(server, project, templates, switches_to_create):
+def tree_topology(args, server, project, templates):
 
-    switch_node_names = mount_switches(server, project, templates, switches_to_create)
-    edge_switch_node_name = mount_edge_switch(templates)
+    switch_node_names = mount_switches(args, server, project, templates, args.n_switches)
+    edge_switch_node_name = mount_edge_switch(args, templates)
 
-    controller_node_name = mountController(templates, switch_node_names)
-    host_names = mount_all_hosts(templates, switch_node_names, 
-                                 curr_node_count=2+switches_to_create)
+    controller_node_name = mountController(args, templates, switch_node_names)
+    host_names = mount_all_hosts(args, templates, switch_node_names, 
+                                 curr_node_count=2+args.n_switches)
     mountNAT(templates)
-    connect_all(edge_switch_node_name,controller_node_name,host_names)
+    connect_all(edge_switch_node_name,switch_node_names, controller_node_name,host_names)
     start_all()
 
 
-def update_generic_template(templates, img_name, start_command):
+def update_generic_template(args, templates, img_name, start_command):
     global project
 
     template_id = get_template_id_from_name(templates, img_name)
@@ -268,43 +297,49 @@ def update_generic_template(templates, img_name, start_command):
         print((f"{template_id}: deleting old template"))
         
     print((f"{template_id}: creating a new template using local image"))
-    create_docker_template(server, img_name, start_command, str(img_name+":latest"), environment=ENV_STR)
+    create_docker_template(server, img_name, start_command, str(img_name+":latest"), environment=args.env_vars)
 
 
-def update_switch_template(templates):
+def update_switch_template(args, templates):
     global project
 
-    switch_template_id = get_template_id_from_name(templates, SWITCH_IMG_NAME)
+    switch_template_id = get_template_id_from_name(templates, args.switch_docker)
     if(switch_template_id is not None):
         delete_template(server,project,switch_template_id)
-        print((f"{SWITCH_IMG_NAME}: old switch template deleted"))
-    print((f"{SWITCH_IMG_NAME}: creating a new template using local image"))
-    network_adapters_count = 3 +  (VICTIM_NODE_COUNT + ATTACKER_NODE_COUNT)//SWITCH_COUNT
-    create_docker_template_switch(server, SWITCH_IMG_NAME, str(SWITCH_IMG_NAME+":latest"), adapter_count=network_adapters_count)
+        print((f"{args.switch_docker}: old switch template deleted"))
+    print((f"{args.switch_docker}: creating a new template using local image"))
+
+    nodes_per_switch = (args.n_victims + args.n_attackers)//args.n_switches
+    # we multiply nodes_per_switch*2 because each node is gonna be connected to internet through a separated dhcp connection. 
+    network_adapters_count = 2*nodes_per_switch
+    # we also add a controller connection, a connection for an eventual NAT node, and a connection for a separated  dchp controller connection.
+    network_adapters_count += 3
+
+    create_docker_template_switch(server, args.switch_docker, str(args.switch_docker+":latest"), adapter_count=network_adapters_count)
 
 
-def update_controller_template(templates):
+def update_controller_template(args, templates):
     global project
 
-    controller_template_id = get_template_id_from_name(templates, CONTROLLER_IMG_NAME)
+    controller_template_id = get_template_id_from_name(templates, args.controller_docker)
     if(controller_template_id is not None):
         delete_template(server,project,controller_template_id)
-        print(f"old controller template {CONTROLLER_IMG_NAME} deleted")
+        print(f"old controller template {args.controller_docker} deleted")
 
     create_docker_template(
         server,
-        CONTROLLER_IMG_NAME,
-        CONTROLLER_START_COMMAND,
-        str(CONTROLLER_IMG_NAME+":latest"),
-        environment=ENV_STR,
+        args.controller_docker,
+        args.contr_start,
+        str(args.controller_docker+":latest"),
+        environment=args.env_vars,
         adapters=10)
 
 
-def update_templates(templates):
-    update_switch_template(templates)
-    update_controller_template(templates)
-    update_generic_template(templates, ATTACKER_IMG_NAME, 'sh')
-    update_generic_template(templates, VICTIM_IMG_NAME, 'sh')
+def update_templates(args, templates):
+    update_switch_template(args, templates)
+    update_controller_template(args, templates)
+    update_generic_template(args, templates, args.attacker_docker, 'sh')
+    update_generic_template(args, templates, args.victim_docker, 'sh')
 
 
 if __name__ == "__main__":
@@ -338,44 +373,23 @@ if __name__ == "__main__":
     parser.add_argument("--env_vars", type=str, default='', help="Newline char (\\n) Env variables for node containers. E.g:  VAR_ONE=value1\\nVAR2=2\\nBLABLABLA=something. Default is empty str.")
     args = parser.parse_args()
 
-    PROJECT_NAME = args.project
-    
-    USE_GNS3_FILE = args.use_gns3_config_file
-    GNS3_CONFIG_PATH = args.gns3_config_path
 
-    CONTROLLER_IMG_NAME = args.controller_docker
-    SWITCH_IMG_NAME = args.switch_docker
-    VICTIM_IMG_NAME = args.victim_docker
-    ATTACKER_IMG_NAME = args.attacker_docker
-    CONTROLLER_START_COMMAND = args.contr_start
-    ENV_STR = args.env_vars
-    
-    ATTACKER_NODE_COUNT = args.n_attackers
-    VICTIM_NODE_COUNT = args.n_victims
-    SWITCH_COUNT = args.n_switches
+    if args.use_gns3_config_file:
+        server = Server(*read_local_gns3_config(args.gns3_config_path))
+        args.gns3_host = server.addr
+        args.gns3_port = server.port
+        args.gns3_auth = server.auth
+        args.gns3_username = server.user
+        args.gns3_password = server.password
+   
 
-    if USE_GNS3_FILE:
-        server = Server(*read_local_gns3_config(GNS3_CONFIG_PATH))
-        GNS3_HOST = server.addr
-        GNS3_PORT = server.port
-        GNS3_AUTH = server.auth
-        GNS3_USERNAME = server.user
-        GNS3_PASSWORD = server.password
-    else:
-        GNS3_HOST = args.gns3_host
-        GNS3_PORT = args.gns3_port
-        GNS3_AUTH = args.gns3_auth
-        GNS3_USERNAME = args.gns3_username
-        GNS3_PASSWORD = args.gns3_password    
+    gns3_server_connector = gfy.Gns3Connector(f"http://{args.gns3_host}:{args.gns3_port}", user=args.gns3_username, cred=args.gns3_password )
 
-
-    gns3_server_connector = gfy.Gns3Connector(f"http://{GNS3_HOST}:{GNS3_PORT}", user=GNS3_USERNAME, cred=GNS3_PASSWORD)
-
-    project = resetProject(PROJECT_NAME)
+    project = resetProject(args.project)
 
     templates = get_all_templates(server)
-    update_templates(templates)
+    update_templates(args, templates)
     templates = get_all_templates(server)
 
     
-    tree_topology(server, project, templates, switches_to_create=SWITCH_COUNT)
+    tree_topology(args, server, project, templates)
