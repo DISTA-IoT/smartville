@@ -27,3 +27,6 @@ COPY  doorlock/. /app/doorlock/
 COPY  echo/. /app/echo/
 COPY  hue/. /app/hue/
 
+RUN apt update
+RUN apt install git -y
+RUN git clone https://github.com/QwertyJacob/byob
