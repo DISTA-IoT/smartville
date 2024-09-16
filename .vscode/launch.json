@@ -43,6 +43,20 @@
             "justMyCode": true
         },
         {
+            "name": "Tree Topology Generation",
+            "type": "python",
+            "request": "launch",
+            "program": "utils/tree_topology.py",
+            "args": [
+                "--project=mitigation",
+                "--n_switches=3",
+                "--n_attackers=3", // the minimum number of attackers to have 1 known , 1 Zda and 1 Test Zda
+                "--n_victims=6"
+                
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Container Manager",
             "type": "python",
             "request": "launch",
