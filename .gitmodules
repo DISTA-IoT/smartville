@@ -1,0 +1,3 @@
+[submodule "BotMasterNode"]
+	path = BotMasterNode
+	url = https://github.com/DISTA-IoT/smartville-botmaster

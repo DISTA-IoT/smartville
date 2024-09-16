@@ -1,3 +1,11 @@
+# Makefile
+
+# Load the .env file if it exists
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
 .PHONY: all build-controller build-attacker build-victim
 
 all: build-controller build-attacker build-victim build-openvswitch
@@ -10,6 +18,9 @@ build-attacker:
 
 build-victim:
 	docker build -t victim -f victim.Dockerfile VictimNode/.
+
+build-botmaster:
+	docker build --build-arg GIT_USERNAME=$(GIT_USERNAME) --build-arg GIT_TOKEN=$(GIT_TOKEN) -t botmaster -f BotMasterNode/botmaster.Dockerfile BotMasterNode/.
 
 build-openvswitch:
 	docker build -t openvswitch -f openvswitch.Dockerfile openSwitch/.
