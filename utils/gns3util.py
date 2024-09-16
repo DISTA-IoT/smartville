@@ -458,13 +458,6 @@ def get_template_id_from_name(templates: List[Dict[str, Any]], name: str) -> Opt
     return None
 
 
-def get_template_id_from_name2(template_name: str, templates: List[Dict[str, Any]]) -> Optional[str]:
-    """Get GNS3 template ID from the template name."""
-    for template in templates:
-        if template["name"] == template_name:
-            return template["template_id"]
-    return None
-
 def get_all_nodes(server: Server, project: Project) -> List[Dict[str, Any]]:
     """Get all nodes in a GNS3 project."""
     req = requests.get(f"http://{server.addr}:{server.port}/v2/projects/{project.id}/nodes", auth=(server.user, server.password))
