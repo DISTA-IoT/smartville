@@ -11,7 +11,7 @@ endif
 all: build-controller build-attacker build-victim build-openvswitch
 
 build-controller:
-	docker build -t pox-controller -f controller.Dockerfile poxController/.
+	docker build -t pox-controller -f poxController/controller.Dockerfile poxController/.
 
 build-attacker:
 	docker build -t attacker -f attacker.Dockerfile AttackerNode/.
