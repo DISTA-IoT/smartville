@@ -87,12 +87,13 @@ def mount_edge_switch(args, templates):
     return curr_switch_label
 
 
-def mountController(args, templates, switch_names):
+def mountController(args, templates, last_switch_name):
     """
     We did not add Gateways to node configuration in GNS3. If you need to do so, refer to the GNS3utils API.
     """
     template_id = get_template_id_from_name(templates, args.controller_docker)
-    controller_name = "pox-controller-1"
+    ip_address = f"192.168.1.{args.n_victims + args.n_attackers + args.n_switches + 2}/24"
+    controller_name = "pox-controller-1\n"+ip_address
     controller_id = get_node_id_by_name(args.server,args.project,controller_name)
     
     if(controller_id is not None):
@@ -104,30 +105,77 @@ def mountController(args, templates, switch_names):
     print(f"new {args.controller_docker} controller created ")
     time.sleep(2)
 
-    for idx, switch_name in enumerate(switch_names):
-        openvswitch_id = get_node_id_by_name(args.server,args.project,switch_name)
-        create_link(
-            args.server, 
-            args.project,
-            controller_id,
-            idx,
-            openvswitch_id,
-            0)
-        print(f"Created a link from {controller_name} to {switch_name} on port eth{idx}")
+    openvswitch_id = get_node_id_by_name(args.server,args.project,last_switch_name)
+
+    create_link(
+        args.server, 
+        args.project,
+        controller_id,
+        0,
+        openvswitch_id,
+        0)
         
-        ip_address = f"192.168.1.{idx+1+len(switch_names)}/24"
-        set_node_network_interfaces(
-            args.server,
-            args.project,
-            controller_id,
-            f"eth{idx}",
-            ipaddress.IPv4Interface(ip_address),
-            None)
+    set_node_network_interfaces(
+        args.server,
+        args.project,
+        controller_id,
+        f"eth0",
+        ipaddress.IPv4Interface(ip_address),
+        None)
         
-        print(f"{args.controller_docker}: assigned ip: {ip_address} on eth{idx}")
-        node_ids.append(controller_id)
+    node_ids.append(controller_id)
 
     return controller_name
+
+
+def mountBotMaster(args, templates, first_switch_name):
+
+    template_id = get_template_id_from_name(templates, args.botmaster_docker)
+    ip_address = f"192.168.1.{args.n_victims + args.n_attackers + args.n_switches + 1}/24"
+    botmaster_name = "botmaster-1\n"+ip_address
+    botmaster_id = get_node_id_by_name(args.server,args.project,botmaster_name)
+
+    botmaster = create_node(args.server, args.project, -200, -50, template_id, botmaster_name)
+    botmaster_id = botmaster['node_id']
+    print(f"new {args.botmaster_docker} controller created ")
+    time.sleep(2)
+
+    openvswitch_id = get_node_id_by_name(args.server, args.project, first_switch_name)
+
+    create_link(
+        args.server, 
+        args.project,
+        botmaster_id,
+        0,
+        openvswitch_id,
+        (args.nodes_per_switch*2)+2)
+        
+    
+    set_node_network_interfaces(
+        args.server,
+        args.project,
+        botmaster_id,
+        f"eth0",
+        ipaddress.IPv4Interface(ip_address),
+        None)
+        
+    create_link(
+        args.server, 
+        args.project,
+        botmaster_id,
+        1,
+        openvswitch_id,
+        (args.nodes_per_switch*2)+3)
+    set_dhcp_node_network_interfaces(
+            args.server,
+            args.project,
+            botmaster_id,
+            f"eth1", 
+            None)
+    
+    node_ids.append(botmaster_id)
+
+    return botmaster_name
 
 
 def mountNAT(args, templates):    
@@ -141,7 +189,7 @@ def mountNAT(args, templates):
         name=NAT_IMG_NAME, 
         template_id= NAT_template_id,
         x=0,
-        y=-350)
+        y=-500)
 
     # Add the node to the project
     nat_node.create()
@@ -285,9 +333,13 @@ def tree_topology(args, templates):
 
     switch_node_names = mount_switches(args, templates)
 
-    controller_node_name = mountController(args, templates, switch_node_names)
+    controller_node_name = mountController(args, templates, switch_node_names[-1])
+
+    botmaster_node_name = mountBotMaster(args, templates, switch_node_names[0])
+
     host_names = mount_all_hosts(args, templates, switch_node_names, 
                                  curr_node_count=2+args.n_switches)
+    
     mountNAT(args, templates)
     connect_all(args, switch_node_names, controller_node_name)
     start_all(args)
@@ -338,10 +390,26 @@ def update_controller_template(args, templates):
         environment=args.env_vars,
         adapters=10)
 
+def update_botmaster_template(args, templates):
+
+    botmaster_template_id = get_template_id_from_name(templates, args.botmaster_docker)
+    if(botmaster_template_id is not None):
+        delete_template(args.server,args.project,botmaster_template_id)
+        print(f"old controller template {args.botmaster_docker} deleted")
+
+    create_docker_template(
+        args.server,
+        args.botmaster_docker,
+        args.contr_start,
+        str(args.botmaster_docker+":latest"),
+        environment=args.env_vars,
+        adapters=2)
+    
 
 def update_templates(args, templates):
     update_switch_template(args, templates)
     update_controller_template(args, templates)
+    update_botmaster_template(args, templates)
     update_generic_template(args, templates, args.attacker_docker, 'sh')
     update_generic_template(args, templates, args.victim_docker, 'sh')
 
@@ -357,6 +425,7 @@ if __name__ == "__main__":
     parser.add_argument("--switch_docker", help="SDN Switch's Docker image Name (Default is \"openvswitch\")", default="openvswitch")
     parser.add_argument("--victim_docker", help="Victim's Docker image Name (Default is \"victim\")", default="victim")
     parser.add_argument("--attacker_docker", help="Attacker's Docker image Name (Default is \"attacker\")", default="attacker")
+    parser.add_argument("--botmaster_docker", help="BotMaster's Docker image Name (Default is \"botmaster\")", default="botmaster")
 
     parser.add_argument("--contr_start", help="Controller's Start Command.  (Default is \"sh\")\n "+ \
                         "Could also be:  \"./pox.py samples.pretty_log smartController.smartController\"", default="sh")
