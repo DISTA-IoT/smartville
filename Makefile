@@ -11,7 +11,7 @@ endif
 all: build-controller build-attacker build-victim build-openvswitch
 
 build-controller:
-	docker build --build-arg WANDB_API_KEY=$(WANDB_API_KEY) -t pox-controller -f poxController/controller.Dockerfile poxController/.
+	docker build --build-arg GIT_USERNAME=$(GIT_USERNAME) --build-arg GIT_TOKEN=$(GIT_TOKEN) --build-arg WANDB_API_KEY=$(WANDB_API_KEY) -t pox-controller -f poxController/controller.Dockerfile poxController/.
 
 build-attacker:
 	docker build -t attacker -f attacker.Dockerfile AttackerNode/.
