@@ -53,7 +53,7 @@ def mount_switches(args, templates, gateway=None):
 
     for i in range(args.n_switches):
         curr_switch_label = f"openvswitch-"+str(i+1)
-        ip = f"192.168.1.{i+1}/24"
+        ip = f"192.168.1.{i+2}/24"
         switch_node_name = curr_switch_label + "\n("+ ip +")"
         openvswitch=create_node(args.server, args.project, -400*(args.n_switches//2) + (400*i), 150, template_id, switch_node_name)
         print(f"{curr_switch_label}: created")
@@ -92,7 +92,7 @@ def mountController(args, templates, last_switch_name):
     We did not add Gateways to node configuration in GNS3. If you need to do so, refer to the GNS3utils API.
     """
     template_id = get_template_id_from_name(templates, args.controller_docker)
-    ip_address = f"192.168.1.{args.n_victims + args.n_attackers + args.n_switches + 2}/24"
+    ip_address = f"192.168.1.1/24"
     controller_name = "pox-controller-1\n"+ip_address
     controller_id = get_node_id_by_name(args.server,args.project,controller_name)
     
@@ -131,10 +131,13 @@ def mountController(args, templates, last_switch_name):
 def mountBotMaster(args, templates, first_switch_name):
 
     template_id = get_template_id_from_name(templates, args.botmaster_docker)
-    ip_address = f"192.168.1.{args.n_victims + args.n_attackers + args.n_switches + 1}/24"
+    ip_address = f"192.168.1.{args.n_victims + args.n_attackers + args.n_switches + 2}/24"
     botmaster_name = "botmaster-1\n"+ip_address
     botmaster_id = get_node_id_by_name(args.server,args.project,botmaster_name)
-
+    if(botmaster_id is not None):
+                delete_node(args.server,args.project,botmaster_id)
+                print("Old botmaster node deleted")
+    
     botmaster = create_node(args.server, args.project, -200, -50, template_id, botmaster_name)
     botmaster_id = botmaster['node_id']
     print(f"new {args.botmaster_docker} controller created ")
@@ -266,12 +269,14 @@ def mount_all_hosts(args, templates, switch_node_names, curr_node_count):
 
 def connect_all(args, switch_node_names, controller_node_name):
     
+    
     for idx in range(len(switch_node_names)-1):
         switch_name_1 = switch_node_names[idx]
         switch_name_2 = switch_node_names[idx+1]
         switch_id_1 = get_node_id_by_name(args.server, args.project, switch_name_1)
         switch_id_2 = get_node_id_by_name(args.server, args.project, switch_name_2)
 
+        # links for generic traffic.
         create_link(
             args.server,
             args.project,
@@ -285,9 +290,18 @@ def connect_all(args, switch_node_names, controller_node_name):
             switch_id_1,
             f"eth{(args.nodes_per_switch*2)+1}", 
             None)
+        
+        # control links: (the last switch already had it created)
+        create_link(
+            args.server,
+            args.project,
+            str(switch_id_1),
+            0,
+            str(switch_id_2),
+            (args.nodes_per_switch*2)+3)
 
 
-    # Connect the last switch to the edge switch with a dhcp interface: 
+    # Connect the last switch to the NAT with a dhcp interface: 
     nat_node_id = get_node_id_by_name(args.server, args.project, NAT_IMG_NAME)
 
     create_link(
@@ -311,15 +325,15 @@ def connect_all(args, switch_node_names, controller_node_name):
         args.server, 
         args.project, 
         str(switch_id_2), 
-        (args.nodes_per_switch*2)+3, 
+        (args.nodes_per_switch*2)+4, 
         str(controller_id), 
-        len(switch_node_names)
+        1
     )
     set_dhcp_node_network_interfaces(
         args.server,
         args.project,
         controller_id,
-        f"eth{len(switch_node_names)}",
+        f"eth1",
         "smartcontroller")
 
 
@@ -338,7 +352,7 @@ def tree_topology(args, templates):
     botmaster_node_name = mountBotMaster(args, templates, switch_node_names[0])
 
     host_names = mount_all_hosts(args, templates, switch_node_names, 
-                                 curr_node_count=2+args.n_switches)
+                                 curr_node_count=1+args.n_switches)
     
     mountNAT(args, templates)
     connect_all(args, switch_node_names, controller_node_name)
@@ -350,10 +364,15 @@ def update_generic_template(args, templates, img_name, start_command):
     template_id = get_template_id_from_name(templates, img_name)
     if(template_id is not None):  
         delete_template(args.server,args.project,template_id)
-        print((f"{template_id}: deleting old template"))
+        print((f"{img_name}: deleting old template"))
         
-    print((f"{template_id}: creating a new template using local image"))
-    create_docker_template(args.server, img_name, start_command, str(img_name+":latest"), environment=args.env_vars)
+    print((f"{img_name}: creating a new template using local image"))
+    create_docker_template(
+         args.server,
+         img_name,
+         start_command,
+         str(img_name+":latest"),
+         environment=args.env_vars)
 
 
 def update_switch_template(args, templates):
@@ -369,10 +388,14 @@ def update_switch_template(args, templates):
     # we also add:
     # two additional connections for a controller fixed + dhcp connection, 
     # one connection for an eventual NAT node, 
-    # one connection for intra-switch communication.
-    network_adapters_count += 4
+    # two connection for intra-switch communication.
+    network_adapters_count += 5
 
-    create_docker_template_switch(args.server, args.switch_docker, str(args.switch_docker+":latest"), adapter_count=network_adapters_count)
+    create_docker_template_switch(
+         args.server,
+         args.switch_docker,
+         str(args.switch_docker+":latest"),
+         adapter_count=network_adapters_count)
 
 
 def update_controller_template(args, templates):
@@ -388,19 +411,20 @@ def update_controller_template(args, templates):
         args.contr_start,
         str(args.controller_docker+":latest"),
         environment=args.env_vars,
-        adapters=10)
+        adapters=3)
+
 
 def update_botmaster_template(args, templates):
 
     botmaster_template_id = get_template_id_from_name(templates, args.botmaster_docker)
     if(botmaster_template_id is not None):
         delete_template(args.server,args.project,botmaster_template_id)
-        print(f"old controller template {args.botmaster_docker} deleted")
+        print(f"old {args.botmaster_docker} template deleted")
 
     create_docker_template(
         args.server,
         args.botmaster_docker,
-        args.contr_start,
+        args.botmaster_start,
         str(args.botmaster_docker+":latest"),
         environment=args.env_vars,
         adapters=2)
@@ -429,6 +453,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--contr_start", help="Controller's Start Command.  (Default is \"sh\")\n "+ \
                         "Could also be:  \"./pox.py samples.pretty_log smartController.smartController\"", default="sh")
+    parser.add_argument("--botmaster_start", help="BotMaster's Start Command.  (Default is \"sh\")\n ", default="sh")
     parser.add_argument("--n_switches", type=int, default=4, help="Number of switches in the topology. Default: 4")
     parser.add_argument("--n_attackers", type=int, default=10, help="Number of attacker nodes in the topology. Default: 6")
     parser.add_argument("--n_victims", type=int, default=4, help="Number of victim nodes in the topology. Default: 10")
