@@ -26,4 +26,5 @@ rm -rf /opt/kafka/logs
 # as a start command 
 # Supposing the controller is at 192.168.1.1 and that the swith is connected to it through iface br0: 
 ovs-vsctl set-controller br0 tcp:192.168.1.1:6633
-
+# detach from the controller:
+ovs-vsctl del-controller br0

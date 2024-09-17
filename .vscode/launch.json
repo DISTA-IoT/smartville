@@ -43,6 +43,19 @@
             "justMyCode": true
         },
         {
+            "name": "BotMaster Star Topology Generation",
+            "type": "python",
+            "request": "launch",
+            "program": "utils/star_with_botmaster.py",
+            "args": [
+                "--project=mitigation",
+                "--n_attackers=1",
+                "--n_victims=4"
+                
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Tree Topology Generation",
             "type": "python",
             "request": "launch",
