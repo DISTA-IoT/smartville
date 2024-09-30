@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+
+        <div id="replay_buffer" class="content">
+            <h2>Replay Buffer for Smartville Project</h2>
+            <p>This section is part of the Smartville project and describes the `ReplayBuffer` class, which is used to store and manage experiences during training for machine learning models.</p>
+        
+            <h3>Class: ReplayBuffer</h3>
+            <p>The `ReplayBuffer` class is a specialized data structure that stores tuples of state transitions and their associated labels. These experiences can later be sampled in batches for training machine learning models.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes the `ReplayBuffer` class with a specified capacity, batch size, and random seed for reproducibility.</p>
+            <pre><code>
+            def __init__(self, capacity, batch_size, seed):
+                self.batch_size = batch_size
+                self.buffer = deque(maxlen=capacity)
+                random.seed(seed)
+            </code></pre>
+            <p><strong>Description:</strong> This method sets up the buffer with a fixed capacity and initializes it as a deque, which allows for efficient appending and popping. The random seed is used to ensure that sampling is reproducible.</p>
+        
+            <h4>Method: push</h4>
+            <p>This method adds a new experience tuple to the buffer.</p>
+            <pre><code>
+            def push(self, flow_state, packet_state, node_state, label, zda_label, test_zda_label):
+                self.buffer.append((flow_state, packet_state, node_state, label, zda_label, test_zda_label))
+            </code></pre>
+            <p><strong>Description:</strong> This method appends a new tuple of states and labels to the replay buffer, where it will be stored for future sampling during model training.</p>
+        
+            <h4>Method: sample</h4>
+            <p>This method samples a batch of experiences from the buffer and returns them as tensors.</p>
+            <pre><code>
+            def sample(self, num_of_samples):
+                batch = random.sample(self.buffer, num_of_samples)
+                flow_state_batch, packet_state_batch, node_state_batch, label_batch, zda_label_batch, test_zda_label_batch = zip(*batch)
+                if packet_state_batch[0] is None:
+                    if node_state_batch[0] is None:
+                        return torch.vstack(flow_state_batch), \
+                            None, \
+                            None, \
+                                torch.vstack(label_batch), \
+                                    torch.vstack(zda_label_batch), \
+                                        torch.vstack(test_zda_label_batch)
+                    else:
+                        return torch.vstack(flow_state_batch), \
+                            None, \
+                            torch.vstack(node_state_batch), \
+                                torch.vstack(label_batch), \
+                                    torch.vstack(zda_label_batch), \
+                                        torch.vstack(test_zda_label_batch)             
+                else:
+                    if node_state_batch[0] is None:
+                        return torch.vstack(flow_state_batch), \
+                            torch.vstack(packet_state_batch), \
+                            None, \
+                                torch.vstack(label_batch), \
+                                    torch.vstack(zda_label_batch), \
+                                        torch.vstack(test_zda_label_batch)
+                    else:
+                        return torch.vstack(flow_state_batch), \
+                            torch.vstack(packet_state_batch), \
+                            torch.vstack(node_state_batch), \
+                                torch.vstack(label_batch), \
+                                    torch.vstack(zda_label_batch), \
+                                        torch.vstack(test_zda_label_batch)
+            </code></pre>
+            <p><strong>Description:</strong> This method randomly samples a batch of experiences from the buffer. It unpacks the batch into its constituent elements and returns them as tensors, ready for input into a machine learning model. The method handles cases where some states might be `None` by returning the appropriate tensors.</p>
+        
+            <h4>Method: __len__</h4>
+            <p>This method returns the current size of the buffer.</p>
+            <pre><code>
+            def __len__(self):
+                return len(self.buffer)
+            </code></pre>
+            <p><strong>Description:</strong> This method simply returns the number of experiences currently stored in the buffer, allowing the model to check how much data is available for sampling.</p>
+        </div>
+    </div>
+</body>
+
+</html>

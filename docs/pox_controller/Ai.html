@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+        
+        
+        <div id="ai" class="content">
+            <h2>AI Script for Attack Mitigation</h2>
+            <p>This script is a part of the Smartville project and is responsible for simulating an AI-based
+                decision-making process that determines whether to mitigate an attack on a specific network port. If the
+                AI decides to mitigate, it blocks traffic on that port by sending a flow modification to the OpenFlow
+                switch.</p>
+
+            <h3>Function: ai_placeholder</h3>
+            <p>The <code>ai_placeholder</code> function simulates an AI decision-making process that determines whether
+                to mitigate an attack on a specific network port.</p>
+            <pre><code>
+    def ai_placeholder(packetlist, port):
+        log.info(f"AI: RECEIVED {len(packetlist)} PACKETS FOR PORT: {port}")
+        choose = random.choice([True, False])
+        log.info(f"AI: I HAVE CHOSEN: {choose} FOR PORT: {port}")
+        if choose:
+            mitigate_attack(port)
+        </code></pre>
+
+            <h4>Method: ai_placeholder</h4>
+            <p>This function receives a list of packets and a port number, then simulates an AI decision on whether to
+                mitigate an attack.</p>
+            <p><strong>Description:</strong>
+                The <code>ai_placeholder</code> function logs the number of packets received for a specific port. It
+                then randomly decides (simulating AI) whether to mitigate an attack on that port. If the decision is to
+                mitigate, it calls the <code>mitigate_attack</code> function.
+            </p>
+
+            <h3>Function: mitigate_attack</h3>
+            <p>The <code>mitigate_attack</code> function takes action to mitigate a suspected attack by blocking traffic
+                on the specified port.</p>
+            <pre><code>
+    def mitigate_attack(port):
+        block_traffic(port)
+        </code></pre>
+
+            <h4>Method: mitigate_attack</h4>
+            <p>This function calls another function to block traffic on the specified port.</p>
+            <p><strong>Description:</strong>
+                The <code>mitigate_attack</code> function is responsible for initiating the process of blocking traffic
+                on the port where an attack is suspected. It achieves this by calling the <code>block_traffic</code>
+                function.
+            </p>
+
+            <h3>Function: block_traffic</h3>
+            <p>The <code>block_traffic</code> function sends a flow modification message to the OpenFlow switch to drop
+                all packets coming from the specified port.</p>
+            <pre><code>
+    def block_traffic(port):
+        msg = of.ofp_flow_mod()
+        msg.match.in_port = port
+        msg.idle_timeout = 0
+        msg.hard_timeout = 0
+        openflow_connection.send(msg)
+        log.info(f"SWITCH FLOW MOD SENT - BLOCKED PORT {port}")
+        </code></pre>
+
+            <h4>Method: block_traffic</h4>
+            <p>This function sends a flow modification message to block traffic on the specified port.</p>
+            <p><strong>Description:</strong>
+                The <code>block_traffic</code> function creates a flow modification rule that drops all packets coming
+                from a specific port. This rule is then sent to the OpenFlow switch to enforce the traffic block. The
+                function logs that the port has been blocked.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
+       

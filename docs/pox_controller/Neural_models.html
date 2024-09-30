@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+    <div id="neural_models" >
+        <h2>Neural Models</h2>
+        <p>This file defines a set of neural network models and related components designed for network traffic
+            analysis and anomaly detection. The key elements include recurrent models (using GRU layers) to process
+            sequential data, a series of multi-stream classifiers that combine different types of network flow data,
+            and various kernel regression models that predict relationships between data points in high-dimensional
+            spaces. The classifiers use a prototypical approach for multi-class classification, which involves
+            calculating distances between data points and class centroids in a latent space. Additionally, the file
+            includes a confidence decoder to assess the reliability of predictions and specialized loss functions to
+            optimize the models during training.</p>
+
+            <h3>Class: RecurrentModel</h3>
+            <p>The <code>RecurrentModel</code> class defines a recurrent neural network using GRU (Gated Recurrent Unit) layers to process sequential data, such as network traffic flows.</p>
+            <pre><code>
+            class RecurrentModel(nn.Module):
+                def __init__(self, input_size, hidden_size, device='cpu'):
+                    super(RecurrentModel, self).__init__()
+                    self.device = device
+                    self.hidden_size = hidden_size
+                    self.gru = nn.GRU(input_size, hidden_size, batch_first=True)
+        
+                def forward(self, x):
+                    h0 = torch.zeros(1, x.size(0), self.hidden_size).to(x.device)
+                    out, _ = self.gru(x, h0)
+                    return F.relu(out[:, -1, :])
+            </code></pre>
+            <h4>Method: RecurrentModel</h4>
+            <p><strong>Description:</strong> This class defines a GRU-based model that processes sequences of inputs (such as network flow data) and returns the final hidden state after passing through the GRU layers.</p>
+        
+            <h3>Class: MulticlassPrototypicalClassifier</h3>
+            <p>The <code>MulticlassPrototypicalClassifier</code> class performs classification using a prototypical network. It computes class centroids from hidden vectors and uses them to classify new inputs.</p>
+            <pre><code>
+            class MulticlassPrototypicalClassifier(nn.Module):
+                def __init__(self, device='cpu'):
+                    super(MulticlassPrototypicalClassifier, self).__init__()
+                    self.device = device
+        
+                def get_oh_labels(self, decimal_labels, n_way):
+                    labels_onehot = torch.zeros([decimal_labels.size()[0], n_way], device=self.device)
+                    labels_onehot = labels_onehot.scatter(1, decimal_labels, 1)
+                    return labels_onehot
+        
+                def get_centroids(self, hidden_vectors, onehot_labels):
+                    cluster_agg = onehot_labels.T @ hidden_vectors
+                    samples_per_cluster = onehot_labels.sum(0)
+                    centroids = torch.zeros_like(cluster_agg, device=self.device)
+                    missing_clusters = samples_per_cluster == 0
+                    existent_centroids = cluster_agg[~missing_clusters] / samples_per_cluster[~missing_clusters].unsqueeze(-1)
+                    centroids[~missing_clusters] = existent_centroids
+                    return centroids, missing_clusters
+        
+                def forward(self, hidden_vectors, labels, known_attacks_count, query_mask):
+                    oh_labels = self.get_oh_labels(decimal_labels=labels.long(), n_way=known_attacks_count)
+                    centroids, _ = self.get_centroids(hidden_vectors[~query_mask], oh_labels[~query_mask])
+                    scores = 1 / (torch.cdist(hidden_vectors[query_mask], centroids) + 1e-10)
+                    return scores
+            </code></pre>
+            <h4>Method: MulticlassPrototypicalClassifier</h4>
+            <p><strong>Description:</strong> This class computes centroids for each class based on the hidden representations of the inputs. It uses these centroids to classify new inputs by calculating the distance between them and the class centroids.</p>
+        
+            <h3>Class: MultiClassFlowClassifier</h3>
+            <p>The <code>MultiClassFlowClassifier</code> class implements a flow-based classifier that uses a recurrent model and kernel regression to classify network attacks.</p>
+            <pre><code>
+            class MultiClassFlowClassifier(nn.Module):
+                def __init__(self, input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
+                    super(MultiClassFlowClassifier, self).__init__()
+                    self.device = device
+                    self.normalizer = nn.BatchNorm1d(input_size)
+                    self.rnn = RecurrentModel(input_size, hidden_size, device=self.device)
+                    self.kernel_regressor = HighDimKernelRegressor(in_features=hidden_size, out_features=hidden_size, n_heads=kr_heads, dropout=dropout_prob, device=self.device)
+                    self.classifier = MulticlassPrototypicalClassifier(device=self.device)
+        
+                def forward(self, x, labels, curr_known_attack_count, query_mask):
+                    x = self.normalizer(x.permute((0, 2, 1))).permute((0, 2, 1))
+                    hiddens = self.rnn(x)
+                    hiddens, predicted_kernel = self.kernel_regressor(hiddens)
+                    logits = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
+                    return logits, hiddens, predicted_kernel
+            </code></pre>
+            <h4>Method: MultiClassFlowClassifier</h4>
+            <p><strong>Description:</strong> This class normalizes the input features, applies a recurrent model to extract hidden states, and uses kernel regression to further process the hidden states before performing classification with a prototypical classifier.</p>
+        
+            <h3>Class: TwoStreamMulticlassFlowClassifier</h3>
+            <p>The <code>TwoStreamMulticlassFlowClassifier</code> class processes two streams of input data (e.g., network flow and packet features) to classify attacks. It applies recurrent models to each stream separately and concatenates their hidden states for classification.</p>
+            <pre><code>
+            class TwoStreamMulticlassFlowClassifier(nn.Module):
+                def __init__(self, flow_input_size, second_stream_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
+                    super(TwoStreamMulticlassFlowClassifier, self).__init__()
+                    self.device = device
+                    self.flow_normalizer = nn.BatchNorm1d(flow_input_size)
+                    self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
+                    self.second_stream_normalizer = nn.BatchNorm1d(second_stream_input_size)
+                    self.second_stream_rnn = RecurrentModel(second_stream_input_size, hidden_size, device=self.device)
+                    self.kernel_regressor = HighDimKernelRegressor(in_features=hidden_size * 2, out_features=hidden_size, n_heads=kr_heads, dropout=dropout_prob, device=self.device)
+                    self.classifier = MulticlassPrototypicalClassifier(device=self.device)
+        
+                def forward(self, flows, second_domain_feats, labels, curr_known_attack_count, query_mask):
+                    flows = self.flow_normalizer(flows.permute((0, 2, 1))).permute((0, 2, 1))
+                    second_domain_feats = self.second_stream_normalizer(second_domain_feats.permute((0, 2, 1))).permute((0, 2, 1))
+                    flows = self.flow_rnn(flows)
+                    second_domain_feats = self.second_stream_rnn(second_domain_feats)
+                    hiddens = torch.cat([flows, second_domain_feats], dim=1)
+                    hiddens, predicted_kernel = self.kernel_regressor(hiddens)
+                    logits = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
+                    return logits, hiddens, predicted_kernel
+            </code></pre>
+            <h4>Method: TwoStreamMulticlassFlowClassifier</h4>
+            <p><strong>Description:</strong> This model processes two separate streams of features (e.g., network flow features and packet features) using recurrent layers, concatenates the resulting hidden states, and applies kernel regression and classification.</p>
+        
+            <h3>Class: ThreeStreamMulticlassFlowClassifier</h3>
+            <p>The <code>ThreeStreamMulticlassFlowClassifier</code> class extends the two-stream classifier by adding a third stream of input features.</p>
+            <pre><code>
+            class ThreeStreamMulticlassFlowClassifier(nn.Module):
+                def __init__(self, flow_input_size, second_stream_input_size, third_stream_input_size, hidden_size, dropout_prob=0.2, kr_heads=8, device='cpu'):
+                    super(ThreeStreamMulticlassFlowClassifier, self).__init__()
+                    self.device = device
+                    self.flow_normalizer = nn.BatchNorm1d(flow_input_size)
+                    self.flow_rnn = RecurrentModel(flow_input_size, hidden_size, device=self.device)
+                    self.second_stream_normalizer = nn.BatchNorm1d(second_stream_input_size)
+                    self.second_stream_rnn = RecurrentModel(second_stream_input_size, hidden_size, device=self.device)
+                    self.third_stream_normalizer = nn.BatchNorm1d(third_stream_input_size)
+                    self.third_stream_rnn = RecurrentModel(third_stream_input_size, hidden_size, device=self.device)
+                    self.kernel_regressor = HighDimKernelRegressor(in_features=hidden_size * 3, out_features=hidden_size, n_heads=kr_heads, dropout=dropout_prob, device=self.device)
+                    self.classifier = MulticlassPrototypicalClassifier(device=self.device)
+        
+                def forward(self, flows, second_domain_feats, third_domain_feats, labels, curr_known_attack_count, query_mask):
+                    flows = self.flow_normalizer(flows.permute(0, 2, 1)).permute(0, 2, 1)
+                    second_domain_feats = self.second_stream_normalizer(second_domain_feats.permute(0, 2, 1)).permute(0, 2, 1)
+                    third_domain_feats = self.third_stream_normalizer(third_domain_feats.permute(0, 2, 1)).permute(0, 2, 1)
+                    flows = self.flow_rnn(flows)
+                    second_domain_feats = self.second_stream_rnn(second_domain_feats)
+                    third_domain_feats = self.third_stream_rnn(third_domain_feats)
+                    hiddens = torch.cat([flows, second_domain_feats, third_domain_feats], dim=1)
+                    hiddens, predicted_kernel = self.kernel_regressor(hiddens)
+                    logits = self.classifier(hiddens, labels, curr_known_attack_count, query_mask)
+                    return logits, hiddens, predicted_kernel
+            </code></pre>
+            <h4>Method: ThreeStreamMulticlassFlowClassifier</h4>
+            <p><strong>Description:</strong> This model processes three input streams using separate recurrent models for each stream, concatenates their hidden states, and applies kernel regression and classification.</p>
+        
+            <h3>Class: HighDimKernelRegressor</h3>
+            <p>The <code>HighDimKernelRegressor</code> class performs high-dimensional kernel regression by computing pairwise similarities between node embeddings and using them for kernel regression.</p>
+            <pre><code>
+            class HighDimKernelRegressor(nn.Module):
+                def __init__(self, in_features, out_features, n_heads, dropout=0.0, device="cpu"):
+                    super(HighDimKernelRegressor, self).__init__()
+                    self.device = device
+                    self.similarity_network = SimmilarityNet(h_dim=in_features)
+        
+                def forward(self, hiddens):
+                    n_nodes = hiddens.shape[0]
+                    h_pivot = hiddens.repeat(n_nodes, 1)
+                    h_interleave = hiddens.repeat_interleave(n_nodes, dim=0)
+                    energies = self.similarity_network(h_pivot, h_interleave)
+                    kernel = torch.sigmoid(energies)
+                    kernel = kernel.reshape(n_nodes, n_nodes)
+                    return hiddens, kernel
+            </code></pre>
+            <h4>Method: HighDimKernelRegressor</h4>
+            <p><strong>Description:</strong> This method computes the similarity between node embeddings using a similarity network and applies a sigmoid function to obtain the kernel matrix, which is used for high-dimensional regression tasks.</p>
+        
+            <h3>Class: ConfidenceDecoder</h3>
+            <p>The <code>ConfidenceDecoder</code> class decodes the confidence of predictions by computing unknown indicators based on the similarity scores.</p>
+            <pre><code>
+            class ConfidenceDecoder(nn.Module):
+                def __init__(self, device):
+                    super(ConfidenceDecoder, self).__init__()
+                    self.device = device
+        
+                def forward(self, scores):
+                    scores = (1 - scores.unsqueeze(-1)).min(1)[0]
+                    unknown_indicators = torch.sigmoid(scores)
+                    return unknown_indicators
+            </code></pre>
+            <h4>Method: ConfidenceDecoder</h4>
+            <p><strong>Description:</strong> This method computes the confidence of predictions by evaluating the similarity scores and applying a sigmoid function to generate the final confidence values.</p>
+        
+            <h3>Class: KernelRegressionLoss</h3>
+            <p>The <code>KernelRegressionLoss</code> class implements a custom loss function for kernel regression tasks, balancing attractive and repulsive forces in the embedding space.</p>
+            <pre><code>
+            class KernelRegressionLoss(nn.Module):
+                def __init__(self, repulsive_weigth=1, attractive_weigth=1, device="cpu"):
+                    super(KernelRegressionLoss, self).__init__()
+                    self.r_w = repulsive_weigth
+                    self.a_w = attractive_weigth
+                    self.device = device
+        
+                def forward(self, baseline_kernel, predicted_kernel):
+                    repulsive_CE_term = -(1 - baseline_kernel) * torch.log(1 - predicted_kernel + 1e-10)
+                    repulsive_CE_term = repulsive_CE_term.sum(dim=1).mean()
+                    attractive_CE_term = -(baseline_kernel * torch.log(predicted_kernel + 1e-10))
+                    attractive_CE_term = attractive_CE_term.sum(dim=1).mean()
+                    return (self.r_w * repulsive_CE_term) + (self.a_w * attractive_CE_term)
+            </code></pre>
+            <h4>Method: KernelRegressionLoss</h4>
+            <p><strong>Description:</strong> This custom loss function applies both attractive and repulsive forces to adjust the embedding space during kernel regression. The loss encourages similar samples to cluster together while pushing dissimilar samples apart.</p>
+        
+            <h3>Class: GraphAttentionV2Layer</h3>
+            <p>The <code>GraphAttentionV2Layer</code> class implements a graph attention layer that computes attention scores between nodes in a graph and updates their embeddings accordingly.</p>
+            <pre><code>
+            class GraphAttentionV2Layer(nn.Module):
+                def __init__(self, in_features, out_features, n_heads, is_concat=False, dropout=0.1, leaky_relu_negative_slope=0.2, share_weights=True):
+                    super(GraphAttentionV2Layer, self).__init__()
+                    self.is_concat = is_concat
+                    self.n_heads = n_heads
+                    self.linear_l = nn.Linear(in_features, out_features, bias=False)
+                    self.linear_r = self.linear_l if share_weights else nn.Linear(in_features, out_features, bias=False)
+                    self.attn = nn.Linear(out_features // n_heads if is_concat else out_features, 1, bias=False)
+                    self.activation = nn.LeakyReLU(negative_slope=leaky_relu_negative_slope)
+                    self.softmax = nn.Softmax(dim=1)
+                    self.dropout = nn.Dropout(dropout)
+        
+                def forward(self, h):
+                    n_nodes = h.shape[0]
+                    g_l = self.linear_l(h).view(n_nodes, self.n_heads, -1)
+                    g_r = self.linear_r(h).view(n_nodes, self.n_heads, -1)
+                    g_sum = (g_l + g_r).view(n_nodes, n_nodes, self.n_heads, -1)
+                    e = self.attn(self.activation(g_sum)).squeeze(-1)
+                    a = self.softmax(e)
+                    a = self.dropout(a)
+                    hiddens = torch.einsum('ijh,jhf->ihf', a, g_r)
+                    return hiddens.mean(dim=1), a.mean(dim=2)
+            </code></pre>
+            <h4>Method: GraphAttentionV2Layer</h4>
+            <p><strong>Description:</strong> This layer applies graph attention mechanisms to compute relationships between nodes in a graph. The attention scores are computed for each node pair, and the hidden states of the nodes are updated based on the attention-weighted node features.</p>
+        </div>
+    </div>
+</body>
+
+</html>

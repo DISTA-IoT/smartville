@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Metadata about the document -->
+    <meta charset="UTF-8"> <!-- Defines the character encoding as UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures the page is responsive on different screen sizes -->
+    <title>Smartville Documentation</title> <!-- The title that appears in the browser tab -->
+    
+    <!-- Link to an external CSS file for styles -->
+    <link rel="stylesheet" href="../style.css">
+    
+    <!-- Link to an external JavaScript file, with 'defer' to load the script after the HTML -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar navigation containing various documentation links -->
+    <div class="sidebar">
+        <!-- Links to different sections of the documentation -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link that triggers JavaScript function to show/hide the 'Code' subcategories -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Div container that holds subcategories under 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- A link to toggle visibility of subcategories under 'pox_controller' -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories of 'pox_controller', each linking to specific documentation pages -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content section -->
+    <div class="main-content">
+        <!-- Header section with a title and description of Smartville -->
+        <div class="header">
+            <!-- Title linked to the homepage of Smartville -->
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            
+            <!-- Project description and call for contributions -->
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+        <!-- Subsection on 'Background' with details about SDN -->
+        <h2>Background</h2>
+
+        <!-- Description of SDN and OpenFlow characteristics -->
+        <h3>SDN and OpenFlow characteristics</h3>
+        <!-- Image showing SDN interactions -->
+        <img src="https://github.com/DISTA-IoT/smartville/blob/release_1.0/readme_imgs/sdn.png?raw=true">
+
+        <!-- Subsection on SDN Interactions -->
+        <h3>SDN Interactions</h3>
+        <!-- Paragraph explaining the different types of interactions in SDN -->
+        <p>There are four types of interactions in SDN. The controller interacts with the application plane
+            through the so-called Northbound APIs. Through these APIs, applications communicate network resource
+            requisites (data, storage, bandwidth, etc.) so the network can be configured accordingly. Northbound
+            APIs should adhere to the REST criteria.</p>
+        <!-- Description of Southbound, Westbound, and Eastbound APIs in SDN -->
+        <p>On the other hand, the controller interacts with the network forwarding elements (data plane) through
+            the Southbound APIs, which allow the controller to send commands directly to the nodes. Protocols
+            such as OpenFlow and NETCONF were created for this purpose. Third, interactions between SDN and
+            traditional networks are made possible via the Westbound APIs that use hybrid solutions such as
+            SDN-IP, RouteFlow, and BTSDN. Lastly, interactions from SDN to SDN are made possible via the
+            Eastbound APIs that use protocols such as HyperFlow and Onix.</p>
+    </div>
+
+</body>
+
+</html>

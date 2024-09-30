@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+     <!-- Sidebar for navigation -->
+     <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+        
+    
+        <div id="wandb_tracker" class="content">
+            <h2>WandB Tracker for Smartville Project</h2>
+            <p>This section is part of the Smartville project and describes the `WandBTracker` class, which is used to log experiments and hyperparameters to Weights & Biases (WandB), a tool for experiment tracking and model management.</p>
+        
+            <h3>Class: WandBTracker</h3>
+            <p>The `WandBTracker` class is responsible for initializing a WandB run and logging various configuration parameters and metadata for machine learning experiments conducted as part of the Smartville project.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes a WandB run, setting up the project name, run name, and configuration parameters.</p>
+            <pre><code>
+            def __init__(self, wanb_project_name, run_name, config_dict):
+                self.wb_logger = wandb.init(
+                    project=wanb_project_name,
+                    name=run_name,
+                    config=config_dict)
+            </code></pre>
+            <p><strong>Description:</strong> This method initializes a WandB session, where it logs the experiment details such as project name, run name, and any hyperparameters or configurations specified in the `config_dict`. This setup allows for detailed tracking and analysis of model training processes.</p>
+        </div>
+        
+        
+    </div>   
+        
+        
+
+</body>
+
+</html>

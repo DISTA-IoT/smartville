@@ -1,0 +1,157 @@
+/* Global body styling */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+/* Main heading (h1) styling */
+h1 {
+    font-size: 3em;
+    color: #0056b3;
+    text-align: center;
+    margin-top: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); 
+}
+
+/* Other heading levels styling */
+h2, h3, h4 {
+    color: #0056b3; 
+}
+
+/* Paragraph styling for better readability */
+p {
+    line-height: 1.6; 
+}
+
+/* Styling for code blocks and preformatted text */
+pre {
+    background-color: #1e1e1e; 
+    color: #d4d4d4;
+    padding: 15px;
+    border-radius: 8px; 
+    overflow-x: auto; 
+    text-align: left;
+    white-space: pre-wrap; 
+}
+
+pre code {
+    display: block;
+    font-family: 'Courier New', Courier, monospace; 
+    white-space: pre;
+}
+
+/* Syntax highlighting for code elements */
+.keyword {
+    color: #569cd6; 
+}
+.builtin {
+    color: #4ec9b0; 
+}
+.string {
+    color: #d69d85; 
+}
+.comment {
+    color: #6a9955; 
+}
+.number {
+    color: #b5cea8; 
+}
+
+/* Link styling */
+a {
+    color: #0056b3; 
+    text-decoration: none; 
+}
+
+a:hover {
+    text-decoration: underline; 
+}
+
+/* Container styling for main content area */
+.container {
+    max-width: 1200px; 
+    margin: auto; 
+    padding: 20px;
+    background: #fff; 
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); 
+    border-radius: 8px; 
+}
+
+/* Header styling for main page heading */
+.header {
+    text-align: center; 
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eee; 
+}
+
+/* Content styling for spacing */
+.content {
+    padding: 20px 0; 
+}
+
+/* Image styling for responsive images */
+img {
+    max-width: 100%; 
+    height: auto; 
+    display: block; 
+    margin: 20px 0; 
+    border: 1px solid #ddd;
+    border-radius: 8px; 
+}
+
+/* Centering helper class */
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 80%; 
+}
+
+/* Sidebar styling */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%; 
+    width: 250px; 
+    background-color: #333; 
+    padding-top: 20px;
+    overflow-y: auto; 
+    scrollbar-width: none; 
+    -ms-overflow-style: none; 
+}
+
+/* Hides scrollbar in WebKit browsers (Chrome, Safari, Opera) */
+.sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Sidebar link styling */
+.sidebar a {
+    padding: 10px 15px; 
+    text-decoration: none;
+    font-size: 18px;
+    color: white; 
+    display: block; 
+}
+
+.sidebar a:hover {
+    background-color: #575757; 
+}
+
+/* Main content layout adjustment when sidebar is present */
+.main-content {
+    margin-left: 270px; 
+    padding: 20px;
+}
+
+/* Footer styling */
+.footer {
+    text-align: center; 
+    margin-top: 20px;
+    border-top: 1px solid #eee; 
+    padding-top: 10px; /
+}

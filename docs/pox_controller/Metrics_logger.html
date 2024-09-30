@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+    
+        
+       
+     
+        
+        
+        
+        
+          
+        <div id="metrics_logger" class="content">
+            <h2>Metrics Logger for Kafka and Grafana</h2>
+            <p>This section is part of the Smartville project and describes the `MetricsLogger` class, which is responsible for logging and monitoring metrics from a Kafka server and displaying them in Grafana.</p>
+        
+            <h3>Class: MetricsLogger</h3>
+            <p>The `MetricsLogger` class connects to a Kafka server, initializes Prometheus metrics, and generates dashboards in Grafana for real-time monitoring of system performance metrics such as CPU usage, RAM usage, and network traffic.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes the `MetricsLogger` class with the necessary parameters and starts the connection to Kafka and Prometheus.</p>
+            <pre><code>
+            def __init__(
+                    self, 
+                    server_addr = "192.168.1.1:9092",
+                    max_conn_retries = 5,
+                    metric_buffer_len = 10,
+                    grafana_user="admin", 
+                    grafana_pass="admin"):
+            </code></pre>
+            <p><strong>Description:</strong> This method sets up the initial configuration for connecting to Kafka and Grafana, initializing the Prometheus server and setting up metrics buffers. It also starts the consumer thread that monitors and logs the metrics.</p>
+        
+            <h4>Method: init_kafka_connection</h4>
+            <p>This method attempts to establish a connection to the Kafka server, retrying up to the specified maximum number of retries.</p>
+            <pre><code>
+            def init_kafka_connection(self):
+                retries = 0
+                while retries < self.max_conn_retries: 
+                    if server_exist(self.server_addr):
+                        try:
+                            conf = {'bootstrap.servers': self.server_addr}
+                            self.kafka_admin_client = AdminClient(conf)
+                            self.topics = self.kafka_admin_client.list_topics(timeout=5)
+                            return True
+                        except KafkaException as e:
+                            print(f"Kafka connection error {e}")
+                            self.kafka_admin_client = None
+                            return False
+                    else:
+                        print(f"Could not find Kafka server at {self.server_addr}")
+                        retries += 1
+                return False
+            </code></pre>
+            <p><strong>Description:</strong> This method attempts to establish a connection to the Kafka server using the provided server address. If the connection fails, it retries up to the maximum number of retries specified.</p>
+        
+            <h4>Method: init_prometheus_server</h4>
+            <p>This method initializes the Prometheus server and defines the various metrics that will be tracked and displayed in Grafana.</p>
+            <pre><code>
+            def init_prometheus_server(self):
+                start_http_server(port=8000, addr='localhost')
+                self.cpu_metric = Gauge('CPU_percentage', 'Metrica CPU percentuale', ['label_name'])
+                self.ram_metric = Gauge('RAM_GB', 'Metrica RAM', ['label_name'])
+                self.ping_metric = Gauge('Latenza_ms', 'Metrica latenza del segnale', ['label_name'])
+                self.incoming_traffic_metric = Gauge('Incoming_network_KB', 'Metrica traffico in entrata', ['label_name'])
+                self.outcoming_traffic_metric = Gauge('Outcoming_network_KB', 'Metrica traffico in uscita', ['label_name'])
+                self.prometheus_connection = PrometheusConnect('http://localhost:9090/24):9090')
+            </code></pre>
+            <p><strong>Description:</strong> This method starts the Prometheus server on the specified port and defines the metrics that will be tracked, such as CPU usage, RAM usage, latency, and network traffic. These metrics are then used to generate Grafana dashboards.</p>
+        
+            <h4>Method: start_consuming</h4>
+            <p>This method starts the Kafka consumer thread, which polls Kafka topics for metrics data and updates the corresponding Prometheus metrics.</p>
+            <pre><code>
+            def start_consuming(self):
+                while True:
+                    updated_topic_list = []
+                    curr_topics_dict = self.kafka_admin_client.list_topics().topics
+                    for topic_name in curr_topics_dict.keys():
+                        if topic_name != '__consumer_offsets':
+                            updated_topic_list.append(topic_name)
+                    to_add_topic_list = list(set(updated_topic_list) - set(self.topic_list))
+                    self.topic_list = updated_topic_list
+                    time.sleep(5)
+                    for topic_name in to_add_topic_list:
+                        self.graph_generator.generate_all_graphs(topic_name)
+                        self.metrics_dict[topic_name] = {
+                            CPU: deque(maxlen=self.metric_buffer_len), 
+                            DELAY: deque(maxlen=self.metric_buffer_len), 
+                            IN_TRAFFIC: deque(maxlen=self.metric_buffer_len), 
+                            OUT_TRAFFIC: deque(maxlen=self.metric_buffer_len),
+                            RAM: deque(maxlen=self.metric_buffer_len) }
+                        print(f"Consumer Thread for topic {topic_name} commencing")
+                        thread = ConsumerThread(
+                            self.server_addr, 
+                            topic_name,
+                            curr_topics_dict[topic_name],
+                            self.cpu_metric,
+                            self.ram_metric,
+                            self.ping_metric,
+                            self.incoming_traffic_metric,
+                            self.outcoming_traffic_metric,
+                            self.metrics_dict)
+                        self.threads.append(thread)
+                        thread.start()
+                    if (self.sortcount>=12):    
+                        print(f"Organizing dashboard priorities...")
+                        self.graph_generator.sort_all_graphs()
+                        self.sortcount = 0
+                    self.sortcount +=1
+            </code></pre>
+            <p><strong>Description:</strong> This method runs the main loop for the Kafka consumer, polling for new topics and launching threads to handle metric updates. It also ensures that Grafana dashboards are organized and updated regularly.</p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+    
+        
+       
+        <div id="arp_entry" class="content">
+            <h2>ARP Entry Class</h2>
+            <p>This section is part of the Smartville project and describes the `Entry` class used for managing ARP table entries in the network.</p>
+        
+            <h3>Class: Entry</h3>
+            <p>The `Entry` class is not strictly an ARP entry. It is used to determine which port to forward traffic out of and to answer ARP replies. It also includes a timeout feature to determine when the entry should be considered expired.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes an `Entry` object with a specified port, MAC address, and ARP timeout value.</p>
+            <pre><code>
+            def __init__ (self, port, mac, ARP_TIMEOUT):
+                self.timeout = time.time() + ARP_TIMEOUT
+                self.port = port
+                self.mac = mac
+            </code></pre>
+            <p><strong>Description:</strong> This method sets the initial values for the entry, including the port number, MAC address, and timeout period. It calculates the expiration time based on the current time and the provided ARP timeout value.</p>
+        
+            <h4>Method: __eq__</h4>
+            <p>This method checks if two `Entry` objects are equal based on their port and MAC address.</p>
+            <pre><code>
+            def __eq__ (self, other):
+                if type(other) == tuple:
+                    return (self.port, self.mac)==other
+                else:
+                    return (self.port, self.mac)==(other.port,other.mac)
+            </code></pre>
+            <p><strong>Description:</strong> This method compares the current `Entry` object with another object or tuple to determine if they are equal. The comparison is based on the port and MAC address values.</p>
+        
+            <h4>Method: __ne__</h4>
+            <p>This method checks if two `Entry` objects are not equal.</p>
+            <pre><code>
+            def __ne__ (self, other):
+                return not self.__eq__(other)
+            </code></pre>
+            <p><strong>Description:</strong> This method checks if the current `Entry` object is not equal to another object or tuple, based on the port and MAC address values.</p>
+        
+            <h4>Method: isExpired</h4>
+            <p>This method checks if the `Entry` object has expired based on the timeout value.</p>
+            <pre><code>
+            def isExpired (self):
+                if self.port == of.OFPP_NONE: return False
+                return time.time() > self.timeout
+            </code></pre>
+            <p><strong>Description:</strong> This method determines whether the `Entry` has expired by comparing the current time with the pre-calculated timeout value. If expired, the entry is considered invalid for further use.</p>
+        </div>
+        <div id="flow" class="content">
+            <h2>Circular Buffer and Flow Management</h2>
+            <p>This section is part of the Smartville project and describes the `CircularBuffer` and `Flow` classes used for managing network flow features and storing them efficiently.</p>
+        
+            <h3>Class: CircularBuffer</h3>
+            <p>The `CircularBuffer` class is a utility for storing features in a fixed-size buffer that overwrites old data as new data arrives.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes the `CircularBuffer` with a specified buffer size and feature size.</p>
+            <pre><code>
+            def __init__(self, buffer_size=10, feature_size=4):
+                self.buffer_size = buffer_size
+                self.feature_size = feature_size
+                self.buffer = torch.zeros(buffer_size, feature_size)
+                self.is_full = False
+                self.calls_to_add = 0
+            </code></pre>
+            <p><strong>Description:</strong> This method sets up the buffer with a fixed size and initializes it with zeros. It also tracks how many times new data has been added to determine when the buffer is full.</p>
+        
+            <h4>Method: add</h4>
+            <p>This method adds a new tensor to the buffer, rolling the buffer and inserting the new data at the end.</p>
+            <pre><code>
+            def add(self, new_tensor):
+                self.buffer = torch.roll(self.buffer, shifts=-1, dims=0)
+                self.buffer[-1] = new_tensor
+                self.calls_to_add += 1
+                if self.calls_to_add >= self.buffer_size:
+                    self.is_full = True
+            </code></pre>
+            <p><strong>Description:</strong> This method shifts the existing data in the buffer up by one position and adds the new tensor at the end. It also tracks whether the buffer has become full.</p>
+        
+            <h4>Method: get_buffer</h4>
+            <p>This method returns the current state of the buffer.</p>
+            <pre><code>
+            def get_buffer(self):
+                return self.buffer
+            </code></pre>
+            <p><strong>Description:</strong> This method provides access to the current data stored in the buffer, returning it as a tensor.</p>
+        
+            <h3>Class: Flow</h3>
+            <p>The `Flow` class manages network flows, including source and destination IPs, and stores flow features in a circular buffer.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes a `Flow` object with source and destination IPs, switch output port, and flow features.</p>
+            <pre><code>
+            def __init__(
+                self, 
+                source_ip, 
+                dest_ip, 
+                switch_output_port,
+                flow_feat_dim=4,
+                flow_buff_len=10):
+                
+                self.source_ip = source_ip
+                self.dest_ip = dest_ip
+                self.switch_output_port = switch_output_port
+                self.flow_id = self.source_ip + "_" + self.dest_ip + "_" + str(self.switch_output_port)
+                self.switch_input_port = None
+                self.__feat_tensor = CircularBuffer(
+                                    buffer_size=flow_buff_len, 
+                                    feature_size=flow_feat_dim)
+                self.packets_tensor = None
+                self.node_feats = None
+                self.element_class = "Bening"
+                self.zda = False
+                self.test_zda = False
+            </code></pre>
+            <p><strong>Description:</strong> This method initializes a network flow with identifying information, such as source and destination IPs and the port for forwarding traffic. It also sets up a circular buffer for storing flow features.</p>
+        
+            <h4>Method: get_feat_tensor</h4>
+            <p>This method returns the feature tensor stored in the circular buffer.</p>
+            <pre><code>
+            def get_feat_tensor(self):
+                return self.__feat_tensor.get_buffer()
+            </code></pre>
+            <p><strong>Description:</strong> This method retrieves the current state of the feature tensor stored in the circular buffer, representing the accumulated data for the flow.</p>
+        
+            <h4>Method: enrich_flow_features</h4>
+            <p>This method adds new feature slices to the flow's circular buffer.</p>
+            <pre><code>
+            def enrich_flow_features(self, feat_slice: torch.Tensor):
+                self.__feat_tensor.add(feat_slice)
+            </code></pre>
+            <p><strong>Description:</strong> This method appends new feature data to the flow's circular buffer, updating the stored feature set for the flow.</p>
+        </div>
+    </div>
+</body>
+
+</html>

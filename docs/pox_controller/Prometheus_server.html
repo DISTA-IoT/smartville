@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+    
+        
+       
+     
+        
+        
+        
+        
+          
+        
+       
+        <div id="set_prometheus" class="content">
+            <h2>Prometheus Server Address Overwriting Script</h2>
+            <p>This section is part of the Smartville project and describes a script that overwrites the default Prometheus server address with a dynamically assigned IP address. This script is useful in scenarios where Prometheus is not running on the default `localhost` but on another host.</p>
+        
+            <h4>Function: <code>get_source_ip_address</code></h4>
+            <p>This function retrieves the IP address assigned to the network interface `eth1`.</p>
+            <pre><code>
+            def get_source_ip_address():
+                try:
+                    ip = ni.ifaddresses('eth1')[ni.AF_INET][0]['addr']
+                    return ip
+                except ValueError:
+                    return "Interface not found"
+            </code></pre>
+            <p><strong>Description:</strong> This function queries the network interface `eth1` to obtain its IP address. If the interface is not found, it returns an error message.</p>
+        
+            <h4>Function: <code>generate_prometheus_config</code></h4>
+            <p>This function generates a Prometheus configuration file (`prometheus.yml`) using the IP address provided.</p>
+            <pre><code>
+            def generate_prometheus_config(ip):
+                config = f"""\
+                global:
+                  scrape_interval:     5s
+                  evaluation_interval: 5s
+                  external_labels:
+                    monitor: 'example'
+                alerting:
+                  alertmanagers:
+                  - static_configs:
+                    - targets: ['{ip}:9093']
+                rule_files:
+                scrape_configs:
+                  - job_name: 'prometheus'
+                    scrape_interval: 5s
+                    scrape_timeout: 5s
+                    static_configs:
+                      - targets: ['{ip}:9090']
+                  - job_name: 'system_metrics'
+                    static_configs:
+                      - targets: ['{ip}:8000']"""
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                file_path = os.path.join(script_dir, 'prometheus.yml')
+                with open(file_path, 'w') as f:
+                    f.write(config)
+            </code></pre>
+            <p><strong>Description:</strong> This function creates a Prometheus configuration file that includes the dynamically assigned IP address. The configuration is written to a `prometheus.yml` file located in the same directory as the script.</p>
+        
+            <h4>Main Block: <code>if __name__ == "__main__"</code></h4>
+            <p>This block represents the main entry point of the script, which generates the Prometheus configuration file using the dynamically assigned IP address.</p>
+            <pre><code>
+            if __name__ == "__main__":
+                dynamic_IP = get_source_ip_address()
+                print(f'Generating Prometheus config file with ip {dynamic_IP}')
+                generate_prometheus_config(dynamic_IP)
+                print('Done!')
+            </code></pre>
+            <p><strong>Description:</strong> The main block calls the functions to obtain the current IP address of `eth1` and uses it to generate a Prometheus configuration file. It prints messages to indicate the progress and completion of the task.</p>
+        </div>
+    </div>
+</body>
+
+</html>

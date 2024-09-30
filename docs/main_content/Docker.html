@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Metadata for the document -->
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures the page is responsive -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    
+    <!-- Link to an external JavaScript file, which loads after the HTML is parsed -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to different documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle the visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories of 'pox_controller', each linking to specific documentation pages -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="main-content">
+        <!-- Header section with project information -->
+        <div class="header">
+            <!-- Title linked to the homepage -->
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            
+            <!-- Description of the Smartville project -->
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+
+        <!-- Section on Docker Containers -->
+        <h2>Docker Containers</h2>
+        <p>A Docker container characterizes each node in the SmartVille testbed. The container images are
+            buildable using the corresponding Dockerfiles that handle all the dependencies and the nodes'
+            internal file-system structure.</p>
+        <p>This example of code represents the Dockerfile of each victim node. It's possible to identify four
+            main Docker containers in our testbed:</p>
+        
+        <!-- List of main Docker containers -->
+        <ul>
+            <li><strong>Controller:</strong> All the dependencies to run the controller and a suite of
+                networking tools are installed. The POX library and PyTorch are retrieved and set to the
+                gar-experimental branch. Kafka, Grafana, and Prometheus tools are retrieved, and ports 9090,
+                9092, and 3000 are exposed to allow the instance of the three servers. Lastly, the script
+                entrypoint.sh, which keeps the application alive, is run.</li>
+            <li><strong>Victim:</strong> All the dependencies to run the victim behavior are installed (Python3,
+                TCP Replay, Scapy, Kafka, network tools), and the victim's scripts are imported into the file
+                system.</li>
+            <li><strong>Attacker:</strong> All the dependencies to run the attacker behavior are installed
+                (Python3, TCP Replay, Scapy, Kafka, network tools), and the scripts of the different cyberattacks
+                are copied into the file system.</li>
+            <li><strong>Switch:</strong> The container of the OpenVSwitch is based on the official GNS3
+                OpenVSwitch appliance. However, the boot kernel has been modified to suit our application
+                scenario via the boot.sh script.</li>
+        </ul>
+        <p>The Docker containers can be modified to match the configuration of every desired device that needs
+            to be emulated in the network topology.</p>
+
+        <!-- Section on OpenFlow Switch -->
+        <p>OpenFlow switches operate based on a set of high-level commands defined by the OpenFlow protocol,
+            providing a flexible and programmable approach to network management. When an OpenFlow controller
+            issues OpenFlow commands, such as flow table modifications or routing instructions, the switch
+            processes these directives to define its forwarding behavior. The switch maintains a flow table that
+            stores rules specifying how to handle incoming packets. Each rule is characterized by a set of
+            fields that identify the sender, the receiver, the used communication protocol, and a set of actions
+            to perform when the switch receives a packet that matches those fields. Each time a packet is
+            received by the switch, it consults its flow table to determine the appropriate action to perform,
+            such as forwarding, dropping, or modifying the packet.</p>
+        <p>If none of the rules match the packet's parameters, a flow miss occurs. The packet is sent to the
+            controller, which has to build and send back an appropriate OpenFlow command to the switch. This
+            ensures that the next time a similar packet arrives, it will trigger a flow hit and be handled
+            directly by the switch. This paradigm allows for dynamic network behavior adjustments, as the
+            controller can remotely instruct switches to adapt to changing network conditions. OpenFlow's
+            separation of the control and data planes empowers administrators to centrally manage and
+            orchestrate network policies, enabling agility and responsiveness in modern network infrastructures.
+        </p>
+
+</body>
+
+</html>

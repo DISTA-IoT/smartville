@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+    
+        
+       
+     
+        
+        <div id="flow_logger" class="content">
+            <h2>Flow Logger for Smartville Project</h2>
+            <p>This section is part of the Smartville project and describes the `FlowLogger` class responsible for logging network flows and processing packet data for analysis.</p>
+        
+            <h3>Class: FlowLogger</h3>
+            <p>The `FlowLogger` class manages the logging and processing of network flows. It captures flow statistics, processes packets, and updates the flow features used by the AI components of the Smartville project.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes the `FlowLogger` class with the necessary parameters, including dictionaries for training labels, Zero-Day Attacks (ZdA), and other configurations.</p>
+            <pre><code>
+            def __init__(
+              self,
+              training_labels_dict,
+              zda_dict,
+              test_zda_dict,
+              multi_class,
+              packet_buffer_len,
+              packet_feat_dim,
+              anonymize_transport_ports,
+              flow_feat_dim=4,
+              flow_buff_len=10):
+            </code></pre>
+            <p><strong>Description:</strong> This method sets up the initial configuration for logging flows, including settings for packet feature dimensions, flow feature dimensions, and dictionaries for labeling and managing attack types.</p>
+        
+            <h4>Method: extract_flow_feature_tensor</h4>
+            <p>This method extracts features from a flow and returns them as a tensor.</p>
+            <pre><code>
+            def extract_flow_feature_tensor(self, flow):
+               return torch.Tensor(
+                  [flow['byte_count'], 
+                    flow['duration_nsec'] / 10e9,
+                    flow['duration_sec'],
+                    flow['packet_count']]).to(torch.float32)
+            </code></pre>
+            <p><strong>Description:</strong> This method converts flow statistics such as byte count, duration, and packet count into a tensor format, which is then used for further analysis.</p>
+        
+            <h4>Method: get_anonymized_copy</h4>
+            <p>This method returns an anonymized copy of the provided IPv4 packet.</p>
+            <pre><code>
+            def get_anonymized_copy(self, original_packet):
+              new_ipv4_packet = ipv4(raw=original_packet.raw)
+              new_ipv4_packet.srcip = '0.0.0.0'
+              new_ipv4_packet.dstip = '0.0.0.0'
+              if self.anomyn_ports:
+                 new_ipv4_packet.next.srcport = 0
+                 new_ipv4_packet.next.dstport = 0
+              return new_ipv4_packet
+            </code></pre>
+            <p><strong>Description:</strong> This method creates an anonymized version of the given packet by masking the IP addresses and, optionally, the transport ports.</p>
+        
+            <h4>Method: build_packet_tensor</h4>
+            <p>This method builds a tensor from the packet data, used for flow analysis.</p>
+            <pre><code>
+            def build_packet_tensor(self, packet):
+                packet_copy = self.get_anonymized_copy(packet)
+                packet_data = packet_copy.raw[:self.packet_feat_dim]
+                payload_data_tensor = torch.tensor([int(x) for x in packet_data], dtype=torch.float32)
+                if payload_data_tensor.shape[0] < self.packet_feat_dim:
+                    payload_data_tensor = F.pad(payload_data_tensor, 
+                                          (0, self.packet_feat_dim - payload_data_tensor.shape[0]), 
+                                          mode='constant', value=0)
+                return payload_data_tensor
+            </code></pre>
+            <p><strong>Description:</strong> This method converts the packet data into a tensor, padding it if necessary to fit the expected feature dimension.</p>
+        
+            <h4>Method: cache_unprocessed_packets</h4>
+            <p>This method caches packets that arrive at the controller but lack flow rules, storing them until the flow rules are available.</p>
+            <pre><code>
+            def cache_unprocessed_packets(self, src_ip, dst_ip, packet):
+                partial_flow_id = str(src_ip) + "_" + str(dst_ip)
+                packet_tensor = self.build_packet_tensor(packet=packet.next)
+                if partial_flow_id in self.packet_cache.keys():
+                    curr_packets_circ_buff = self.packet_cache[partial_flow_id]
+                else:
+                   curr_packets_circ_buff = CircularBuffer(
+                      buffer_size=self.packet_buffer_len, 
+                      feature_size=self.packet_feat_dim)
+                curr_packets_circ_buff.add(packet_tensor)
+                self.packet_cache[partial_flow_id] = curr_packets_circ_buff
+                return curr_packets_circ_buff.is_full
+            </code></pre>
+            <p><strong>Description:</strong> This method stores packets in a buffer until they can be associated with flow rules, augmenting the data available for flow analysis.</p>
+        
+            <h4>Method: process_received_flow</h4>
+            <p>This method processes flow statistics received by the controller, updating or creating flow objects accordingly.</p>
+            <pre><code>
+            def process_received_flow(self, flow):
+                sender_ip_addr = flow['match']['nw_src'].split('/')[0]
+                new_flow = Flow(
+                  source_ip=sender_ip_addr, 
+                  dest_ip=flow['match']['nw_dst'].split('/')[0], 
+                  switch_output_port=flow['actions'][1]['port'],
+                  flow_feat_dim=self.flow_feat_dim,
+                  flow_buff_len=self.flow_buff_len)
+                new_flow.element_class = self.training_labels_dict[sender_ip_addr]
+                new_flow.zda = self.zda_dict[sender_ip_addr]
+                new_flow.test_zda = self.test_zda_dict[sender_ip_addr]
+                flow_features = self.extract_flow_feature_tensor(flow=flow)
+                if new_flow.flow_id in self.flows_dict.keys():
+                  self.flows_dict[new_flow.flow_id].enrich_flow_features(flow_features)
+                else:
+                  new_flow.enrich_flow_features(flow_features)
+                  self.flows_dict[new_flow.flow_id] = new_flow
+                self.update_packet_buffer(new_flow)
+            </code></pre>
+            <p><strong>Description:</strong> This method creates or updates flow objects with the received statistics and enriches them with features extracted from the flow.</p>
+        
+            <h4>Method: update_packet_buffer</h4>
+            <p>This method associates cached packets with their corresponding flows once the flow statistics are available.</p>
+            <pre><code>
+            def update_packet_buffer(self, flow_object):
+               partial_flow_id = "_".join(flow_object.flow_id.split("_")[:-1])
+               if partial_flow_id in self.packet_cache.keys():
+                  packets_buffer = self.packet_cache[partial_flow_id]
+                  del self.packet_cache[partial_flow_id]
+                  if self.flows_dict[flow_object.flow_id].packets_tensor == None:
+                     self.flows_dict[flow_object.flow_id].packets_tensor = packets_buffer
+                  else: 
+                     for single_packet_tensor in packets_buffer.buffer:
+                        self.flows_dict[flow_object.flow_id].packets_tensor.add(single_packet_tensor)
+            </code></pre>
+            <p><strong>Description:</strong> This method attaches packet data from the cache to the corresponding flow, enriching the flow with additional features.</p>
+        
+            <h4>Method: _handle_flowstats_received</h4>
+            <p>This method handles flow statistics received from the network, processing each flow and updating the flow logger's internal state.</p>
+            <pre><code>
+            def _handle_flowstats_received (self, event):
+              self.logger_instance.debug("FlowStatsReceived")
+              stats = flow_stats_to_list(event.stats)
+              for sender_flow in stats:
+                self.process_received_flow(flow=sender_flow)
+            </code></pre>
+            <p><strong>Description:</strong> This method listens for flow statistics events, processing each received flow to update the state of the flow logger.</p>
+        
+            <h4>Method: reset_all_flows_metadata</h4>
+            <p>This method resets the metadata for all logged flows.</p>
+            <pre><code>
+            def reset_all_flows_metadata(self):
+               self.flows_dict = {}
+            </code></pre>
+            <p><strong>Description:</strong> This method clears all flow metadata, effectively resetting the flow logger's state.</p>
+        
+            <h4>Method: reset_single_flow_metadata</h4>
+            <p>This method resets the metadata for a single flow based on its flow ID.</p>
+            <pre><code>
+            def reset_single_flow_metadata(self, flow_id):
+               del self.flows_dict[flow_id]
+            </code></pre>
+            <p><strong>Description:</strong> This method deletes the metadata for a specific flow, identified by its flow ID.</p>
+        </div>
+    </div>
+</body>
+
+</html>

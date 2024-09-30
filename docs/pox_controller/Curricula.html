@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+    
+        <div id="curricula" class="content">
+            <h2>Smartville Attack Classification Dictionaries</h2>
+            <p>This section is part of the Smartville project, and it defines various dictionaries used to classify IP addresses associated with specific types of attacks. The dictionaries categorize IPs into known attack types, Zero-Day Attacks (ZdA), and assign them to training and testing groups.</p>
+        
+            <h3>Alternate Curriculum 0</h3>
+            <p>This section defines the dictionaries for the first alternate curriculum, focusing on various known and Zero-Day attacks for training purposes.</p>
+        
+            <h4>Dictionary: <code>AC0_TRAINING_LABELS_DICT</code></h4>
+            <p>This dictionary labels IP addresses with their corresponding attack types. The default label is "Benign," reserved for legitimate traffic.</p>
+            <pre><code>AC0_TRAINING_LABELS_DICT = defaultdict(lambda: "Benign")</code></pre>
+        
+            <h4>Dictionary: <code>AC0_ZDA_DICT</code></h4>
+            <p>This dictionary marks specific IP addresses as part of Zero-Day Attack group 1 (ZdA G1).</p>
+            <pre><code>AC0_ZDA_DICT = defaultdict(lambda: False)</code></pre>
+        
+            <h4>Dictionary: <code>AC0_TEST_ZDA_DICT</code></h4>
+            <p>This dictionary marks IP addresses in ZdA group 2 for testing purposes.</p>
+            <pre><code>AC0_TEST_ZDA_DICT = defaultdict(lambda: False)</code></pre>
+        
+            <h4>Known Attacks</h4>
+            <p>The following IP addresses are associated with specific known attacks:</p>
+            <pre><code>
+        # attacker-4
+        AC0_TRAINING_LABELS_DICT["192.168.1.7"] = "CC_HeartBeat"
+        
+        # attacker-5
+        AC0_TRAINING_LABELS_DICT["192.168.1.8"] = "Gen_DDoS"
+        
+        # attacker-6
+        AC0_TRAINING_LABELS_DICT["192.168.1.9"] = "H_Scan"
+            </code></pre>
+        
+            <h4>Zero-Day Attacks Group 1</h4>
+            <p>The following IP addresses are part of Zero-Day Attack group 1:</p>
+            <pre><code>
+        # attacker-7
+        AC0_TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai (ZdA G1)"
+        AC0_ZDA_DICT["192.168.1.10"] = True
+        
+        # attacker-8
+        AC0_TRAINING_LABELS_DICT["192.168.1.11"] = "Torii (ZdA G1)"
+        AC0_ZDA_DICT["192.168.1.11"] = True
+        
+        # attacker-9
+        AC0_TRAINING_LABELS_DICT["192.168.1.12"] = "Mirai (ZdA G1)"
+        AC0_ZDA_DICT["192.168.1.12"] = True
+        
+        # attacker-10
+        AC0_TRAINING_LABELS_DICT["192.168.1.13"] = "Gafgyt (ZdA G1)"
+        AC0_ZDA_DICT["192.168.1.13"] = True
+            </code></pre>
+        
+            <h4>Zero-Day Attacks Group 2</h4>
+            <p>The following IP addresses are part of Zero-Day Attack group 2, and some are also marked for testing:</p>
+            <pre><code>
+        # attacker-11
+        AC0_TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime (ZdA G2)"
+        AC0_ZDA_DICT["192.168.1.14"] = True
+        AC0_TEST_ZDA_DICT["192.168.1.14"] = True
+        
+        # attacker-12
+        AC0_TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru (ZdA G2)"
+        AC0_ZDA_DICT["192.168.1.15"] = True
+        AC0_TEST_ZDA_DICT["192.168.1.15"] = True
+        
+        # attacker-13
+        AC0_TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik (ZdA G2)"
+        AC0_ZDA_DICT["192.168.1.16"] = True
+        AC0_TEST_ZDA_DICT["192.168.1.16"] = True
+            </code></pre>
+        
+            <h3>Alternate Curriculum 1</h3>
+            <p>This section defines the dictionaries for the second alternate curriculum, focusing on different known and Zero-Day attacks for training purposes.</p>
+            <h4>Dictionary: <code>AC1_TRAINING_LABELS_DICT</code></h4>
+            <p>This dictionary labels IP addresses with their corresponding attack types, similar to AC0 but with different attackers.</p>
+            <pre><code>AC1_TRAINING_LABELS_DICT = defaultdict(lambda: "Benign")</code></pre>
+        
+            <h4>Zero-Day Attacks Group 1</h4>
+            <p>The following IP addresses are part of Zero-Day Attack group 1:</p>
+            <pre><code>
+        # attacker-7
+        AC1_TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai"
+        
+        # attacker-8
+        AC1_TRAINING_LABELS_DICT["192.168.1.11"] = "Torii"
+        
+        # attacker-12
+        AC1_TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru"
+            </code></pre>
+        
+            <h4>Zero-Day Attacks Group 2</h4>
+            <p>The following IP addresses are part of Zero-Day Attack group 2:</p>
+            <pre><code>
+        # attacker-11
+        AC1_TRAINING_LABELS_DICT["192.168.1.14"] = "Hajime (ZdA G2)"
+        AC1_ZDA_DICT["192.168.1.14"] = True
+        AC1_TEST_ZDA_DICT["192.168.1.14"] = True
+        
+        # attacker-6
+        AC1_TRAINING_LABELS_DICT["192.168.1.9"] = "H_Scan (ZdA G2)"
+        AC1_ZDA_DICT["192.168.1.9"] = True
+        AC1_TEST_ZDA_DICT["192.168.1.9"] = True
+        
+        # attacker-13
+        AC1_TRAINING_LABELS_DICT["192.168.1.16"] = "Muhstik (ZdA G2)"
+        AC1_ZDA_DICT["192.168.1.16"] = True
+        AC1_TEST_ZDA_DICT["192.168.1.16"] = True
+            </code></pre>
+        
+            <h3>Alternate Curriculum 2</h3>
+            <p>This section defines the dictionaries for the third alternate curriculum, focusing on a new set of known and Zero-Day attacks for training purposes.</p>
+            <h4>Dictionary: <code>AC2_TRAINING_LABELS_DICT</code></h4>
+            <p>This dictionary labels IP addresses with their corresponding attack types, focusing on a different set of attackers.</p>
+            <pre><code>AC2_TRAINING_LABELS_DICT = defaultdict(lambda: "Benign")</code></pre>
+        
+            <h4>Zero-Day Attacks Group 1</h4>
+            <p>The following IP addresses are part of Zero-Day Attack group 1:</p>
+            <pre><code>
+        # attacker-4
+        AC2_TRAINING_LABELS_DICT["192.168.1.7"] = "CC_HeartBeat (ZdA G1)"
+        AC2_ZDA_DICT["192.168.1.7"] = True
+        
+        # attacker-5
+        AC2_TRAINING_LABELS_DICT["192.168.1.8"] = "Gen_DDoS (ZdA G1)"
+        AC2_ZDA_DICT["192.168.1.8"] = True
+        
+        # attacker-12
+        AC2_TRAINING_LABELS_DICT["192.168.1.15"] = "Okiru(ZdA G1)"
+        AC2_ZDA_DICT["192.168.1.15"] = True
+        
+        # attacker-6
+        AC2_TRAINING_LABELS_DICT["192.168.1.9"] = "H_Scan (ZdA G1)"
+        AC2_ZDA_DICT["192.168.1.9"] = True
+            </code></pre>
+        
+            <h4>Zero-Day Attacks Group 2</h4>
+            <p>The following IP addresses are part of Zero-Day Attack group 2:</p>
+            <pre><code>
+        # attacker-7
+        AC2_TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai (ZdA G2)"
+        AC2_ZDA_DICT["192.168.1.10"] = True
+        AC2_TEST_ZDA_DICT["192.168.1.10"] = True
+        
+        # attacker-10
+        AC2_TRAINING_LABELS_DICT["192.168.1.13"] = "Gafgyt (ZdA G2)"
+        AC2_ZDA_DICT["192.168.1.13"] = True
+        AC2_TEST_ZDA_DICT["192.168.1.13"] = True
+        
+        # attacker-8
+        AC2_TRAINING_LABELS_DICT["192.168.1.11"] = "Torii (ZdA G2)"
+        AC2_ZDA_DICT["192.168.1.11"] = True
+        AC2_TEST_ZDA_DICT["192.168.1.11"] = True
+            </code></pre>
+        
+            <h3>Custom Curriculum</h3>
+            <p>This section defines a custom curriculum for training purposes, where attack patterns and labels can be adjusted as desired.</p>
+        
+            <h4>Dictionary: <code>CUSTOM_TRAINING_LABELS_DICT</code></h4>
+            <p>This dictionary is used for labeling IP addresses with custom attack patterns for training purposes.</p>
+            <pre><code>CUSTOM_TRAINING_LABELS_DICT = defaultdict(lambda: "Benign")</code></pre>
+        
+            <h4>Zero-Day Attacks Group 1</h4>
+            <p>The following IP addresses are part of a custom-defined Zero-Day Attack group 1:</p>
+            <pre><code>
+        # attacker-5
+        CUSTOM_TRAINING_LABELS_DICT["192.168.1.5"] = "Mirai (ZdA G1)"
+        CUSTOM_ZDA_DICT["192.168.1.5"] = True
+            </code></pre>
+        
+            <h4>Zero-Day Attacks Group 2</h4>
+            <p>The following IP addresses are part of a custom-defined Zero-Day Attack group 2:</p>
+            <pre><code>
+        # attacker-10
+        CUSTOM_TRAINING_LABELS_DICT["192.168.1.10"] = "Hakai (ZdA G2)"
+        CUSTOM_ZDA_DICT["192.168.1.10"] = True
+        CUSTOM_TEST_ZDA_DICT["192.168.1.10"] = True
+            </code></pre>
+        </div>
+    </div>
+</body>
+
+</html>

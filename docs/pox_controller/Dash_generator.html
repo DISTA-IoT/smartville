@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+    
+        
+        <div id="dash_generator" class="content">
+            <h2>Grafana Dashboard Generator</h2>
+            <p>This section is part of the Smartville project and describes the `DashGenerator` class responsible for creating and managing dashboards in Grafana.</p>
+        
+            <h3>Class: DashGenerator</h3>
+            <p>The `DashGenerator` class is dedicated to inserting various dashboards into Grafana for interactive visualization. It leverages the Grafana API for connecting to the Grafana host using an API key.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes the `DashGenerator` class with a connection to Grafana and automatically triggers the generation of all dashboards.</p>
+            <pre><code>
+            def __init__(self, grafana_connection):
+                self.grafana_connection = grafana_connection
+                self.generate_all_dashes()
+            </code></pre>
+            <p><strong>Description:</strong> This method sets up the initial connection to the Grafana server and begins the process of generating all necessary dashboards for monitoring metrics like CPU usage, RAM, network latency, and more.</p>
+        
+            <h4>Method: generate_all_dashes</h4>
+            <p>This method is responsible for generating all the necessary dashboards in Grafana. It checks if each dashboard already exists using the `dashboard_exists` method, and if not, it creates them using the `generate_single_dash_with_return` and `generate_single_dash` methods.</p>
+            <pre><code>
+            def generate_all_dashes(self):
+                while True:
+                    if not self.dashboard_exists('CPU_data'):
+                        print("Creating new dashboard: CPU_data ...")
+                        self.generate_single_dash_with_return('CPU_data','CPU (%)')
+                    else:
+                        break
+        
+                if not self.dashboard_exists('RAM_data'):
+                    print("Creating new dashboard: RAM_data...")
+                    self.generate_single_dash('RAM_data','RAM (GB)')
+        
+                if not self.dashboard_exists('PING_data'):
+                    print("Creating new dashboard:  PING_data ...")
+                    self.generate_single_dash('PING_data','Latenza (ms)')
+        
+                if not self.dashboard_exists('INT_data'):
+                    print("Creating new dashboard:  INT_data...")
+                    self.generate_single_dash('INT_data','Traffico rete in entrata (KBps)')
+        
+                if not self.dashboard_exists('ONT_data'):
+                    print("Creating new dashboard: ONT_data creazione in corso...")
+                    self.generate_single_dash('ONT_data','Traffico rete in uscita (KBps)')
+            </code></pre>
+            <p><strong>Description:</strong> This method ensures that all necessary dashboards are present in Grafana. If any are missing, it creates them. It covers various metrics, such as CPU usage, RAM usage, latency, and network traffic.</p>
+        
+            <h4>Method: dashboard_exists</h4>
+            <p>This method checks if a dashboard with the given UID already exists in Grafana.</p>
+            <pre><code>
+            def dashboard_exists(self, dash_UID):
+                try:
+                    self.grafana_connection.dashboard.get_dashboard(dash_UID)
+                    return True
+                except Exception:
+                    return False
+            </code></pre>
+            <p><strong>Description:</strong> This method attempts to retrieve a dashboard from Grafana using its unique identifier (UID). If the dashboard exists, it returns True; otherwise, it returns False.</p>
+        
+            <h4>Method: generate_single_dash_with_return</h4>
+            <p>This method creates a new dashboard in Grafana and returns a success message if the creation is successful.</p>
+            <pre><code>
+            def generate_single_dash_with_return(self, dash_UID, dash_name):
+                dashboard_config = {
+                    "dashboard": {
+                        "uid": dash_UID,
+                        "title": dash_name,
+                        "panels": [],
+                        "refresh": "5s",
+                        "time": {
+                            "from": "now-15m",
+                            "to": "now"
+                        },
+                    },
+                    "overwrite": False
+                }
+        
+                try:
+                    self.grafana_connection.dashboard.update_dashboard(dashboard_config)
+                    print(f"Dashboard with UID '{dash_UID}' created!")
+                    return True
+        
+                except Exception as e:
+                    print(f"Error: {e} try a different username or password")
+                    return False
+            </code></pre>
+            <p><strong>Description:</strong> This method configures and creates a new dashboard in Grafana using the provided UID and name. If the creation is successful, it returns a confirmation message; otherwise, it prints an error.</p>
+        
+            <h4>Method: generate_single_dash</h4>
+            <p>This method creates a new dashboard in Grafana.</p>
+            <pre><code>
+            def generate_single_dash(self, dash_UID, dash_name):
+                dashboard_config = {
+                    "dashboard": {
+                        "uid": dash_UID,
+                        "title": dash_name,
+                        "panels": [],
+                        "refresh": "5s",
+                        "time": {
+                            "from": "now-15m",
+                            "to": "now"
+                        },
+                    },
+                    "overwrite": False
+                }
+        
+                self.grafana_connection.dashboard.update_dashboard(dashboard_config)
+                print(f"Dashboard con UID '{dash_UID}' created!")
+            </code></pre>
+            <p><strong>Description:</strong> This method creates a new dashboard in Grafana based on the provided UID and name. It does not return any value but confirms the creation via a print statement.</p>
+        </div>
+        <div id="arp_entry" class="content">
+            <h2>ARP Entry Class</h2>
+            <p>This section is part of the Smartville project and describes the `Entry` class used for managing ARP table entries in the network.</p>
+        
+            <h3>Class: Entry</h3>
+            <p>The `Entry` class is not strictly an ARP entry. It is used to determine which port to forward traffic out of and to answer ARP replies. It also includes a timeout feature to determine when the entry should be considered expired.</p>
+        
+            <h4>Method: <code>__init__</code></h4>
+            <p>This constructor method initializes an `Entry` object with a specified port, MAC address, and ARP timeout value.</p>
+            <pre><code>
+            def __init__ (self, port, mac, ARP_TIMEOUT):
+                self.timeout = time.time() + ARP_TIMEOUT
+                self.port = port
+                self.mac = mac
+            </code></pre>
+            <p><strong>Description:</strong> This method sets the initial values for the entry, including the port number, MAC address, and timeout period. It calculates the expiration time based on the current time and the provided ARP timeout value.</p>
+        
+            <h4>Method: __eq__</h4>
+            <p>This method checks if two `Entry` objects are equal based on their port and MAC address.</p>
+            <pre><code>
+            def __eq__ (self, other):
+                if type(other) == tuple:
+                    return (self.port, self.mac)==other
+                else:
+                    return (self.port, self.mac)==(other.port,other.mac)
+            </code></pre>
+            <p><strong>Description:</strong> This method compares the current `Entry` object with another object or tuple to determine if they are equal. The comparison is based on the port and MAC address values.</p>
+        
+            <h4>Method: __ne__</h4>
+            <p>This method checks if two `Entry` objects are not equal.</p>
+            <pre><code>
+            def __ne__ (self, other):
+                return not self.__eq__(other)
+            </code></pre>
+            <p><strong>Description:</strong> This method checks if the current `Entry` object is not equal to another object or tuple, based on the port and MAC address values.</p>
+        
+            <h4>Method: isExpired</h4>
+            <p>This method checks if the `Entry` object has expired based on the timeout value.</p>
+            <pre><code>
+            def isExpired (self):
+                if self.port == of.OFPP_NONE: return False
+                return time.time() > self.timeout
+            </code></pre>
+            <p><strong>Description:</strong> This method determines whether the `Entry` has expired by comparing the current time with the pre-calculated timeout value. If expired, the entry is considered invalid for further use.</p>
+        </div>
+    </div>
+</body>
+
+</html>

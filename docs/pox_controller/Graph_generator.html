@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+        
+        <div id="graph_generator" class="content">
+            <h2>Graph Generator Class</h2>
+            <p>This class is responsible for generating and organizing various graphs in a Grafana dashboard for
+                interactive visualization. It connects to a Grafana host using an API key and to a Prometheus instance
+                to fetch metrics data.</p>
+
+            <h3>Class: GraphGenerator</h3>
+            <p>The <code>GraphGenerator</code> class handles the generation and organization of graphs on a Grafana
+                dashboard.</p>
+            <pre><code>
+    class GraphGenerator:
+        def __init__(self, grafana_connection, prometheus_connection):
+            self.num_panels = 0
+            self.grafana_connection = grafana_connection
+            self.prometheus_connection = prometheus_connection
+        </code></pre>
+
+            <h4>Method: __init__</h4>
+            <p>This constructor initializes the <code>GraphGenerator</code> class with connections to Grafana and
+                Prometheus.</p>
+            <p><strong>Description:</strong>
+                The <code>__init__</code> method sets up the connection to Grafana and Prometheus and initializes the
+                counter for the number of panels on the Grafana dashboard.
+            </p>
+
+            <h3>Method: generate_all_graphs</h3>
+            <p>The <code>generate_all_graphs</code> method generates the graphs for CPU, RAM, PING, Incoming, and
+                Outcoming network data if they do not already exist on the dashboard.</p>
+            <pre><code>
+    def generate_all_graphs(self, panel_title):
+        if not self.graph_exists('CPU_data', panel_title):
+            self.generate_graph('CPU_data', panel_title, 'CPU_percentage', 'semi-dark-yellow')
+    
+        if not self.graph_exists('RAM_data', panel_title):
+            self.generate_graph('RAM_data', panel_title, 'RAM_GB', '#315b2b')
+    
+        if not self.graph_exists('PING_data', panel_title):
+            self.generate_graph('PING_data', panel_title, 'Latenza_ms', '#00e674')
+    
+        if not self.graph_exists('INT_data', panel_title):
+            self.generate_graph('INT_data', panel_title, 'Incoming_network_KB', '#00bcff')
+    
+        if not self.graph_exists('ONT_data', panel_title):
+            self.generate_graph('ONT_data', panel_title, 'Outcoming_network_KB', '#0037ff')
+        </code></pre>
+
+            <h4>Method: generate_all_graphs</h4>
+            <p>This method checks if certain graphs are already present on the Grafana dashboard and creates them if
+                they are not.</p>
+            <p><strong>Description:</strong>
+                The <code>generate_all_graphs</code> method ensures that specific metrics (CPU, RAM, PING, network data)
+                are represented as graphs on the Grafana dashboard. If any of these graphs are missing, it generates
+                them.
+            </p>
+
+            <h3>Method: graph_exists</h3>
+            <p>The <code>graph_exists</code> method checks if a graph with a specific title already exists on the
+                Grafana dashboard.</p>
+            <pre><code>
+    def graph_exists(self, dash_UID, panel_title):
+        dashboard = self.grafana_connection.dashboard.get_dashboard(dash_UID)
+        panel_titles = [panel['title'] for panel in dashboard['dashboard']['panels']]
+        self.num_panels = len(panel_titles)
+        
+        return panel_title in panel_titles
+        </code></pre>
+
+            <h4>Method: graph_exists</h4>
+            <p>This method determines if a specific graph is already present on the dashboard.</p>
+            <p><strong>Description:</strong>
+                The <code>graph_exists</code> method checks the current panels on the dashboard to see if a graph with
+                the specified title already exists. This helps to avoid creating duplicate graphs.
+            </p>
+
+            <h3>Method: generate_graph</h3>
+            <p>The <code>generate_graph</code> method creates and adds a new graph to the Grafana dashboard based on
+                specified metrics and configurations.</p>
+            <pre><code>
+    def generate_graph(self, dash_UID, panel_title, metric, colortab):
+        panel_config = {
+            "type": "timeseries",
+            "title": f"{panel_title}",
+            "uid": f"{panel_title}",
+            "datasource": "prometheus",
+            "transparent": True,
+            "fieldConfig": {...},
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": (self.num_panels % 3) * 8,
+                "y": 0
+            },
+            "id": None,
+            "options": {...},
+            "targets": [
+                {
+                    "datasource": "prometheus",
+                    "expr": f'{metric}{{label_name="{panel_title}"}}',
+                }
+            ]
+        }
+    
+        dashboard = self.grafana_connection.dashboard.get_dashboard(dash_UID)
+        if dashboard is not None:
+            dashboard['dashboard']['panels'].append(panel_config)
+            self.grafana_connection.dashboard.update_dashboard(dashboard)
+        </code></pre>
+
+            <h4>Method: generate_graph</h4>
+            <p>This method generates a new graph and adds it to the Grafana dashboard.</p>
+            <p><strong>Description:</strong>
+                The <code>generate_graph</code> method defines the graph configuration, including its type, title, data
+                source, and appearance. It then adds the graph to the specified Grafana dashboard.
+            </p>
+
+            <h3>Method: sort_all_graphs</h3>
+            <p>The <code>sort_all_graphs</code> method reorganizes all the graphs on the Grafana dashboard, prioritizing
+                those with higher values.</p>
+            <pre><code>
+    def sort_all_graphs(self):
+        self.sort_single_graph('CPU_data')
+        self.sort_single_graph('RAM_data')
+        self.sort_single_graph('PING_data')
+        self.sort_single_graph('INT_data')
+        self.sort_single_graph('ONT_data')
+        </code></pre>
+
+            <h4>Method: sort_all_graphs</h4>
+            <p>This method sorts all the graphs on the dashboard so that those with higher metrics appear at the top.
+            </p>
+            <p><strong>Description:</strong>
+                The <code>sort_all_graphs</code> method calls the sorting function for each type of metric graph,
+                arranging them in descending order based on their values.
+            </p>
+
+            <h3>Method: sort_single_graph</h3>
+            <p>The <code>sort_single_graph</code> method repositions a single graph on the dashboard based on its
+                metrics.</p>
+            <pre><code>
+    def sort_single_graph(self, dash_UID):
+        dashboard_config = self.grafana_connection.dashboard.get_dashboard(dash_UID)
+        panels = dashboard_config['dashboard']['panels']
+    
+        for panel in panels:
+            targets = panel.get('targets', [])
+            if targets:
+                prometheus_expr = targets[0].get('expr')
+                prometheus_expr_range = f"{prometheus_expr}[1m]"
+                try:
+                    metric_data_range = self.prometheus_connection.custom_query(query=prometheus_expr_range)                    
+                except PrometheusApiClientException as e:
+                    return
+                sum_value = sum([float(point[1]) for point in metric_data_range[0].get('values', []) if point and len(point) > 1])
+    
+                panel['sum_value'] = sum_value
+    
+        sorted_panels = sorted(panels, key=lambda x: x.get('sum_value', 0), reverse=True)
+    
+        for i, panel in enumerate(sorted_panels):
+            panel['gridPos'] = {
+                "h": 6,
+                "w": 8,
+                "x": (i % 3) * 8,
+                "y": 0
+            }
+    
+        dashboard_config['dashboard']['panels'] = sorted_panels
+        self.grafana_connection.dashboard.update_dashboard(dashboard_config)
+        </code></pre>
+
+            <h4>Method: sort_single_graph</h4>
+            <p>This method sorts a single graph based on its metric values and repositions it on the dashboard.</p>
+            <p><strong>Description:</strong>
+                The <code>sort_single_graph</code> method calculates the sum of the metric values for a graph, sorts the
+                graphs in descending order based on these sums, and updates their positions on the dashboard.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

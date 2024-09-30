@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design -->
+    <title>Smartville Documentation</title> <!-- Title displayed in the browser tab -->
+    
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Link to an external JavaScript file that loads after HTML content -->
+    <script src="../script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Sidebar for navigation -->
+    <div class="sidebar">
+        <!-- Navigation links to various documentation sections -->
+        <a href="../main_content/Intro.html">Introduction</a>
+        <a href="../main_content/Installation.html">Installation</a>
+        <a href="../main_content/Usage.html">Usage</a>
+        <a href="../main_content/Background.html">Background</a>
+        <a href="../main_content/Docker.html">Docker Containers</a>
+        <a href="../main_content/platform.html">Grafana, Kafka, Prometheus</a>
+        <a href="../main_content/PN.html">Prototypical Networks</a>
+        <a href="../main_content/License.html">License</a>
+        <a href="../main_content/Citation.html">Citation</a>
+        
+        <!-- Link to toggle visibility of subcategories under 'Code' -->
+        <a href="javascript:void(0)" onclick="toggleSubcategories()">Code</a>
+        
+        <!-- Subcategories for 'Code', initially hidden -->
+        <div id="codeSubcategories" style="display:none;">
+            <!-- Subcategory for 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <!-- Link to toggle visibility of 'pox_controller' subcategories -->
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Subcategories within 'pox_controller' -->
+            <div id="pox_controller" class="subcategory">
+                <a href="javascript:void(0)" onclick="togglePoxControllerSubcategories()" style="padding-left:20px;">pox_controller</a>
+                
+                <!-- Sottocategorie di "pox_controller" -->
+                <div id="poxControllerSubcategories" style="display:none;">
+                    <div id="neural_models" class="subcategory">
+                        <a href="../pox_controller/Neural_models.html" style="padding-left:40px;">Neural Models</a>
+                    </div>
+                    <div id="controller_brain" class="subcategory">
+                        <a href="../pox_controller/Controller_brain.html" style="padding-left:40px;">Controller Brain</a>
+                    </div>
+                    <div id="graph_generator" class="subcategory">
+                        <a href="../pox_controller/Graph_generator.html" style="padding-left:40px;">Graph Generator</a>
+                    </div>
+                    <div id="consumer_thread" class="subcategory">
+                        <a href="../pox_controller/Consumer_thread.html" style="padding-left:40px;">Consumer Thread</a>
+                    </div>
+                    <div id="smart_controller" class="subcategory">
+                        <a href="../pox_controller/Smart_controller.html" style="padding-left:40px;">Smart Controller</a>
+                    </div>
+                    <div id="ai" class="subcategory">
+                        <a href="../pox_controller/ai.html" style="padding-left:40px;">Ai</a>
+                    </div>
+                    <div id="curricula" class="subcategory">
+                        <a href="../pox_controller/Curricula.html" style="padding-left:40px;">Curricula</a>
+                    </div>
+                    <div id="dash_generator" class="subcategory">
+                        <a href="../pox_controller/Dash_generator.html" style="padding-left:40px;">Dash Generator</a>
+                    </div>
+                    <div id="arp_entry" class="subcategory">
+                        <a href="../pox_controller/Arp_entry.html" style="padding-left:40px;">Arp Entry</a>
+                    </div>
+                    <div id="flow" class="subcategory">
+                        <a href="../pox_controller/Flow.html" style="padding-left:40px;">Flow</a>
+                    </div>
+                    <div id="flow_logger" class="subcategory">
+                        <a href="../pox_controller/Flow_logger.html" style="padding-left:40px;">Flow Logger</a>
+                    </div>
+                    <div id="grafana_prometheus" class="subcategory">
+                        <a href="../pox_controller/Grafana_prometheus.html" style="padding-left:40px;">Grafana-prometheus</a>
+                    </div>
+                    <div id="metrics_logger" class="subcategory">
+                        <a href="../pox_controller/Metrics_logger.html" style="padding-left:40px;">Metrics Logger</a>
+                    </div>
+                    <div id="replay_buffer" class="subcategory">
+                        <a href="../pox_controller/Replay_buffer.html" style="padding-left:40px;">Replay Buffer</a>
+                    </div>
+                    <div id="prometheus_server" class="subcategory">
+                        <a href="../pox_controller/Prometheus_server.html" style="padding-left:40px;">Prometheus Server</a>
+                    </div>
+                    <div id="wandb_tracker" class="subcategory">
+                        <a href="../pox_controller/Wandb_tracker.html" style="padding-left:40px;">Wandb Tracker</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1><a href="../index.html" style="text-decoration: none;">Smartville</h1></a>
+            <p>This is the official SmartVille repository</p>
+            <p>Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online
+                intrusion detection systems based on machine learning.</p>
+            <p>Feel free to contribute!</p>
+            <p>The related paper <em>"SmartVille: an open-source SDN online-intrusion detection testbed"</em> is under
+                review. Stay tuned!</p>
+        </div>
+        
+        
+        
+        <div id="consumer_thread" class="content">
+            <h2>Smartville Kafka Consumer</h2>
+            <p>This file is part of the "Smartville" project and defines a set of classes and methods for managing and
+                monitoring data through a Kafka server. The primary class, <code>ConsumerThread</code>, is responsible
+                for consuming data from Kafka, updating system metrics such as CPU, RAM, latency, and network traffic,
+                and interacting with the Kafka server. The project is distributed under the Apache 2.0 license.</p>
+
+            <h3>Class: ConsumerThread</h3>
+            <p>The <code>ConsumerThread</code> class extends <code>threading.Thread</code> and handles the consumption
+                of messages from a Kafka topic, updating various system metrics based on the received data.</p>
+
+            <h4>Method: __init__</h4>
+            <p>This constructor method initializes the <code>ConsumerThread</code> with the necessary configurations.
+            </p>
+            <pre><code>
+    def __init__(self, bootstrap_servers, topic_name, topic_object, cpu_metric, ram_metric, ping_metric, incoming_traffic_metric, outcoming_traffic_metric, controller_metrics_dict):
+        threading.Thread.__init__(self)
+        self.lock = threading.Lock()
+        self.bootstrap_servers = bootstrap_servers
+        self.topic_name = topic_name
+        self.topic_object = topic_object
+        self.cpu_metric = cpu_metric
+        self.ram_metric = ram_metric
+        self.ping_metric = ping_metric
+        self.incoming_traffic_metric = incoming_traffic_metric
+        self.outcoming_traffic_metric = outcoming_traffic_metric
+        self.exit_signal = threading.Event()
+        self.controller_metrics_dict = controller_metrics_dict
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method sets up the necessary components for the thread, including Kafka server connection details,
+                the topic to subscribe to, and the metrics to update. It also initializes a threading lock for
+                synchronizing access to shared resources and an event to signal the thread's termination.
+            </p>
+
+            <h4>Method: update_cpu_metric</h4>
+            <p>This method updates the CPU metric based on the received value.</p>
+            <pre><code>
+    def update_cpu_metric(self, value, label_value):
+        self.cpu_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
+            self.controller_metrics_dict[self.topic_name]['CPU'].append(value)
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method sets the CPU metric to the received value using the <code>cpu_metric</code> object. If the
+                value is not a number (NaN), it replaces it with -1.0 to indicate an invalid reading. The value is then
+                appended to the controller's metrics dictionary under the CPU category, with access synchronized via a
+                lock.
+            </p>
+
+            <h4>Method: update_ram_metric</h4>
+            <p>This method updates the RAM metric based on the received value.</p>
+            <pre><code>
+    def update_ram_metric(self, value, label_value):
+        self.ram_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
+            self.controller_metrics_dict[self.topic_name]['RAM'].append(value)
+        </code></pre>
+            <p><strong>Description:</strong>
+                Similar to <code>update_cpu_metric</code>, this method updates the RAM metric and handles invalid values
+                by setting them to -1.0. The updated value is stored in the controller's metrics dictionary under the
+                RAM category.
+            </p>
+
+            <h4>Method: update_ping_metric</h4>
+            <p>This method updates the latency (ping) metric based on the received value.</p>
+            <pre><code>
+    def update_ping_metric(self, value, label_value):
+        self.ping_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
+            self.controller_metrics_dict[self.topic_name]['DELAY'].append(value)
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method updates the latency metric (ping) for the system. If the received value is NaN, it replaces
+                it with -1.0. The value is then stored under the DELAY category in the metrics dictionary.
+            </p>
+
+            <h4>Method: update_incoming_traffic_metric</h4>
+            <p>This method updates the incoming network traffic metric based on the received value.</p>
+            <pre><code>
+    def update_incoming_traffic_metric(self, value, label_value):
+        self.incoming_traffic_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
+            self.controller_metrics_dict[self.topic_name]['IN_TRAFFIC'].append(value)
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method updates the incoming network traffic metric. It handles NaN values by replacing them with
+                -1.0 and appends the value to the metrics dictionary under the IN_TRAFFIC category.
+            </p>
+
+            <h4>Method: update_outcoming_traffic_metric</h4>
+            <p>This method updates the outgoing network traffic metric based on the received value.</p>
+            <pre><code>
+    def update_outcoming_traffic_metric(self, value, label_value):
+        self.outcoming_traffic_metric.labels(label_name=label_value).set(value)
+        with self.lock:
+            if value == b'nan' or math.isnan(value):
+                value = -1.0
+            self.controller_metrics_dict[self.topic_name]['OUT_TRAFFIC'].append(value)
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method updates the outgoing network traffic metric. NaN values are handled by setting them to -1.0,
+                and the value is stored under the OUT_TRAFFIC category in the metrics dictionary.
+            </p>
+
+            <h4>Method: stop_threads</h4>
+            <p>This method stops the execution of the thread.</p>
+            <pre><code>
+    def stop_threads(self):
+        print("Stopping thread...")
+        self.exit_signal.set()
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method sets an exit signal that stops the thread's execution, effectively signaling the thread to
+                terminate its process.
+            </p>
+
+            <h4>Method: run</h4>
+            <p>This method starts the execution of the thread, handling the Kafka message polling and updating metrics
+                accordingly.</p>
+            <pre><code>
+    def run(self):
+        consumer_conf = {'bootstrap.servers': self.bootstrap_servers, 'group.id': 'my-group'}
+        consumer = Consumer(consumer_conf)
+        conf = {'bootstrap.servers': self.bootstrap_servers}
+        admin_client = AdminClient(conf)
+        delete_ok = False
+        end_message = str(math.nan).encode('utf-8')
+        stopper = 0
+    
+        num_partitions = len(self.topic_object.partitions)
+        if num_partitions == 5:
+            consumer.subscribe([self.topic_name])
+    
+            try:
+                while not self.exit_signal.is_set():
+                    msg = consumer.poll(timeout=3)
+                    if msg is None:
+                        self.update_all_metrics_to_nan(end_message)
+                        stopper += 1
+                        if stopper >= 40:
+                            delete_ok = True
+                            break
+                    elif msg.error():
+                        if msg.error().code() == KafkaException._PARTITION_EOF:
+                            print(f'Partition {msg.partition()} terminated')
+                        else:
+                            print(f'Error: {msg.error()}')
+                            break
+                    else:
+                        self.process_message(msg)
+            finally:
+                if delete_ok:
+                    admin_client.delete_topics([self.topic_name])
+                print(f"{self.topic_name}: stopped thread")
+        else:
+            admin_client.delete_topics([self.topic_name])
+            print(f"topic {self.topic_name} did not register correctly")
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method implements the main logic of the thread. It configures the Kafka consumer and subscribes to
+                the topic. The thread polls Kafka for messages, updates the relevant metrics, and checks for errors. If
+                no messages are received for a set period, it may trigger the deletion of the Kafka topic.
+            </p>
+
+            <h4>Method: process_message</h4>
+            <p>This method processes a Kafka message and updates the appropriate metric based on the message's
+                partition.</p>
+            <pre><code>
+    def process_message(self, msg):
+        partition_to_method = {
+            0: self.update_cpu_metric,
+            1: self.update_ram_metric,
+            2: self.update_ping_metric,
+            3: self.update_incoming_traffic_metric,
+            4: self.update_outcoming_traffic_metric
+        }
+        method = partition_to_method.get(msg.partition())
+        if method:
+            method(float(msg.value()), self.topic_name)
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method maps each Kafka partition to a specific metric update method. When a message is received, it
+                determines which partition it came from and calls the corresponding method to update the relevant
+                metric.
+            </p>
+
+            <h4>Method: update_all_metrics_to_nan</h4>
+            <p>This helper method updates all metrics to NaN values.</p>
+            <pre><code>
+    def update_all_metrics_to_nan(self, end_message):
+        self.update_cpu_metric(end_message, self.topic_name)
+        self.update_ram_metric(end_message, self.topic_name)
+        self.update_ping_metric(end_message, self.topic_name)
+        self.update_incoming_traffic_metric(end_message, self.topic_name)
+        self.update_outcoming_traffic_metric(end_message, self.topic_name)
+        </code></pre>
+            <p><strong>Description:</strong>
+                This method is used when no messages are received, setting all metrics to NaN values to indicate a lack
+                of data.
+            </p>
+        </div>
+
+    </div>   
+        
+        
+
+</body>
+
+</html>
