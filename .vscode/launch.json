@@ -94,7 +94,16 @@
             "name": "Dev Container Manager",
             "type": "python",
             "request": "launch",
-            "program": "tiger_container_manager.py",
+            "program": "tiger_container_manager_cmd.py",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/utils",  // Set the current working directory here
+
+        },
+        {
+            "name": "Server Container Manager",
+            "type": "python",
+            "request": "launch",
+            "program": "tiger_container_manager_server.py",
             "justMyCode": true,
             "cwd": "${workspaceFolder}/utils",  // Set the current working directory here
 

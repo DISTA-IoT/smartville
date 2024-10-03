@@ -61,6 +61,7 @@ config_dict = {
 }
 
 containers_dict = {}
+containers_ips = {}
 TRAFFIC_DICT ={}
 TERMINAL_ISSUER_PATH = None
 
@@ -311,6 +312,8 @@ def stop_traffic():
         
 
 def refresh_containers():
+    global containers_dict
+    global containers_ips
     # Connect to the Docker daemon
     client = docker.from_env()
 
@@ -323,7 +326,7 @@ def refresh_containers():
         container_ip = container_info_str.split('(')[-1][:-1].split('/')[0]
         print(f'{container_img_name} is {container.name} with ip {container_ip}')
         containers_dict[container_img_name] = container
-
+        containers_ips[container_img_name] = container_ip 
     print('\n\n\n')
             
 
@@ -337,8 +340,16 @@ def init_traffic_stuff():
         with open('preset_traffic.json', 'r') as file:
             TRAFFIC_DICT = json.load(file)
     else: 
-        print('random traffic patterns not yet implemented here!')
-        assert 1 == 0
+        attacks = ['cc_heartbeat', 'generic_ddos', 'h_scan', 'hakai',  'torii', 'mirai', 'gafgyt', 'hajime', 'okiru', 'muhstik'] 
+        bening_patterns =['echo', 'doorlock', 'hue']
+        victim_ips = [item[1] for item in containers_ips.items() if 'victim' in item[0]]
+
+        for container_key in containers_dict:
+            if 'attacker' in container_key:
+                TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(attacks)} {random.choice(victim_ips)} --repeat 10"
+            elif 'victim' in container_key:
+                des_ips = list(set(victim_ips)  - set([containers_ips[container_key]]))
+                TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(bening_patterns)} {random.choice(des_ips)} --repeat 10" 
 
 
 if __name__ == "__main__":
@@ -352,9 +363,10 @@ if __name__ == "__main__":
     config_file_path = "../smartville.yaml"
     config_dict = read_config(config_file_path)
     # setting global vars for commodity:
-    TERMINAL_ISSUER_PATH = config_dict['base_params']['terminal_issuer_path']  
+    TERMINAL_ISSUER_PATH = config_dict['base_params']['terminal_issuer_path'] 
+    refresh_containers() 
     init_traffic_stuff()
-    refresh_containers()
+    
         
     PORT = 7777
 
@@ -367,79 +379,30 @@ if __name__ == "__main__":
                 self.end_headers()
                 response = {'message': 'Containers refreshed!'}
                 self.wfile.write(json.dumps(response).encode())
+            if self.path == '/launch_traffic':
+                launch_traffic()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {'message': 'Traffic launched!'}
+                self.wfile.write(json.dumps(response).encode())
+            if self.path == '/stop_traffic':
+                stop_traffic()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {'message': 'Traffic stopped!'}
+                self.wfile.write(json.dumps(response).encode())
+            if self.path == '/fix_traffic':
+                verify_traffic(restart=True)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {'message': 'Traffic fixed!'}
+                self.wfile.write(json.dumps(response).encode())
             else:
                 super().do_GET()
 
     with socketserver.TCPServer(("", PORT), MyRequestHandler) as httpd:
         print(f"Serving at port {PORT}")
         httpd.serve_forever()
-
-    """
-    while True:
-
-        user_input = input(
-                        "Please input a character and type enter. \n" +\
-                        "'c' to launch controller services. This will: \n"+\
-                        " |---1. launch Zookeeper,                 ('zoo' option) \n"+\
-                        " |---2. launch Prometheus,                ('pro' option) \n"+\
-                        " |---3. launch Grafana ,                  ('gra' option) \n"+\
-                        " |---4. delete previous Kafka logs,       ('dkl' option) \n"+\
-                        " |---5. launch Kafka,                     ('kaf' option) \n"+\
-                        " |---6. launch Grafana GUI on browser,    ('dash' option) \n"+\
-                        " ________________________________________________________________\n"+\
-                        "\n"+\
-                        "'s' to send all traffic patterns from nodes.\n"+\
-                        " ________________________________________________________________"+\
-                        "\n"+\
-                        "'v' to verify all traffic patterns from nodes.\n"+\
-                        " ________________________________________________________________"+\
-                        "\n"+\
-                        "'f' to fix all traffic patterns from nodes.\n"+\
-                        " ________________________________________________________________"+\
-                        "\n"+\
-                        "'e' to end all traffic patterns from nodes.\n"+\
-                        " ________________________________________________________________"+\
-                        "\n"+\
-                        "'t' to initiate training at controller.\n"+\
-                        " ________________________________________________________________"+\
-                        "\n"+\
-                        "'m' to send node features from all nodes, \n"+\
-                        " ________________________________________________________________"+\
-                        "\n"+\
-                        "'q' to quit. \n"+\
-                        " ________________________________________________________________\n"+\
-                        " Your input: ")
-                    
-        
-        if user_input == 's':
-            launch_traffic()
-        elif user_input == 'e':
-            stop_traffic()
-        elif user_input == 'v':
-            verify_traffic()
-        elif user_input == 'f':
-            verify_traffic(restart=True)
-        elif user_input == 'm':
-            launch_metrics()
-        elif user_input == 'c':
-            launch_controller_processes(containers_dict['pox-controller-1'])
-        elif user_input == 't':
-            start_training(containers_dict['pox-controller-1'])
-        elif user_input == 'pro':
-            print(launch_prometheus_detached(containers_dict['pox-controller-1']))
-        elif user_input == 'gra':
-            print(launch_grafana_detached(containers_dict['pox-controller-1']))
-        elif user_input == 'dash':
-            print(launch_brower_consoles(containers_dict['pox-controller-1']))
-        elif user_input == 'zoo':
-            print(launch_zookeeper_detached(containers_dict['pox-controller-1']))
-        elif user_input == 'kaf':
-            print(launch_kafka_detached(containers_dict['pox-controller-1']))
-        elif user_input == 'dkl':
-            print(delete_kafka_logs(containers_dict['pox-controller-1']))
-        elif user_input == 'q':
-            print('Bye Bye!')
-            break
-        else:
-            print=('Invalid Option!')
-    """
