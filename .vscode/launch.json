@@ -33,7 +33,7 @@
             "name": "Star Topology Generation",
             "type": "python",
             "request": "launch",
-            "program": "utils/star_topology.py",
+            "program": "utils/star_topology_dista_server.py",
             "args": [
                 "--project=gns3",
                 "--n_attackers=3", // the minimum number of attackers to have 1 known , 1 Zda and 1 Test Zda
@@ -74,6 +74,15 @@
             "type": "python",
             "request": "launch",
             "program": "container_manager.py",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/utils",  // Set the current working directory here
+
+        },
+        {
+            "name": "Dev Container Manager",
+            "type": "python",
+            "request": "launch",
+            "program": "tiger_container_manager.py",
             "justMyCode": true,
             "cwd": "${workspaceFolder}/utils",  // Set the current working directory here
 
