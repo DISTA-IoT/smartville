@@ -22,7 +22,9 @@ import subprocess
 import json
 import random
 import yaml
-
+import http.server
+import socketserver
+import json
 
 config_dict = {
     'base_params': {
@@ -353,8 +355,26 @@ if __name__ == "__main__":
     TERMINAL_ISSUER_PATH = config_dict['base_params']['terminal_issuer_path']  
     init_traffic_stuff()
     refresh_containers()
-    
+        
+    PORT = 7777
 
+    class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/refresh_containers':
+                refresh_containers()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {'message': 'Containers refreshed!'}
+                self.wfile.write(json.dumps(response).encode())
+            else:
+                super().do_GET()
+
+    with socketserver.TCPServer(("", PORT), MyRequestHandler) as httpd:
+        print(f"Serving at port {PORT}")
+        httpd.serve_forever()
+
+    """
     while True:
 
         user_input = input(
@@ -422,3 +442,4 @@ if __name__ == "__main__":
             break
         else:
             print=('Invalid Option!')
+    """
