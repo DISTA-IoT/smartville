@@ -375,6 +375,18 @@ def init_traffic_stuff():
                 TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(bening_patterns)} {random.choice(des_ips)} --repeat 10" 
 
 
+def create_init_labels_dict():
+    init_labels_dict = {}
+    for container_key, ip_addr in containers_ips.items():
+        curr_label = ''
+        if 'controller' not in container_key and 'switch' not in container_key:
+            curr_label = TRAFFIC_DICT[container_key].split(' ')[2]
+            if 'victim' in container_key:
+                curr_label += ' (Bening)'
+            init_labels_dict[ip_addr] = curr_label
+    return init_labels_dict
+
+
 if __name__ == "__main__":
     print("\n________________________________________________________________\n\n"+\
           "               SMARTVILLE Container Manager \n" +\
@@ -426,10 +438,7 @@ if __name__ == "__main__":
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                response_obj = {}
-                for container_key, ip_addr in containers_ips.items():
-                    if 'controller' not in container_key and 'switch' not in container_key:
-                        response_obj[ip_addr] = TRAFFIC_DICT[container_key].split(' ')[2]  
+                response_obj = create_init_labels_dict()
                 self.wfile.write(json.dumps(response_obj).encode())
             elif self.path == '/init_prices':
                 self.send_response(200)
