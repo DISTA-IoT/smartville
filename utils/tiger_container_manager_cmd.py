@@ -247,6 +247,7 @@ def run_command_in_container(container, command):
 
 
 def launch_traffic():
+    response_str = ""
     args =[] 
     for container_key, container_obj in containers_dict.items():
         if 'attacker' in container_key or 'victim' in container_key:
@@ -255,9 +256,28 @@ def launch_traffic():
             print(f"{container_key} ({container_obj.name}) will launch {command_to_run}")
             args.append(f"{container_obj.id}:{container_key}:{command_to_run}")
     print('Now launching traffic:')
+    """
     for args_line in args:
         container_key, command_to_run = args_line.split(':')[1:3]
-        launch_traffic_single(container_key, command_to_run)
+        response_str += launch_traffic_single(container_key, command_to_run) + "\n"
+    return response_str
+    """
+    # Build the command to execute your Bash script with its arguments
+    command = [TERMINAL_ISSUER_PATH] + args
+    # Run the command
+    try:
+        # Run the command and capture the output
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        print(output.decode('utf-8'))  # Decode the output bytes to UTF-8 and print it
+    except subprocess.CalledProcessError as e:
+        # Handle errors if the command exits with a non-zero status
+        print(f"Error code: {e.returncode}")
+        print(f"Error output:\n{e.stderr}")
+        print(f"Standard output:\n{e.stdout}")
+    for args_line in args:
+        container_key, command_to_run = args_line.split(':')[1:3]
+        response_str += args_line.split(':')[1] + ' ' + args_line.split(':')[2]  + "\n"
+    return response_str
 
 
 def launch_traffic_single(container_key, command_to_run):
@@ -268,15 +288,20 @@ def launch_traffic_single(container_key, command_to_run):
                 f"sh -c '{command_to_run} & echo $!'", 
                 detach=True)
     if exec_result.exit_code == 0:
-        print(f"Started {pattern} traffic from {container_key} ({container_obj.name}) to {target_ip}")
+        log_str = f"Started {pattern} traffic from {container_key} ({container_obj.name}) to {target_ip}"
+        
     else:
-        print(f"Failed to start pattern {pattern} in {container_key} ({container_obj.name}). Exit code: {exec_result.exit_code}")
+        log_str = f"Failed to start pattern {pattern} in {container_key} ({container_obj.name}). Exit code: {exec_result.exit_code}"
         if exec_result.output:
             print(f"Error output: {exec_result.output.decode('utf-8')}")
-                
+    
+    print(log_str)
+    return log_str
+
 
 def verify_traffic(restart=False):
     """Verify if the pattern is actually running in the container"""
+    
     for container_key, container_obj in containers_dict.items():
         if 'openvswitch' not in container_key and 'controller' not in container_key:
             # Find and kill the Python process running the replay script
@@ -337,7 +362,7 @@ def init_traffic_stuff():
         print('traffic will be replayed from file')
         # Read dictionary from a file in JSON format
         # Modify this file to adjust it to your topology and desired pattern replay dynamics.
-        with open('preset_traffic.json', 'r') as file:
+        with open('preset_traffic_tiger.json', 'r') as file:
             TRAFFIC_DICT = json.load(file)
     else: 
         attacks = ['cc_heartbeat', 'generic_ddos', 'h_scan', 'hakai',  'torii', 'mirai', 'gafgyt', 'hajime', 'okiru', 'muhstik'] 
