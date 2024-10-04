@@ -426,11 +426,17 @@ if __name__ == "__main__":
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                response = {'message': 'Traffic fixed!'}
                 response_obj = {}
                 for container_key, ip_addr in containers_ips.items():
                     if 'controller' not in container_key and 'switch' not in container_key:
                         response_obj[ip_addr] = TRAFFIC_DICT[container_key].split(' ')[2]  
+                self.wfile.write(json.dumps(response_obj).encode())
+            elif self.path == '/init_prices':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                with open('../cti_init_prices.json', 'r') as file:
+                    response_obj = json.load(file)
                 self.wfile.write(json.dumps(response_obj).encode())
             else:
                 super().do_GET()
