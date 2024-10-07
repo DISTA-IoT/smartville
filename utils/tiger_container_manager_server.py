@@ -26,9 +26,12 @@ import http.server
 import socketserver
 import json
 
+from curricula import CLASS_LABELS, ZDA_LABELS, TEST_ZDA_LABELS
+
 config_dict = {
     'base_params': {
         'container_manager_replay_from_file': True,
+        'container_manager_curricula_from_file': True,
         'browser_path': '/usr/bin/firefox',
         'terminal_issuer_path': './terminal_issuer.sh'
     },
@@ -360,7 +363,7 @@ def init_traffic_stuff():
         print('traffic will be replayed from file')
         # Read dictionary from a file in JSON format
         # Modify this file to adjust it to your topology and desired pattern replay dynamics.
-        with open('preset_traffic_tiger.json', 'r') as file:
+        with open('preset_traffic.json', 'r') as file:
             TRAFFIC_DICT = json.load(file)
     else: 
         attacks = ['cc_heartbeat', 'generic_ddos', 'h_scan', 'hakai',  'torii', 'mirai', 'gafgyt', 'hajime', 'okiru', 'muhstik'] 
@@ -373,6 +376,21 @@ def init_traffic_stuff():
             elif 'victim' in container_key:
                 des_ips = list(set(victim_ips)  - set([containers_ips[container_key]]))
                 TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(bening_patterns)} {random.choice(des_ips)} --repeat 10" 
+
+
+def get_curricula():
+    curricula = {}
+
+    from_file = config_dict['base_params']['container_manager_curricula_from_file']  
+    if from_file:
+        print('curricula will be read from file')
+        curricula['CLASS_LABELS'] =  CLASS_LABELS
+        curricula['ZDA_LABELS'] = ZDA_LABELS
+        curricula['TEST_ZDA_LABELS'] = TEST_ZDA_LABELS   
+    else:
+        print('Random curricula is not yet implemented!')
+        assert 1 == 0
+    return curricula
 
 
 def create_init_labels_dict():
@@ -446,6 +464,12 @@ if __name__ == "__main__":
                 self.end_headers()
                 with open('../cti_init_prices.json', 'r') as file:
                     response_obj = json.load(file)
+                self.wfile.write(json.dumps(response_obj).encode())
+            elif self.path == '/curricula':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response_obj = get_curricula()
                 self.wfile.write(json.dumps(response_obj).encode())
             else:
                 super().do_GET()
