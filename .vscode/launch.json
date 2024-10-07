@@ -35,9 +35,18 @@
             "request": "launch",
             "program": "utils/star_topology_dista_server.py",
             "args": [
-                "--project=gns3",
-                "--n_attackers=3", // the minimum number of attackers to have 1 known , 1 Zda and 1 Test Zda
-                "--n_victims=2"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "DISTA DEV Star Topology Generation",
+            "type": "python",
+            "request": "launch",
+            "program": "utils/star_topology_dista_server.py",
+            "args": [
+                // "--project=gns3",
+                // "--n_attackers=3",
+                // "--n_victims=2"
             ],
             "justMyCode": true
         },
