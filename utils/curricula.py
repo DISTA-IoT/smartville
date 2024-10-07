@@ -49,9 +49,10 @@ CLASS_LABELS["192.168.1.10"] = "Hakai"
 CLASS_LABELS["192.168.1.11"] = "Torii"
 
 ####################### ZdAs group 1:
+# Must use the G1 keyword!
 
 # attacker-12
-CLASS_LABELS["192.168.1.15"] = "Okiru"
+CLASS_LABELS["192.168.1.15"] = "Okiru (ZdA G1)"
 ZDA_LABELS["192.168.1.15"] = True
 
 # attacker-4
@@ -64,6 +65,7 @@ ZDA_LABELS["192.168.1.8"] = True
 
 
 ####################### ZdAs group 2:
+# Must use the G2 keyword!
 
 # attacker-9
 CLASS_LABELS["192.168.1.12"] = "Mirai (ZdA G2)"
@@ -91,21 +93,22 @@ ZDA_LABELS["192.168.1.16"] = True
 TEST_ZDA_LABELS["192.168.1.16"] = True
 
 
-####################### Unknown benign:
+####################### Unknown benign: 
+# Must use the G2 keyword!
 
 # Victim-2
-CLASS_LABELS["192.168.1.5"] = "Hue (Bening)"
+CLASS_LABELS["192.168.1.5"] = "Hue (Bening G2) "
 ZDA_LABELS["192.168.1.5"] = True
 TEST_ZDA_LABELS["192.168.1.5"] = True
 
 # Victim-3
-CLASS_LABELS["192.168.1.6"] = "Doorlock (Bening)"
+CLASS_LABELS["192.168.1.6"] = "Doorlock (Bening G2)"
 ZDA_LABELS["192.168.1.6"] = True
 TEST_ZDA_LABELS["192.168.1.6"] = True
 
 
 # Victim-0
-CLASS_LABELS["192.168.1.3"] = "Doorlock (Bening)"
+CLASS_LABELS["192.168.1.3"] = "Doorlock (Bening G2)"
 ZDA_LABELS["192.168.1.3"] = True
 TEST_ZDA_LABELS["192.168.1.3"] = True
 
