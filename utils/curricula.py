@@ -38,7 +38,7 @@ TEST_ZDA_LABELS = defaultdict(lambda: False)
 ####################### Known Benign Traffic: 
 
 # Victim-1
-CLASS_LABELS["192.168.1.4"] = "Echo (Bening)"
+CLASS_LABELS["192.168.1.5"] = "Hue (Bening)"
 
 ####################### Known attacks: 
 
@@ -97,9 +97,9 @@ TEST_ZDA_LABELS["192.168.1.16"] = True
 # Must use the G2 keyword!
 
 # Victim-2
-CLASS_LABELS["192.168.1.5"] = "Hue (Bening G2) "
-ZDA_LABELS["192.168.1.5"] = True
-TEST_ZDA_LABELS["192.168.1.5"] = True
+CLASS_LABELS["192.168.1.4"] = "Echo (Bening G2)"
+ZDA_LABELS["192.168.1.4"] = True
+TEST_ZDA_LABELS["192.168.1.4"] = True
 
 # Victim-3
 CLASS_LABELS["192.168.1.6"] = "Doorlock (Bening G2)"
