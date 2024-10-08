@@ -458,11 +458,11 @@ if __name__ == "__main__":
                 self.end_headers()
                 response_obj = create_init_labels_dict()
                 self.wfile.write(json.dumps(response_obj).encode())
-            elif self.path == '/init_prices':
+            elif self.path == '/flow_rewards':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                with open('../cti_init_prices.json', 'r') as file:
+                with open('flow_rewards.json', 'r') as file:
                     response_obj = json.load(file)
                 self.wfile.write(json.dumps(response_obj).encode())
             elif self.path == '/curricula':
