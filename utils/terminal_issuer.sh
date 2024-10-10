@@ -30,6 +30,11 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+# Check if xterm is installed
+if ! command -v xterm &> /dev/null; then
+    echo "xterm is not installed. Please install xterm to use this script."
+    exit 1
+fi
 
 # Parse the arguments into an array
 containers_and_commands=("$@")
@@ -45,7 +50,9 @@ for arg in "${containers_and_commands[@]}"; do
     command=$(echo "$arg" | cut -d ':' -f 3-)
 
     # Launch a new terminal window and execute the command in the container
-    gnome-terminal --title "$title" -- docker exec -it "$container" bash -c "$command; bash"
-
-
+    # gnome-terminal --title "$title" -- docker exec -it "$container" bash -c "$command; bash"
+    nohup xterm -T "$title" -e "docker exec -it $container bash -c '$command; bash'"  >/dev/null 2>&1 &
 done
+
+
+exit 0
