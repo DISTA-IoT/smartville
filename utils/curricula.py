@@ -101,11 +101,6 @@ CLASS_LABELS["192.168.1.4"] = "Echo (Bening G2)"
 ZDA_LABELS["192.168.1.4"] = True
 TEST_ZDA_LABELS["192.168.1.4"] = True
 
-# Victim-3
-CLASS_LABELS["192.168.1.6"] = "Doorlock (Bening G2)"
-ZDA_LABELS["192.168.1.6"] = True
-TEST_ZDA_LABELS["192.168.1.6"] = True
-
 
 # Victim-0
 CLASS_LABELS["192.168.1.3"] = "Doorlock (Bening G2)"

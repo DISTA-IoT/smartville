@@ -294,7 +294,7 @@ if __name__ == "__main__":
     parser.add_argument("--contr_start", help="Controller's Start Command.  (Default is \"sh\")\n "+ \
                         "Could also be:  \"./pox.py samples.pretty_log smartController.smartController\"", default="sh")
     parser.add_argument("--n_attackers", type=int, default=10, help="Number of attacker nodes in the topology. Default: 10")
-    parser.add_argument("--n_victims", type=int, default=4, help="Number of victim nodes in the topology. Default: 4")
+    parser.add_argument("--n_victims", type=int, default=3, help="Number of victim nodes in the topology. Default: 3")
 
 
     parser.add_argument("--use_gns3_config_file", type=bool, default=True, help="Grab GNS3 Server configurations from file. Default: True")
