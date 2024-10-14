@@ -283,9 +283,11 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
         note = {Accessed: YYYY-MM-DD} 
         }
 
-    @techreport{cevallos2024asap,
-        title = {ASAP: Automatic Synthesis of Attack Prototypes, an Online-Learning, End-to-End Approach},
-        author = {Cevallos, Jesus and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
-        year = {2024}, 
-        note = {Under review}
-        }
+    @article{cevallos2024asap,
+      title={ASAP: Automatic Synthesis of Attack Prototypes, an online-learning, end-to-end approach},
+      author={Cevallos, Jesus and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
+      journal={Computer Networks},
+      pages={110828},
+      year={2024},
+      publisher={Elsevier}
+    }
