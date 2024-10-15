@@ -37,66 +37,66 @@ TEST_ZDA_LABELS = defaultdict(lambda: False)
 
 ####################### Known Benign Traffic: 
 
-# Victim-1
+# Victim-2
 CLASS_LABELS["192.168.1.5"] = "Hue (Bening)"
 
 ####################### Known attacks: 
 
-# attacker-7
-CLASS_LABELS["192.168.1.10"] = "Hakai"
+# attacker-6
+CLASS_LABELS["192.168.1.9"] = "Hakai"
 
-# attacker-8
-CLASS_LABELS["192.168.1.11"] = "Torii"
+# attacker-7
+CLASS_LABELS["192.168.1.10"] = "Torii"
 
 ####################### ZdAs group 1:
 # Must use the G1 keyword!
 
-# attacker-12
-CLASS_LABELS["192.168.1.15"] = "Okiru (ZdA G1)"
-ZDA_LABELS["192.168.1.15"] = True
+# attacker-11
+CLASS_LABELS["192.168.1.14"] = "Okiru (ZdA G1)"
+ZDA_LABELS["192.168.1.14"] = True
+
+# attacker-3
+CLASS_LABELS["192.168.1.6"] = "CC_HeartBeat (ZdA G1)"
+ZDA_LABELS["192.168.1.6"] = True
 
 # attacker-4
-CLASS_LABELS["192.168.1.7"] = "CC_HeartBeat (ZdA G1)"
+CLASS_LABELS["192.168.1.7"] = "Gen_DDoS (ZdA G1)"
 ZDA_LABELS["192.168.1.7"] = True
-
-# attacker-5
-CLASS_LABELS["192.168.1.8"] = "Gen_DDoS (ZdA G1)"
-ZDA_LABELS["192.168.1.8"] = True
 
 
 ####################### ZdAs group 2:
 # Must use the G2 keyword!
 
+# attacker-8
+CLASS_LABELS["192.168.1.11"] = "Mirai (ZdA G2)"
+ZDA_LABELS["192.168.1.11"] = True
+TEST_ZDA_LABELS["192.168.1.11"] = True
+
 # attacker-9
-CLASS_LABELS["192.168.1.12"] = "Mirai (ZdA G2)"
+CLASS_LABELS["192.168.1.12"] = "Gafgyt (ZdA G2)"
 ZDA_LABELS["192.168.1.12"] = True
 TEST_ZDA_LABELS["192.168.1.12"] = True
 
 # attacker-10
-CLASS_LABELS["192.168.1.13"] = "Gafgyt (ZdA G2)"
+CLASS_LABELS["192.168.1.13"] = "Hajime (ZdA G2)"
 ZDA_LABELS["192.168.1.13"] = True
 TEST_ZDA_LABELS["192.168.1.13"] = True
 
-# attacker-11
-CLASS_LABELS["192.168.1.14"] = "Hajime (ZdA G2)"
-ZDA_LABELS["192.168.1.14"] = True
-TEST_ZDA_LABELS["192.168.1.14"] = True
+# attacker-5
+CLASS_LABELS["192.168.1.8"] = "H_Scan (ZdA G2)"
+ZDA_LABELS["192.168.1.8"] = True
+TEST_ZDA_LABELS["192.168.1.8"] = True
 
-# attacker-6
-CLASS_LABELS["192.168.1.9"] = "H_Scan (ZdA G2)"
-ZDA_LABELS["192.168.1.9"] = True
-TEST_ZDA_LABELS["192.168.1.9"] = True
-
-# attacker-13
-CLASS_LABELS["192.168.1.16"] = "Muhstik (ZdA G2)"
-ZDA_LABELS["192.168.1.16"] = True
-TEST_ZDA_LABELS["192.168.1.16"] = True
+# attacker-12
+CLASS_LABELS["192.168.1.15"] = "Muhstik (ZdA G2)"
+ZDA_LABELS["192.168.1.15"] = True
+TEST_ZDA_LABELS["192.168.1.15"] = True
 
 
 ####################### Unknown benign: 
 # Must use the G2 keyword!
 
-# Victim-2
+# Victim-1
 CLASS_LABELS["192.168.1.4"] = "Echo (Bening G2)"
 ZDA_LABELS["192.168.1.4"] = True
 TEST_ZDA_LABELS["192.168.1.4"] = True
