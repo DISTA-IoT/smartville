@@ -366,7 +366,7 @@ def init_traffic_stuff():
             TRAFFIC_DICT = json.load(file)
     else: 
         attacks = ['cc_heartbeat', 'generic_ddos', 'h_scan', 'hakai',  'torii', 'mirai', 'gafgyt', 'hajime', 'okiru', 'muhstik'] 
-        bening_patterns =['echo', 'doorlock', 'hue']
+        benign_patterns =['echo', 'doorlock', 'hue']
         victim_ips = [item[1] for item in containers_ips.items() if 'victim' in item[0]]
 
         for container_key in containers_dict:
@@ -374,7 +374,7 @@ def init_traffic_stuff():
                 TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(attacks)} {random.choice(victim_ips)} --repeat 10"
             elif 'victim' in container_key:
                 des_ips = list(set(victim_ips)  - set([containers_ips[container_key]]))
-                TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(bening_patterns)} {random.choice(des_ips)} --repeat 10" 
+                TRAFFIC_DICT[container_key] = f"python3 replay.py {random.choice(benign_patterns)} {random.choice(des_ips)} --repeat 10" 
 
 
 if __name__ == "__main__":

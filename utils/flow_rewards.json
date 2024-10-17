@@ -1,9 +1,9 @@
 {
-    "Echo (Bening G2)": 0.005, 
+    "Echo (Benign G2)": 0.005, 
     "Hakai": -0.010,
     "Mirai (ZdA G2)": -0.020,
     "Hajime (ZdA G2)": -0.013,
-    "Doorlock (Bening G2)": 0.01,
+    "Doorlock (Benign G2)": 0.01,
     "Gafgyt (ZdA G2)": -0.025,
     "Muhstik (ZdA G2)": -0.036,
     "H_Scan (ZdA G2)": -0.017,
@@ -11,5 +11,5 @@
     "Gen_DDoS (ZdA G1)": -0.029, 
     "Torii": -0.021, 
     "CC_HeartBeat (ZdA G1)": -0.031,
-    "Hue (Bening)": 0.01
+    "Hue (Benign)": 0.01
 }

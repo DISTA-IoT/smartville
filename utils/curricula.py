@@ -25,7 +25,7 @@ By doing so, IP addresses are labelled using the name of the attack (in the mult
 Or simply "attack" in the binary classification setting.
 """
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-CLASS_LABELS= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+CLASS_LABELS= defaultdict(lambda: "Benign") # class "benign" is default and is reserved for leggittimate traffic. 
 ZDA_LABELS = defaultdict(lambda: False) 
 TEST_ZDA_LABELS = defaultdict(lambda: False) 
 
@@ -38,7 +38,7 @@ TEST_ZDA_LABELS = defaultdict(lambda: False)
 ####################### Known Benign Traffic: 
 
 # Victim-2
-CLASS_LABELS["192.168.1.5"] = "Hue (Bening)"
+CLASS_LABELS["192.168.1.5"] = "Hue (Benign)"
 
 ####################### Known attacks: 
 
@@ -97,13 +97,13 @@ TEST_ZDA_LABELS["192.168.1.15"] = True
 # Must use the G2 keyword!
 
 # Victim-1
-CLASS_LABELS["192.168.1.4"] = "Echo (Bening G2)"
+CLASS_LABELS["192.168.1.4"] = "Echo (Benign G2)"
 ZDA_LABELS["192.168.1.4"] = True
 TEST_ZDA_LABELS["192.168.1.4"] = True
 
 
 # Victim-0
-CLASS_LABELS["192.168.1.3"] = "Doorlock (Bening G2)"
+CLASS_LABELS["192.168.1.3"] = "Doorlock (Benign G2)"
 ZDA_LABELS["192.168.1.3"] = True
 TEST_ZDA_LABELS["192.168.1.3"] = True
 
@@ -116,26 +116,26 @@ TEST_ZDA_LABELS["192.168.1.3"] = True
 #########################################################################################################
  
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-AC0_TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+AC0_TRAINING_LABELS_DICT= defaultdict(lambda: "Benign") # class "Benign" is default and is reserved for leggittimate traffic. 
 AC0_ZDA_DICT = defaultdict(lambda: False) 
 AC0_TEST_ZDA_DICT = defaultdict(lambda: False) 
 
 ####################### Benign Traffic: 
 """
 # Victim-0
-AC0_TRAINING_LABELS_DICT["192.168.1.3"] = "Doorlock (Bening)"
+AC0_TRAINING_LABELS_DICT["192.168.1.3"] = "Doorlock (Benign)"
 
 # Victim-1
-AC0_TRAINING_LABELS_DICT["192.168.1.4"] = "Echo (Bening)"
+AC0_TRAINING_LABELS_DICT["192.168.1.4"] = "Echo (Benign)"
 AC0_ZDA_DICT["192.168.1.4"] = True
 AC0_TEST_ZDA_DICT["192.168.1.4"] = True
 
 # Victim-2
-AC0_TRAINING_LABELS_DICT["192.168.1.5"] = "Hue (Bening)"
+AC0_TRAINING_LABELS_DICT["192.168.1.5"] = "Hue (Benign)"
 AC0_ZDA_DICT["192.168.1.5"] = True
 
 # Victim-3
-AC0_TRAINING_LABELS_DICT["192.168.1.6"] = "Doorlock (Bening)"
+AC0_TRAINING_LABELS_DICT["192.168.1.6"] = "Doorlock (Benign)"
 """
 
 ####################### Known attacks: 
@@ -191,26 +191,26 @@ AC0_TEST_ZDA_DICT["192.168.1.16"] = True
 #########################################################################################################
  
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-AC1_TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+AC1_TRAINING_LABELS_DICT= defaultdict(lambda: "Benign") # class "Benign" is default and is reserved for leggittimate traffic. 
 AC1_ZDA_DICT = defaultdict(lambda: False) 
 AC1_TEST_ZDA_DICT = defaultdict(lambda: False) 
 
 ####################### Benign Traffic: 
 """
 # Victim-0
-AC1_TRAINING_LABELS_DICT["192.168.1.3"] = "Doorlock (Bening)"
+AC1_TRAINING_LABELS_DICT["192.168.1.3"] = "Doorlock (Benign)"
 AC1_ZDA_DICT["192.168.1.3"] = True
 AC1_TEST_ZDA_DICT["192.168.1.3"] = True
 
 # Victim-1
-AC1_TRAINING_LABELS_DICT["192.168.1.4"] = "Echo (Bening)"
+AC1_TRAINING_LABELS_DICT["192.168.1.4"] = "Echo (Benign)"
 
 # Victim-2
-AC1_TRAINING_LABELS_DICT["192.168.1.5"] = "Hue (Bening)"
+AC1_TRAINING_LABELS_DICT["192.168.1.5"] = "Hue (Benign)"
 AC1_ZDA_DICT["192.168.1.5"] = True
 
 # Victim-3
-AC1_TRAINING_LABELS_DICT["192.168.1.6"] = "Doorlock (Bening)"
+AC1_TRAINING_LABELS_DICT["192.168.1.6"] = "Doorlock (Benign)"
 AC1_ZDA_DICT["192.168.1.6"] = True
 AC1_TEST_ZDA_DICT["192.168.1.6"] = True
 """
@@ -269,7 +269,7 @@ AC1_TEST_ZDA_DICT["192.168.1.16"] = True
 ######################################################################################################### 
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-AC2_TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+AC2_TRAINING_LABELS_DICT= defaultdict(lambda: "Benign") # class "Benign" is default and is reserved for leggittimate traffic. 
 AC2_ZDA_DICT = defaultdict(lambda: False) 
 AC2_TEST_ZDA_DICT = defaultdict(lambda: False) 
 
@@ -277,19 +277,19 @@ AC2_TEST_ZDA_DICT = defaultdict(lambda: False)
 ####################### Benign Traffic: 
 """
 # Victim-0
-AC2_TRAINING_LABELS_DICT["192.168.1.3"] = "Doorlock (Bening)"
+AC2_TRAINING_LABELS_DICT["192.168.1.3"] = "Doorlock (Benign)"
 
 # Victim-1
-AC2_TRAINING_LABELS_DICT["192.168.1.4"] = "Echo (Bening)"
+AC2_TRAINING_LABELS_DICT["192.168.1.4"] = "Echo (Benign)"
 AC2_ZDA_DICT["192.168.1.4"] = True
 
 # Victim-2
-AC2_TRAINING_LABELS_DICT["192.168.1.5"] = "Hue (Bening)"
+AC2_TRAINING_LABELS_DICT["192.168.1.5"] = "Hue (Benign)"
 AC2_ZDA_DICT["192.168.1.5"] = True
 AC2_TEST_ZDA_DICT["192.168.1.5"] = True
 
 # Victim-3
-AC2_TRAINING_LABELS_DICT["192.168.1.6"] = "Doorlock (Bening)"
+AC2_TRAINING_LABELS_DICT["192.168.1.6"] = "Doorlock (Benign)"
 """
 
 ####################### Known attacks: 
@@ -348,7 +348,7 @@ AC2_TEST_ZDA_DICT["192.168.1.11"] = True
 ######################################################################################################### 
 
 # IpV4 attackers (for training purposes) Also victim response flows are considered infected
-CUSTOM_TRAINING_LABELS_DICT= defaultdict(lambda: "Bening") # class "bening" is default and is reserved for leggittimate traffic. 
+CUSTOM_TRAINING_LABELS_DICT= defaultdict(lambda: "Benign") # class "Benign" is default and is reserved for leggittimate traffic. 
 CUSTOM_ZDA_DICT = defaultdict(lambda: False) 
 CUSTOM_TEST_ZDA_DICT = defaultdict(lambda: False) 
 

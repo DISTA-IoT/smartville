@@ -7,7 +7,7 @@
     "attacker-5": "python3 replay.py h_scan 192.168.1.5 --repeat 10",
     "attacker-6": "python3 replay.py hakai 192.168.1.4 --repeat 10",
     "attacker-7": "python3 replay.py torii 192.168.1.4 --repeat 1",
-    "attacker-8": "python3 replay.py mirai 192.168.1.5 --repeat 10",
+    "attacker-8": "python3 replay.py mirai 192.168.1.5 --repeat 1",
     "attacker-9": "python3 replay.py gafgyt 192.168.1.3 --repeat 1",
     "attacker-10": "python3 replay.py hajime 192.168.1.5 --repeat 5",
     "attacker-11": "python3 replay.py okiru 192.168.1.5 --repeat 10",
