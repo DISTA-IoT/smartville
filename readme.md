@@ -1,7 +1,36 @@
 # Smartville
 ![alt text](./readme_imgs/smartville.png)
 
-**This is the official SmartVille repository**
+**This is the official SmartVille repository, it also contains the official implementation of the TIGER environment and the ASAP framework. If you find our repository useful, please cite us!**
+
+## Citations
+    @misc{cevallos2024smartville,
+        title = {Smartville: an open-source SDN online-intrusion detection testbed},
+        author = {Cevallos, Jesus and Iannello, Stefano and Grattacaso, Giuseppe and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
+        year = {2024}, 
+        url = {https://github.com/DISTA-IoT/smartville/tree/release_1.0},
+        note = {Accessed: YYYY-MM-DD} 
+        }
+
+    @article{cevallos2024asap,
+        title={ASAP: Automatic Synthesis of Attack Prototypes, an online-learning, end-to-end approach},
+        author={Cevallos, Jesus and Rizzardi, Alessandra and Sicari, Sabrina and Porisini, Alberto Coen and others},
+        journal={Computer Networks},
+        pages={110828},
+        year={2024},
+        publisher={Elsevier}
+        }
+
+    @misc{cevallos2024tiger,
+        title = {TIGER: an open-source cyber-Threat Intelligence Game Environment for Reinforcement learning},
+        author = {Cevallos, Jesus and Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
+        year = {2024}, 
+        url = {https://github.com/DISTA-IoT/smartville},
+        note = {Accessed: YYYY-MM-DD} 
+        }
+
+## Overview:
+
 
 Smartville is an open-source testbed based on GNS3, Pytorch, and Docker for training and testing online intrusion detection systems based on machine learning. 
 
@@ -274,18 +303,3 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated
 
 
-## Citations
-    @misc{cevallos2024smartville,
-        title = {Smartville: an open-source SDN online-intrusion detection testbed},
-        author = {Cevallos, Jesus and Iannello, Stefano and Grattacaso, Giuseppe and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
-        year = {2024}, 
-        url = {https://github.com/DISTA-IoT/smartville},
-        note = {Accessed: YYYY-MM-DD} 
-        }
-
-    @techreport{cevallos2024asap,
-        title = {ASAP: Automatic Synthesis of Attack Prototypes, an Online-Learning, End-to-End Approach},
-        author = {Cevallos, Jesus and Rizzardi, Alessandra and Sicari, Sabrina and Coen-Porisini, Alberto},
-        year = {2024}, 
-        note = {Under review}
-        }
