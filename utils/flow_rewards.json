@@ -1,15 +1,15 @@
 {
-    "Echo (Benign G2)": 0.005, 
-    "Hakai": -0.010,
-    "Mirai (ZdA G2)": -0.020,
-    "Hajime (ZdA G2)": -0.013,
-    "Doorlock (Benign G2)": 0.01,
-    "Gafgyt (ZdA G2)": -0.025,
-    "Muhstik (ZdA G2)": -0.036,
-    "H_Scan (ZdA G2)": -0.017,
-    "Okiru (ZdA G1)": -0.048,
-    "Gen_DDoS (ZdA G1)": -0.029, 
-    "Torii": -0.021, 
-    "CC_HeartBeat (ZdA G1)": -0.031,
-    "Hue (Benign)": 0.01
+    "Echo (Benign G2)": 0.02, 
+    "Hakai": -0.10,
+    "Mirai (ZdA G2)": -0.20,
+    "Hajime (ZdA G2)": -0.13,
+    "Doorlock (Benign G2)": 0.05,
+    "Gafgyt (ZdA G2)": -0.25,
+    "Muhstik (ZdA G2)": -0.36,
+    "H_Scan (ZdA G2)": -0.17,
+    "Okiru (ZdA G1)": -0.48,
+    "Gen_DDoS (ZdA G1)": -0.29, 
+    "Torii": -0.21, 
+    "CC_HeartBeat (ZdA G1)": -0.31,
+    "Hue (Benign)": 0.05
 }
